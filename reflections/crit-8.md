@@ -2,32 +2,30 @@
 
 ## The breakthrough
 
-Checking the design against the spec before building it, instead of checking
-the build against the spec afterwards.
+Putting the spec next to the design before either one existed in code.
 
-My first concept was stricter than the one that shipped: a mark would persist
-*only* if someone else was present to witness it. Co-presence wouldn't be a
-feature, it would be the storage rule. I still think it's the more elegant
-statement of the idea. It is also incompatible with the one line C8 actually
-checks — that a stranger can visit, do the core thing, and find their trace
-still there when they come back. A lone visitor's mark would have disappeared
-by design, and no marker would read that as an argument; they'd read it as a
-broken app.
+My first version of this app was stricter. A mark would persist only if
+somebody else was there when it was made — co-presence as the storage rule
+rather than a feature on top of one. I still think that's the better sentence.
+It also breaks the one line C8 actually checks: a stranger visits, does the
+core thing, comes back, and the trace is still there. Mine would have deleted
+it. Not as a bug — as the design working exactly as written.
 
-What caught it was putting the spec and the design side by side and asking
-which lines each other violated, before any code existed. The fix was better
-than the original: nothing is deleted for lacking a witness, it's persisted and
-labelled. Asserted and corroborated became two states the app refuses to
-collapse, which says the thing I wanted to say more precisely than disappearing
-ever did.
+I caught it by reading the spec and the design side by side and looking for
+the line where they contradicted each other. That took about ten minutes. It
+would have cost me the week.
+
+The replacement is better than what it replaced. Nothing is deleted for
+lacking a witness now; it's kept and labelled. Asserted and corroborated are
+two states the app refuses to merge, and that says the thing I wanted to say
+more exactly than deleting it ever did.
 
 ## What it changed
 
-Every week so far I've verified the *output* — the rendered page, the audio
-graph, the test that couldn't fail. This week the same instinct moved earlier,
-onto the plan. An idea can be coherent, elegant, mine, and still wrong against
-the contract it has to satisfy, and that's cheapest to discover while it's
-still a paragraph.
+Every week so far I've checked the work after building it — the page at
+390×844, the pitch the synth actually produced, the test that turned out to be
+impossible to fail. This is the first week the checking happened before the
+building instead of after it.
 
-I want to be the kind of developer who reads the contract before falling in
-love with the design.
+It's much cheaper there. I don't think I'd have known to do it without seven
+weeks of doing it the expensive way first.
