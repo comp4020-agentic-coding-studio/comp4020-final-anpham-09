@@ -2,6 +2,11 @@ node_modules/
 dist/
 *.log
 
+# the local SQLite file. Production's lives on the Fly volume at /data; this
+# one is a dev scratch database and must never be committed — it is state,
+# not source, and it would ship into the image.
+.data/
+
 # editor and OS junk
 .DS_Store
 ._*
@@ -20,3 +25,7 @@ mise.local.toml
 # your course API key, and this repo goes public when you ship. Your tracked
 # harness is CLAUDE.md (and any AGENTS.md), not this directory.
 .claude/
+
+# JetBrains project files: machine-local, and they record absolute paths from
+# this checkout. This repo goes public.
+.idea/

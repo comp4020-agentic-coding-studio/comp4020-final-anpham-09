@@ -1,18 +1,34 @@
 # syntax = docker/dockerfile:1
 
-# A placeholder, and yours to replace: it serves one page, plus README.md
-# verbatim at /readme/, which is enough to prove the deploy path end to end.
-# Whatever your app is built with, the image that replaces this one must serve
-# HTTP on 0.0.0.0:$PORT (fly.toml sets PORT) and publish README.md at /readme/
-# (spec/README.md says what's checked).
+# Node runs the TypeScript directly (type stripping, Node 24), so there is no
+# build step and no emitted bundle: what runs in production is the same source
+# the tests import. `tsc --noEmit` is the typecheck; it never emits.
+#
+# The image must serve HTTP on 0.0.0.0:$PORT (fly.toml sets PORT) and publish
+# README.md at /readme/ — see spec/README.md for what's checked.
 
-FROM docker.io/library/busybox:1.38.0
-COPY placeholder/ /src/
-COPY README.md /src/
-# README.md goes into the page as-is, HTML-escaped, in place of @README@;
-# rendering it properly is your app's job
-RUN mkdir -p /site/readme \
-    && cp /src/index.html /site/ \
-    && sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g' /src/README.md > /src/body \
-    && sed -e '/@README@/{r /src/body' -e 'd}' /src/readme.html > /site/readme/index.html
-CMD ["sh", "-c", "exec httpd -f -p 0.0.0.0:${PORT:-8080} -h /site"]
+ARG NODE_VERSION=24
+FROM node:${NODE_VERSION}-slim AS base
+WORKDIR /app
+ENV NODE_ENV=production
+ARG PNPM_VERSION=11.18.0
+RUN npm install -g pnpm@$PNPM_VERSION
+
+# --- deps: better-sqlite3 is native. A prebuilt binary usually covers
+# linux/amd64, but the toolchain is here so a miss compiles instead of failing
+# at boot, which is the failure that only shows up after a deploy.
+FROM base AS deps
+RUN apt-get update -qq \
+    && apt-get install --no-install-recommends -y build-essential python-is-python3 \
+    && rm -rf /var/lib/apt/lists/*
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile --prod
+
+# --- runtime: production deps, the source, and the README the app publishes.
+FROM base
+COPY --from=deps /app/node_modules /app/node_modules
+COPY package.json ./
+COPY src/ /app/src/
+COPY README.md /app/README.md
+EXPOSE 8080
+CMD ["node", "src/server.ts"]

@@ -1,3 +1,10 @@
 # esbuild (used by Vitest) needs its postinstall to set up its native binary.
+#
+# better-sqlite3 is allowed to build because it is a native module and this app
+# has no other database: fly.toml gives one machine and one volume, so SQLite on
+# /data is the storage. The prebuilt binary covers the dev machine, but the
+# linux/amd64 image Fly builds may have to compile it, and a blocked build there
+# fails at boot rather than at install.
 allowBuilds:
+  better-sqlite3: true
   esbuild: true
