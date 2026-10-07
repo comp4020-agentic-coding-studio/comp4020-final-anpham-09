@@ -13,9 +13,16 @@ export function subscribe(houseSlug: string, listener: Listener): () => void {
   const set = rooms.get(houseSlug) ?? new Set<Listener>();
   set.add(listener);
   rooms.set(houseSlug, set);
+  // Read the live map rather than the Set captured above. Calling an
+  // unsubscribe twice must be harmless: if this closed over `set`, a second
+  // call after someone else re-subscribed would see the stale empty Set, and
+  // delete the *new* room out from under a live listener — a delivery lost
+  // permanently, with no error and no log line.
   return () => {
-    set.delete(listener);
-    if (set.size === 0) rooms.delete(houseSlug);
+    const current = rooms.get(houseSlug);
+    if (!current) return;
+    current.delete(listener);
+    if (current.size === 0) rooms.delete(houseSlug);
   };
 }
 

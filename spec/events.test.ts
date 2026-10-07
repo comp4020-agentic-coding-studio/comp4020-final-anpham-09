@@ -32,15 +32,29 @@ describe("the event hub", () => {
     expect(e.listenerCount("meeting")).toBe(0);
   });
 
+  it("survives an unsubscribe called twice, without orphaning a later listener", async () => {
+    const e = await boot();
+    const seen: string[] = [];
+    const stopFirst = e.subscribe("meeting", () => {});
+    stopFirst();
+    e.subscribe("meeting", (p) => seen.push(p));
+    stopFirst(); // a second cleanup for a connection that already went away
+    e.publish("meeting", "placed");
+    expect(seen).toEqual(["placed"]);
+  });
+
   it("keeps publishing to the others when one listener throws", async () => {
     const e = await boot();
     const seen: string[] = [];
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
     e.subscribe("meeting", () => {
       throw new Error("socket already closed");
     });
     e.subscribe("meeting", (p) => seen.push(p));
     expect(() => e.publish("meeting", "placed")).not.toThrow();
     expect(seen).toEqual(["placed"]);
+    expect(logged).toHaveBeenCalledTimes(1);
+    logged.mockRestore();
   });
 
   it("publishing to a house nobody is listening to is harmless", async () => {
