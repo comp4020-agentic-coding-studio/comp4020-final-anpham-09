@@ -9,7 +9,7 @@ const baseUrl = inject("baseUrl");
 // other test that places something in the SAME house within that window gets
 // an unwanted extra witness and its "in the room" assertion turns into "on
 // the shelf". Each presence-sensitive test below therefore gets its own
-// house: the form-POST test uses `cabin`, the refusal test uses `brothers`.
+// house: the form-POST test uses `canberra`, the refusal test uses `hanoi`.
 // `meeting` is left alone for Task 8's real-time tests. Do not consolidate
 // these onto one house — that reintroduces the flakiness this comment is
 // here to prevent. Each such test also leaves on its way out (see below), so
@@ -52,7 +52,7 @@ describe("what a browser gets", () => {
   it("lets someone join and then shows them the four houses", async () => {
     const s = session();
     await s.get("/");
-    const joined = await s.post("/join", { name: "Alice", home: "cabin" });
+    const joined = await s.post("/join", { name: "Alice", home: "canberra" });
     expect(joined.status).toBe(303);
     const map = await s.get("/");
     const html = await map.text();
@@ -63,17 +63,17 @@ describe("what a browser gets", () => {
   it("places a thing with a plain form POST, no JavaScript involved", async () => {
     const s = session();
     await s.get("/");
-    await s.post("/join", { name: "Alice", home: "cabin" });
+    await s.post("/join", { name: "Alice", home: "canberra" });
     try {
-      await s.get("/house/cabin");
+      await s.get("/house/canberra");
       // A body unique to this run, not just this test: "contains the text" and
       // "contains In the room" are each satisfiable by some OTHER thing already
-      // in cabin (e.g. a previous run's, on a warm database), so the assertions
+      // in canberra (e.g. a previous run's, on a warm database), so the assertions
       // below are bound to the specific <li> for the thing just placed.
       const body = `a form post works ${Date.now()}`;
-      const placed = await s.post("/place", { house: "cabin", body });
+      const placed = await s.post("/place", { house: "canberra", body });
       expect(placed.status).toBe(303);
-      const room = await (await s.get("/house/cabin/room")).text();
+      const room = await (await s.get("/house/canberra/room")).text();
       const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
       expect(item, "the thing just placed is not in the room").not.toBeNull();
       expect(item![0]).toContain("In the room");
@@ -88,24 +88,24 @@ describe("what a browser gets", () => {
   it("explains a refusal in words rather than dropping it", async () => {
     const alice = session();
     await alice.get("/");
-    await alice.post("/join", { name: "Alice", home: "cabin" });
+    await alice.post("/join", { name: "Alice", home: "canberra" });
     const bob = session();
     await bob.get("/");
-    await bob.post("/join", { name: "Bob", home: "cottage" });
+    await bob.post("/join", { name: "Bob", home: "nghe-an" });
 
     try {
-      await alice.get("/house/brothers");
-      await alice.post("/place", { house: "brothers", body: "alice put this down herself" });
+      await alice.get("/house/hanoi");
+      await alice.post("/place", { house: "hanoi", body: "alice put this down herself" });
 
       // Only a non-placer is offered the take-it-in form, so Bob's view is where
       // the thing's id is visible at all.
-      const asBob = await (await bob.get("/house/brothers/room")).text();
+      const asBob = await (await bob.get("/house/hanoi/room")).text();
       const found = /name="thing" value="(\d+)"/.exec(asBob);
       expect(found, "no take-it-in form found in Bob's view of the room").not.toBeNull();
 
       // Alice posts it by hand: the button is absent for her, and the server must
       // refuse the request anyway, in words.
-      const refused = await alice.post("/take", { thing: found![1], house: "brothers" });
+      const refused = await alice.post("/take", { thing: found![1], house: "hanoi" });
       expect(refused.status).toBe(303);
       const location = refused.headers.get("location") ?? "";
       const said = new URL(location, "http://x").searchParams.get("said") ?? "";
@@ -121,7 +121,7 @@ describe("what a browser gets", () => {
   it("answers 404 for a house that does not exist", async () => {
     const s = session();
     await s.get("/");
-    await s.post("/join", { name: "Alice", home: "cabin" });
+    await s.post("/join", { name: "Alice", home: "canberra" });
     expect((await s.get("/house/treehouse")).status).toBe(404);
   });
 });

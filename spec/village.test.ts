@@ -15,9 +15,9 @@ async function boot(): Promise<{ things: Things; people: People; presence: Prese
   vi.resetModules();
   process.env.DATABASE_PATH = dbPath;
   const people = (await import("../src/people.ts")) as People;
-  people.ensurePerson("alice", "Alice", "cabin");
-  people.ensurePerson("bob", "Bob", "cottage");
-  people.ensurePerson("cat", "Cat", "brothers");
+  people.ensurePerson("alice", "Alice", "canberra");
+  people.ensurePerson("bob", "Bob", "nghe-an");
+  people.ensurePerson("cat", "Cat", "hanoi");
   return {
     things: (await import("../src/things.ts")) as Things,
     people,

@@ -28,7 +28,7 @@ describe("the rules that live in the schema", () => {
       .prepare("SELECT slug FROM houses ORDER BY id")
       .all()
       .map((r) => (r as { slug: string }).slug);
-    expect(slugs).toEqual(["cottage", "brothers", "cabin", "meeting"]);
+    expect(slugs).toEqual(["nghe-an", "hanoi", "canberra", "meeting"]);
   });
 
   it("refuses a keeping by whoever placed the thing", async () => {

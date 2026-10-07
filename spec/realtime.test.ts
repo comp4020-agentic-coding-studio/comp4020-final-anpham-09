@@ -5,8 +5,8 @@ import { expect, inject, it, describe } from "vitest";
 // spec files in parallel. Houses are therefore allocated across the suite so
 // one file's witness cannot silently flip another file's "in the room" into
 // "on the shelf" (spec/routes.test.ts carries the full table). This file owns
-// `meeting` (the real-time stream check) and `cottage` (the witness check) —
-// do not reuse `brothers` or `cabin`, which belong to spec/routes.test.ts.
+// `meeting` (the real-time stream check) and `nghe-an` (the witness check) —
+// do not reuse `hanoi` or `canberra`, which belong to spec/routes.test.ts.
 // Each test that enters a house leaves on its way out, below, so the suite is
 // safely re-runnable without waiting out the TTL.
 
@@ -56,8 +56,8 @@ async function firstEvent(cookie: string, house: string, withinMs: number): Prom
 
 describe("real-time, by the brief's definition", () => {
   it("shows one person's change in another open session in under a second", async () => {
-    const alice = await join("Alice", "cabin");
-    const bob = await join("Bob", "cottage");
+    const alice = await join("Alice", "canberra");
+    const bob = await join("Bob", "nghe-an");
 
     try {
       // Bob is in the meeting house with a stream open.
@@ -88,14 +88,14 @@ describe("real-time, by the brief's definition", () => {
   });
 
   it("puts the thing on the shelf because the other person was in the room", async () => {
-    const alice = await join("Alice", "cabin");
-    // Brief said `cabin` for this test's house; `cabin` is spec/routes.test.ts's
+    const alice = await join("Alice", "canberra");
+    // Brief said `canberra` for this test's house; `canberra` is spec/routes.test.ts's
     // form-POST house, and running in parallel the two would fight over the
-    // same presence row, so this uses `cottage` instead (reserved for Task 8).
-    const bob = await join("Bob", "cottage");
+    // same presence row, so this uses `nghe-an` instead (reserved for Task 8).
+    const bob = await join("Bob", "nghe-an");
 
     try {
-      await fetch(new URL("/house/cottage", baseUrl), { headers: { cookie: bob } });
+      await fetch(new URL("/house/nghe-an", baseUrl), { headers: { cookie: bob } });
       // A body unique to this run, not just this test: against the real,
       // persistent dev database, a static body collides with whatever an
       // earlier run of this same test already placed, and `toContain` on the
@@ -107,11 +107,11 @@ describe("real-time, by the brief's definition", () => {
       await fetch(new URL("/place", baseUrl), {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded", cookie: alice },
-        body: new URLSearchParams({ house: "cottage", body }).toString(),
+        body: new URLSearchParams({ house: "nghe-an", body }).toString(),
         redirect: "manual",
       });
 
-      const room = await (await fetch(new URL("/house/cottage/room", baseUrl), { headers: { cookie: alice } })).text();
+      const room = await (await fetch(new URL("/house/nghe-an/room", baseUrl), { headers: { cookie: alice } })).text();
       const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
       expect(item, "the thing just placed is not in the room").not.toBeNull();
       expect(item![0]).toContain("On the shelf");

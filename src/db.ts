@@ -77,9 +77,9 @@ db.exec(`
 // family's three homes and the place they meet, and nothing in the app adds
 // a fifth. Seeded once; renaming later is an UPDATE, not a new row.
 const SEED: Array<[slug: string, name: string, kind: "home" | "meeting"]> = [
-  ["cottage", "The cottage", "home"],
-  ["brothers", "The brothers' house", "home"],
-  ["cabin", "The cabin", "home"],
+  ["nghe-an", "Nghe An", "home"],
+  ["hanoi", "Hanoi", "home"],
+  ["canberra", "Canberra", "home"],
   ["meeting", "The meeting house", "meeting"],
 ];
 const seed = db.prepare("INSERT OR IGNORE INTO houses (slug, name, kind) VALUES (?, ?, ?)");

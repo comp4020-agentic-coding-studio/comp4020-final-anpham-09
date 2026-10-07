@@ -22,7 +22,7 @@ describe("who is in which house", () => {
     const p = await boot();
     p.enter("alice", "meeting", 1000);
     expect(p.whoIsIn("meeting", 1000)).toEqual(["alice"]);
-    expect(p.whoIsIn("cabin", 1000)).toEqual([]);
+    expect(p.whoIsIn("canberra", 1000)).toEqual([]);
   });
 
   it("forgets someone once the TTL has passed, rather than claiming they are still there", async () => {
@@ -35,9 +35,9 @@ describe("who is in which house", () => {
   it("keeps a person in one house at a time", async () => {
     const p = await boot();
     p.enter("alice", "meeting", 1000);
-    p.enter("alice", "cabin", 1001);
+    p.enter("alice", "canberra", 1001);
     expect(p.whoIsIn("meeting", 1001)).toEqual([]);
-    expect(p.whoIsIn("cabin", 1001)).toEqual(["alice"]);
+    expect(p.whoIsIn("canberra", 1001)).toEqual(["alice"]);
   });
 
   it("drops someone on leave", async () => {
@@ -57,9 +57,9 @@ describe("who is in which house", () => {
     const p = await boot();
     p.enter("alice", "meeting", 1000);
     p.enter("bob", "meeting", 1000);
-    p.enter("cat", "cabin", 1000);
+    p.enter("cat", "canberra", 1000);
     const everywhere = p.whereEveryoneIs(1000);
     expect(everywhere.meeting.sort()).toEqual(["alice", "bob"]);
-    expect(everywhere.cabin).toEqual(["cat"]);
+    expect(everywhere.canberra).toEqual(["cat"]);
   });
 });
