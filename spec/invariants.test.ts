@@ -59,3 +59,14 @@ it("publishes README.md at /readme/", async () => {
     from = at + normalise(heading).length;
   }
 });
+
+// A `#` line inside a fenced code block is not a heading. markdown() has to
+// track fence state, or a code sample containing a shell comment becomes a
+// second <h1> on the page — breaking "one h1 per page" on the one page
+// everyone reaches first.
+it("renders exactly one <h1> on /readme/, even with fenced code in README.md", async () => {
+  const res = await fetch(new URL("/readme/", baseUrl));
+  expect(res.status).toBe(200);
+  const dom = new JSDOM(await res.text());
+  expect(dom.window.document.querySelectorAll("h1").length).toBe(1);
+});

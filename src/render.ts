@@ -216,15 +216,33 @@ export function markdown(src: string): string {
   const flush = (): void => {
     if (list.length) { out.push(`<ul>${list.map((i) => `<li>${inline(i)}</li>`).join("")}</ul>`); list = []; }
   };
+  let fenced = false;
+  const code: string[] = [];
   for (const raw of src.split("\n")) {
     const line = raw.trimEnd();
+    if (/^ {0,3}(```|~~~)/.test(line)) {
+      if (fenced) {
+        out.push(`<pre><code>${code.join("\n")}</code></pre>`);
+        code.length = 0;
+      } else {
+        flush();
+      }
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced) { code.push(esc(raw)); continue; }
     const h = /^(#{1,6})\s+(.*)$/.exec(line);
     const li = /^[-*]\s+(.*)$/.exec(line);
+    const bq = /^>\s?(.*)$/.exec(line);
     if (h) { flush(); out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); }
     else if (li) { list.push(li[1]); }
+    else if (bq) { flush(); out.push(`<blockquote>${inline(bq[1])}</blockquote>`); }
     else if (!line.trim()) { flush(); }
     else { flush(); out.push(`<p>${inline(line)}</p>`); }
   }
   flush();
+  // An unterminated fence at EOF still has to show what was captured rather
+  // than swallow it.
+  if (fenced && code.length) out.push(`<pre><code>${code.join("\n")}</code></pre>`);
   return out.join("\n");
 }
