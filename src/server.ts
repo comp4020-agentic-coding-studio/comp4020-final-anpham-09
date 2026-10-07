@@ -90,6 +90,16 @@ const server = createServer((req, res) => {
         seeOther(res, said("/", "Say who you are first — the app needs a name before you can put anything down."), setCookie);
         return;
       }
+      if (req.method === "GET" && path === "/stream") {
+        // EventSource isn't a page a person reads, so there are no words to
+        // give it. Answering 200 with the join page would make it retry
+        // forever, every ~3 seconds, with nobody ever joining from here.
+        const headers: Record<string, string> = {};
+        if (setCookie) headers["set-cookie"] = setCookie;
+        res.writeHead(204, headers);
+        res.end();
+        return;
+      }
       // No door and no password — the brief leaves who counts as a person
       // open — but the app does need something to call you.
       html(res, 200, joinPage(listHouses(), message), setCookie);
