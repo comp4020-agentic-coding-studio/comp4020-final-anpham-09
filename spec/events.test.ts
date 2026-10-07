@@ -13,12 +13,15 @@ describe("the event hub", () => {
   it("delivers to listeners of one house only", async () => {
     const e = await boot();
     const meeting: string[] = [];
-    const cabin: string[] = [];
+    const canberra: string[] = [];
     e.subscribe("meeting", (p) => meeting.push(p));
-    e.subscribe("cabin", (p) => cabin.push(p));
+    // The hub itself is a plain string-keyed map with no notion of houses; a
+    // real house name is used here only so a reader can tell the two keys
+    // apart at a glance, not because the hub cares which ones exist.
+    e.subscribe("canberra", (p) => canberra.push(p));
     e.publish("meeting", "placed");
     expect(meeting).toEqual(["placed"]);
-    expect(cabin).toEqual([]);
+    expect(canberra).toEqual([]);
   });
 
   it("stops delivering once unsubscribed", async () => {
@@ -61,7 +64,7 @@ describe("the event hub", () => {
 
   it("publishing to a house nobody is listening to is harmless", async () => {
     const e = await boot();
-    expect(() => e.publish("cabin", "placed")).not.toThrow();
-    expect(e.listenerCount("cabin")).toBe(0);
+    expect(() => e.publish("canberra", "placed")).not.toThrow();
+    expect(e.listenerCount("canberra")).toBe(0);
   });
 });
