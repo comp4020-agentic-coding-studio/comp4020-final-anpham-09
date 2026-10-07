@@ -52,9 +52,11 @@ describe("the event hub", () => {
     });
     e.subscribe("meeting", (p) => seen.push(p));
     expect(() => e.publish("meeting", "placed")).not.toThrow();
-    expect(seen).toEqual(["placed"]);
-    expect(logged).toHaveBeenCalledTimes(1);
+    const logCalls = logged.mock.calls.length;
     logged.mockRestore();
+
+    expect(seen).toEqual(["placed"]);
+    expect(logCalls).toBe(1);
   });
 
   it("publishing to a house nobody is listening to is harmless", async () => {
