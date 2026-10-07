@@ -28,6 +28,10 @@ async function join(name: string, home: string): Promise<string> {
  *  deadline. This is the brief's requirement expressed as a test. */
 async function firstEvent(cookie: string, house: string, withinMs: number): Promise<string> {
   const controller = new AbortController();
+  // The abort timer starts here, before the 100ms settle the caller waits out
+  // below, so the ceiling measured from `started` (set after the settle) is
+  // actually ~withinMs - 100 (~900ms, not 1000ms) — stricter than the brief's
+  // one second, never looser.
   const timer = setTimeout(() => controller.abort(), withinMs);
   const res = await fetch(new URL(`/stream?house=${house}`, baseUrl), {
     headers: { cookie, accept: "text/event-stream" },
@@ -55,31 +59,32 @@ describe("real-time, by the brief's definition", () => {
     const alice = await join("Alice", "cabin");
     const bob = await join("Bob", "cottage");
 
-    // Bob is in the meeting house with a stream open.
-    await fetch(new URL("/house/meeting", baseUrl), { headers: { cookie: bob } });
-    const waiting = firstEvent(bob, "meeting", 1000);
-    // Give the subscription a moment to register before Alice acts. If this
-    // test proves flaky, increase this settle — never the 1000ms deadline,
-    // which is the brief's requirement, not a knob.
-    await new Promise((r) => setTimeout(r, 100));
+    try {
+      // Bob is in the meeting house with a stream open.
+      await fetch(new URL("/house/meeting", baseUrl), { headers: { cookie: bob } });
+      const waiting = firstEvent(bob, "meeting", 1000);
+      // Give the subscription a moment to register before Alice acts. If this
+      // test proves flaky, increase this settle — never the 1000ms deadline,
+      // which is the brief's requirement, not a knob.
+      await new Promise((r) => setTimeout(r, 100));
 
-    const started = Date.now();
-    await fetch(new URL("/place", baseUrl), {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", cookie: alice },
-      body: new URLSearchParams({ house: "meeting", body: "within a second" }).toString(),
-      redirect: "manual",
-    });
+      const started = Date.now();
+      await fetch(new URL("/place", baseUrl), {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie: alice },
+        body: new URLSearchParams({ house: "meeting", body: "within a second" }).toString(),
+        redirect: "manual",
+      });
 
-    await expect(waiting).resolves.toBe("placed");
-    expect(Date.now() - started).toBeLessThan(1000);
-
-    // Leave on the way out: presence outlives the test by the 45s TTL, and a
-    // leftover witness in `meeting` would silently shelve the next run's
-    // placement there, breaking the "in the room" assumption this test and
-    // any future one built on `meeting` depends on.
-    await fetch(new URL("/leave", baseUrl), { headers: { cookie: alice } });
-    await fetch(new URL("/leave", baseUrl), { headers: { cookie: bob } });
+      await expect(waiting).resolves.toBe("placed");
+      expect(Date.now() - started).toBeLessThan(1000);
+    } finally {
+      // Presence outlives the test by the 45s TTL, and a leftover witness in
+      // `meeting` would silently shelve the next run's placement there — so
+      // leave even when an assertion above has already thrown.
+      await fetch(new URL("/leave", baseUrl), { headers: { cookie: alice } });
+      await fetch(new URL("/leave", baseUrl), { headers: { cookie: bob } });
+    }
   });
 
   it("puts the thing on the shelf because the other person was in the room", async () => {
@@ -89,30 +94,33 @@ describe("real-time, by the brief's definition", () => {
     // same presence row, so this uses `cottage` instead (reserved for Task 8).
     const bob = await join("Bob", "cottage");
 
-    await fetch(new URL("/house/cottage", baseUrl), { headers: { cookie: bob } });
-    // A body unique to this run, not just this test: against the real,
-    // persistent dev database, a static body collides with whatever an
-    // earlier run of this same test already placed, and `toContain` on the
-    // whole room page would then be satisfied by that OLD row's "On the
-    // shelf"/"Bob" even if THIS run's placement were never kept — exactly
-    // the gap routes.test.ts's own comment warns about. Scoping to the
-    // specific <li> is what makes this assertion about this placement.
-    const body = `bob was here for this ${Date.now()}`;
-    await fetch(new URL("/place", baseUrl), {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded", cookie: alice },
-      body: new URLSearchParams({ house: "cottage", body }).toString(),
-      redirect: "manual",
-    });
+    try {
+      await fetch(new URL("/house/cottage", baseUrl), { headers: { cookie: bob } });
+      // A body unique to this run, not just this test: against the real,
+      // persistent dev database, a static body collides with whatever an
+      // earlier run of this same test already placed, and `toContain` on the
+      // whole room page would then be satisfied by that OLD row's "On the
+      // shelf"/"Bob" even if THIS run's placement were never kept — exactly
+      // the gap routes.test.ts's own comment warns about. Scoping to the
+      // specific <li> is what makes this assertion about this placement.
+      const body = `bob was here for this ${Date.now()}`;
+      await fetch(new URL("/place", baseUrl), {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie: alice },
+        body: new URLSearchParams({ house: "cottage", body }).toString(),
+        redirect: "manual",
+      });
 
-    const room = await (await fetch(new URL("/house/cottage/room", baseUrl), { headers: { cookie: alice } })).text();
-    const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
-    expect(item, "the thing just placed is not in the room").not.toBeNull();
-    expect(item![0]).toContain("On the shelf");
-    expect(item![0]).toContain("Bob");
-
-    // Leave on the way out: see the comment on the first test.
-    await fetch(new URL("/leave", baseUrl), { headers: { cookie: alice } });
-    await fetch(new URL("/leave", baseUrl), { headers: { cookie: bob } });
+      const room = await (await fetch(new URL("/house/cottage/room", baseUrl), { headers: { cookie: alice } })).text();
+      const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
+      expect(item, "the thing just placed is not in the room").not.toBeNull();
+      expect(item![0]).toContain("On the shelf");
+      expect(item![0]).toContain("Bob");
+    } finally {
+      // Leave on the way out: see the comment on the first test. Only Alice
+      // and Bob entered a house here, so only they need to leave.
+      await fetch(new URL("/leave", baseUrl), { headers: { cookie: alice } });
+      await fetch(new URL("/leave", baseUrl), { headers: { cookie: bob } });
+    }
   });
 });

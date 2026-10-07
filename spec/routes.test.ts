@@ -64,48 +64,58 @@ describe("what a browser gets", () => {
     const s = session();
     await s.get("/");
     await s.post("/join", { name: "Alice", home: "cabin" });
-    await s.get("/house/cabin");
-    // A body unique to this run, not just this test: "contains the text" and
-    // "contains In the room" are each satisfiable by some OTHER thing already
-    // in cabin (e.g. a previous run's, on a warm database), so the assertions
-    // below are bound to the specific <li> for the thing just placed.
-    const body = `a form post works ${Date.now()}`;
-    const placed = await s.post("/place", { house: "cabin", body });
-    expect(placed.status).toBe(303);
-    const room = await (await s.get("/house/cabin/room")).text();
-    const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
-    expect(item, "the thing just placed is not in the room").not.toBeNull();
-    expect(item![0]).toContain("In the room");
-    // Leave on the way out: presence outlives the test by the 45s TTL, and a
-    // leftover witness would silently shelf the next run's placement.
-    await s.get("/leave");
+    try {
+      await s.get("/house/cabin");
+      // A body unique to this run, not just this test: "contains the text" and
+      // "contains In the room" are each satisfiable by some OTHER thing already
+      // in cabin (e.g. a previous run's, on a warm database), so the assertions
+      // below are bound to the specific <li> for the thing just placed.
+      const body = `a form post works ${Date.now()}`;
+      const placed = await s.post("/place", { house: "cabin", body });
+      expect(placed.status).toBe(303);
+      const room = await (await s.get("/house/cabin/room")).text();
+      const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
+      expect(item, "the thing just placed is not in the room").not.toBeNull();
+      expect(item![0]).toContain("In the room");
+    } finally {
+      // Leave on the way out: presence outlives the test by the 45s TTL, and a
+      // leftover witness would silently shelf the next run's placement — so
+      // leave even when an assertion above has already thrown.
+      await s.get("/leave");
+    }
   });
 
   it("explains a refusal in words rather than dropping it", async () => {
     const alice = session();
     await alice.get("/");
     await alice.post("/join", { name: "Alice", home: "cabin" });
-    await alice.get("/house/brothers");
-    await alice.post("/place", { house: "brothers", body: "alice put this down herself" });
-
-    // Only a non-placer is offered the take-it-in form, so Bob's view is where
-    // the thing's id is visible at all.
     const bob = session();
     await bob.get("/");
     await bob.post("/join", { name: "Bob", home: "cottage" });
-    const asBob = await (await bob.get("/house/brothers/room")).text();
-    const found = /name="thing" value="(\d+)"/.exec(asBob);
-    expect(found, "no take-it-in form found in Bob's view of the room").not.toBeNull();
 
-    // Alice posts it by hand: the button is absent for her, and the server must
-    // refuse the request anyway, in words.
-    const refused = await alice.post("/take", { thing: found![1], house: "brothers" });
-    expect(refused.status).toBe(303);
-    const location = refused.headers.get("location") ?? "";
-    const said = new URL(location, "http://x").searchParams.get("said") ?? "";
-    expect(said).toContain("two of you were there for");
-    await alice.get("/leave");
-    await bob.get("/leave");
+    try {
+      await alice.get("/house/brothers");
+      await alice.post("/place", { house: "brothers", body: "alice put this down herself" });
+
+      // Only a non-placer is offered the take-it-in form, so Bob's view is where
+      // the thing's id is visible at all.
+      const asBob = await (await bob.get("/house/brothers/room")).text();
+      const found = /name="thing" value="(\d+)"/.exec(asBob);
+      expect(found, "no take-it-in form found in Bob's view of the room").not.toBeNull();
+
+      // Alice posts it by hand: the button is absent for her, and the server must
+      // refuse the request anyway, in words.
+      const refused = await alice.post("/take", { thing: found![1], house: "brothers" });
+      expect(refused.status).toBe(303);
+      const location = refused.headers.get("location") ?? "";
+      const said = new URL(location, "http://x").searchParams.get("said") ?? "";
+      expect(said).toContain("two of you were there for");
+    } finally {
+      // Leave on the way out: see the comment on the form-POST test above —
+      // this must run even when an assertion has already thrown.
+      await alice.get("/leave");
+      await bob.get("/leave");
+    }
   });
 
   it("answers 404 for a house that does not exist", async () => {
