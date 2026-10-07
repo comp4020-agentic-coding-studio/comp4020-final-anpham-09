@@ -102,14 +102,19 @@ function thingItem(t: ThingView, houseSlug: string): string {
   </li>`;
 }
 
-/** The room list on its own, so the event stream can swap it in without
- *  reloading the page. Rendered by the same function either way. */
-export function roomFragment(things: ThingView[], houseSlug: string): string {
+/** The who-line and the room list together, so the event stream can swap
+ *  both in without reloading the page. An arrival publishes "arrived" and
+ *  every other open session refetches this fragment — if the who-line lived
+ *  outside it, the first thing two side-by-side sessions test (does the
+ *  other person appear?) would show nothing until a full reload. Rendered
+ *  by the same function either way, JavaScript on or off. */
+export function roomFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
+  const who = `<p class="lede" id="who">${otherNames.length ? names(otherNames) + (otherNames.length === 1 ? " was here in the last minute." : " were here in the last minute.") : "Nobody else has been here in the last minute."}</p>`;
   if (!things.length) {
-    return `<p class="empty">Nothing in this room yet. Put something down — it stays
+    return `${who}<p class="empty">Nothing in this room yet. Put something down — it stays
       here either way, and goes on the shelf when somebody else is here for it.</p>`;
   }
-  return `<ol>${things.map((t) => thingItem(t, houseSlug)).join("")}</ol>`;
+  return `${who}<ol>${things.map((t) => thingItem(t, houseSlug)).join("")}</ol>`;
 }
 
 export function joinPage(houses: House[], message: string | null): string {
@@ -179,7 +184,6 @@ export function housePage(
     house.name,
     `<main>
       <h1>${esc(house.name)}</h1>
-      <p class="lede" id="who">${otherNames.length ? names(otherNames) + (otherNames.length === 1 ? " was here in the last minute." : " were here in the last minute.") : "Nobody else has been here in the last minute."}</p>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
       <form method="post" action="/place">
         <input type="hidden" name="house" value="${esc(house.slug)}">
@@ -188,7 +192,7 @@ export function housePage(
         <button>Put it down</button>
       </form>
       <h2>In this house</h2>
-      <div id="room">${roomFragment(things, house.slug)}</div>
+      <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
       <p class="note">You're here as <strong>${esc(me.name)}</strong>.
         <a href="/">Back to the village</a></p>
       <script type="module">

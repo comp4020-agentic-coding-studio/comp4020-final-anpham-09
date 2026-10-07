@@ -122,8 +122,11 @@ const server = createServer((req, res) => {
       const house = houseBySlug(room[1]);
       if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>"), setCookie); return; }
       enter(token, house.slug);
+      // Computed exactly as the /house/:slug route does, so a reconnecting
+      // stream's resync carries the same who-line the full page would.
+      const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameOf);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      res.end(roomFragment(inRoom(house.slug, token), house.slug));
+      res.end(roomFragment(others, inRoom(house.slug, token), house.slug));
       return;
     }
 
