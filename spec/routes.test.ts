@@ -12,7 +12,8 @@ const baseUrl = inject("baseUrl");
 // house: the form-POST test uses `cabin`, the refusal test uses `brothers`.
 // `meeting` is left alone for Task 8's real-time tests. Do not consolidate
 // these onto one house — that reintroduces the flakiness this comment is
-// here to prevent.
+// here to prevent. Each such test also leaves on its way out (see below), so
+// the suite is safely re-runnable without waiting out the TTL.
 
 /** A session is a cookie jar. Two of these is two people. */
 function session(): { get: (p: string) => Promise<Response>; post: (p: string, body: Record<string, string>) => Promise<Response> } {
@@ -75,6 +76,9 @@ describe("what a browser gets", () => {
     const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
     expect(item, "the thing just placed is not in the room").not.toBeNull();
     expect(item![0]).toContain("In the room");
+    // Leave on the way out: presence outlives the test by the 45s TTL, and a
+    // leftover witness would silently shelf the next run's placement.
+    await s.get("/leave");
   });
 
   it("explains a refusal in words rather than dropping it", async () => {
@@ -100,6 +104,8 @@ describe("what a browser gets", () => {
     const location = refused.headers.get("location") ?? "";
     const said = new URL(location, "http://x").searchParams.get("said") ?? "";
     expect(said).toContain("two of you were there for");
+    await alice.get("/leave");
+    await bob.get("/leave");
   });
 
   it("answers 404 for a house that does not exist", async () => {
