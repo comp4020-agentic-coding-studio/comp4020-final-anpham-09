@@ -26,6 +26,7 @@ const STYLE = `
 body { margin: 0 auto; padding: 1.5rem 1rem 4rem; max-width: 42rem;
   font: 16px/1.6 ui-sans-serif, system-ui, sans-serif; color: var(--ink); background: var(--paper); }
 nav { display: flex; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--rule); }
+nav a, a.hop { display: inline-block; min-height: 44px; padding: 0.6rem 0; }
 h1 { font-size: 1.5rem; margin: 1.5rem 0 0.25rem; }
 .lede { color: var(--quiet); margin-top: 0; }
 form { display: grid; gap: 0.5rem; margin: 1.5rem 0; }
@@ -166,7 +167,7 @@ export function mapPage(
       <h2>Houses</h2>
       <ul class="village">${cards}</ul>
       <p class="note">You're here as <strong>${esc(me.name)}</strong>.
-        <a href="/leave">Leave the village</a></p>
+        <a class="hop" href="/leave">Leave the village</a></p>
     </main>`,
   );
 }
@@ -194,7 +195,7 @@ export function housePage(
       <h2>In this house</h2>
       <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
       <p class="note">You're here as <strong>${esc(me.name)}</strong>.
-        <a href="/">Back to the village</a></p>
+        <a class="hop" href="/">Back to the village</a></p>
       <script type="module">
         // Live updating is the only thing JavaScript adds. Without it the page
         // still renders, and every action is still a form POST.
