@@ -230,6 +230,7 @@ export function markdown(src: string): string {
   const out: string[] = [];
   let list: string[] = [];
   let quote: string[] = [];
+  let para: string[] = [];
   const flush = (): void => {
     if (list.length) { out.push(`<ul>${list.map((i) => `<li>${inline(i)}</li>`).join("")}</ul>`); list = []; }
     if (quote.length) {
@@ -238,6 +239,10 @@ export function markdown(src: string): string {
         `<blockquote>${paras.map((p) => `<p>${inline(p.replace(/\n/g, " "))}</p>`).join("")}</blockquote>`,
       );
       quote = [];
+    }
+    if (para.length) {
+      out.push(`<p>${inline(para.join(" "))}</p>`);
+      para = [];
     }
   };
   let fenced = false;
@@ -262,7 +267,7 @@ export function markdown(src: string): string {
     else if (li) { list.push(li[1]); }
     else if (bq) { quote.push(bq[1]); }
     else if (!line.trim()) { flush(); }
-    else { flush(); out.push(`<p>${inline(line)}</p>`); }
+    else { para.push(line); }
   }
   flush();
   // An unterminated fence at EOF still has to show what was captured rather
