@@ -1,7 +1,7 @@
-// Who counts as a person is this app's call, and the brief leaves it open.
-// Here it's an anonymous pseudonym in a cookie: no account, no email, nothing
-// that outlives the browser that made it. Enough to tell two people apart,
-// which is all "multi-user" requires, and no more than that.
+// Who counts as a person is this app's call. Here it is a token in a cookie
+// plus a name the person chose, because the family are specific people and a
+// generated pseudonym would undo the point. The cookie helpers are the only
+// thing here; the record itself lives in src/people.ts.
 const ADJECTIVES = ["quiet", "bright", "steady", "amber", "wandering", "patient", "sudden", "plain"];
 const NOUNS = ["lyrebird", "wattle", "currawong", "brindabella", "kurrajong", "rosella", "ibis", "gum"];
 
