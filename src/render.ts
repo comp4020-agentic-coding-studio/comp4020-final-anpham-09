@@ -188,7 +188,8 @@ export function housePage(
       </form>
       <h2>In this house</h2>
       <div id="room">${roomFragment(things, house.slug)}</div>
-      <p class="note"><a href="/">Back to the village</a></p>
+      <p class="note">You're here as <strong>${esc(me.name)}</strong>.
+        <a href="/">Back to the village</a></p>
       <script type="module">
         // Live updating is the only thing JavaScript adds. Without it the page
         // still renders, and every action is still a form POST.
