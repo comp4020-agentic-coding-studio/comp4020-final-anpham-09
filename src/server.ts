@@ -108,7 +108,12 @@ const server = createServer((req, res) => {
 
     if (req.method === "GET" && path === "/leave") {
       leave(token);
-      seeOther(res, said("/", "You've left the village. Everything you put down is still where you put it."), setCookie);
+      // Clearing presence but not the cookie would still resolve this token
+      // to a person on the next request — the app would say "you've left"
+      // and then render the map as you. Leaving means both, and landing on
+      // "/" with no cookie is what makes the join page render instead.
+      const clearCookie = `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+      seeOther(res, said("/", "You've left the village. Everything you put down is still where you put it."), clearCookie);
       return;
     }
 
