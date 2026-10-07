@@ -224,8 +224,9 @@ export function markdown(src: string): string {
   const inline = (s: string): string =>
     esc(s)
       .replace(/`([^`]+)`/g, "<code>$1</code>")
-      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+      .replace(/\*\*([\s\S]+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
 
   const out: string[] = [];
   let list: string[] = [];
@@ -263,6 +264,12 @@ export function markdown(src: string): string {
     const h = /^(#{1,6})\s+(.*)$/.exec(line);
     const li = /^[-*]\s+(.*)$/.exec(line);
     const bq = /^ {0,3}>\s?(.*)$/.exec(line);
+    // A wrapped list item's continuation line is indented but does not start
+    // a new item or a heading — fold it onto the current item rather than
+    // letting it fall through to the paragraph arm, which would cut the
+    // bullet mid-sentence and orphan the rest below the </ul>.
+    const cont = /^\s+(\S.*)$/.exec(raw.trimEnd());
+    if (list.length && cont && !li && !h) { list[list.length - 1] += " " + cont[1]; continue; }
     if (h) { flush(); out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); }
     else if (li) { list.push(li[1]); }
     else if (bq) { quote.push(bq[1]); }
