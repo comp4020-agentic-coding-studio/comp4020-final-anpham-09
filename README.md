@@ -1,71 +1,73 @@
-# Corroborated
+# The village
 
-Small claims about shared spaces at ANU. The Marie Reay lifts are out again.
-There's a queue at Daily Market. The cockatoos are on Union Court. Anyone can
-post one; anyone else can say they saw it too.
-
-Nothing here is verified. A claim is either something one person said, or
-something other people have also said they saw — and those are different
-things. Keeping them apart is the whole app.
+My parents live in Nghe An, my brother's family in Hanoi, and I live in
+Canberra. This is an app for the six of us. My nephew An Duy is eleven months
+old: the reason it exists, and the only one of us who cannot use it.
 
 ## What good means here
 
-Good is that the app never claims more than it can show.
+We already have a group chat, so reaching each other was never the problem.
+Nothing survives it. An Duy's first year is somewhere in that scroll and none
+of us will ever go back far enough to find it.
 
-Software collapses "recorded" and "true" the moment it has a database. A row
-exists, so the thing happened. Most interfaces then present stored and
-confirmed identically, and the reader has no way to tell which they're looking
-at. That collapse is the failure this app is built against.
+Photo services fail from the other end: they keep everything, which is the same
+as keeping nothing. Forty thousand files sorted by date by a machine with no
+idea which ones mattered.
 
-So there are exactly two states, and the app says which one it's in. A claim
-nobody else has seen reads **asserted**. A claim others have seen reads
-**corroborated**, with the number of people. The word *verified* appears
-nowhere in the interface, because the app cannot know that. It knows how many
-people said they saw something, which is a smaller and more honest claim.
+Sharing is solved. Keeping is not. This app is only about keeping.
 
-Two rules make that label mean something, and both live in the schema rather
-than only in a code path that can be forgotten:
+> A memory is something two of you were there for.
 
-- **A claim cannot be its own witness.** Its author can't corroborate it.
-- **One person is one witness**, however many times they click.
+Putting something down is not keeping it. What you place stays in the room you
+put it in. It reaches that house's shelf only when somebody else was in the
+room with you, and then it carries both your names and the day. Nothing is
+withheld and nothing expires — being together is what makes a thing permanent.
 
-Refusals are explained rather than dropped. Clicking a thing that does nothing
-teaches you the system is broken; being told "a claim can't be its own witness"
-teaches you the rule.
+Houses, then, and not a feed. A feed has one direction and nowhere to stand.
 
 ## What I read
 
-**Robin Sloan, [*An app can be a home-cooked meal*](https://www.robinsloan.com/notes/home-cooked-app/)
-(2020)** — his messaging app has "four daily active users, with zero churn".
-This is for a few dozen people who share a campus, not for everyone, and that's
-a design decision rather than a shortfall.
+**Robin Sloan, [An app can be a home-cooked meal](https://www.robinsloan.com/notes/home-cooked-app/) (2020).**
+His app has "four daily active users, with zero churn". Six related people is a
+decision, not a shortfall.
 
-**[Wikipedia:Verifiability](https://en.wikipedia.org/wiki/Wikipedia:Verifiability)** —
-"verifiability means that people can check that facts or claims correspond to
-reliable sources". Wikipedia retired its old slogan *verifiability, not truth*
-because readers misread it. That retirement is the sharper lesson: naming the
-distinction badly is worse than not naming it, which is why this app labels
-states rather than sloganeering about them.
+**Maggie Appleton, [Home-Cooked Software and Barefoot Developers](https://maggieappleton.com/home-cooked-software) (2024).**
+Builds on Sloan: software made by people who understand the community rather
+than the stack, and the glue between an idea and something that actually works.
 
-**The [Verification Handbook](https://verificationhandbook.com/)** — corroboration
-is a practice, not a property. You don't verify a thing once; you accumulate
-independent accounts. The data model follows: corroboration is an event with an
-author and a time, not a boolean on the claim.
+**Frances Yates, *The Art of Memory* (1966).** Quintilian has you remember by
+walking a building, forecourt to bedrooms. Rooms were a memory technology long
+before they were an interface metaphor.
 
 ## What the checks enforce, and what they don't
 
-`spec/` enforces: a claim with no corroboration never renders as corroborated;
-an author cannot corroborate their own claim; one person counts once; a claim
-and its corroborations survive a restart. Each of those tests was checked by
-breaking the code and confirming the test went red.
+`spec/` enforces: nothing reaches a shelf with one name on it; nobody can keep
+their own thing, by any path; one person counts once; a thing placed alone
+stays visible; placing works with JavaScript off; and a change reaches another
+open session in under a second, measured at five milliseconds. Every test was
+checked by breaking what it guards and confirming it went red. Three did not.
+They were asserting nothing, and were rewritten.
 
-Judgement, left to the crit: whether the labels read honestly to someone who
-doesn't know the rules, and whether the thing is worth using with other people
-in the room.
+Not enforced:
+
+- The schema guarantees two different names on a shelved thing. That the second
+  person was **in the room** is enforced by the interface, not the server.
+- One browser is one person.
+- A room shows its two hundred newest things; nothing reaches the older ones.
+- A body over 280 characters is trimmed rather than refused — the one place the
+  app acts without words.
+- Times show in UTC. Hanoi and Nghe An run three or four hours behind
+  Canberra, depending on daylight saving.
+
+Judged, not tested: whether the village reads as a place, and whether the shelf
+is worth coming back to.
 
 ## What I chose not to build
 
-No accounts — a cookie pseudonym is enough to tell two people apart, and
-anything more would collect what the app doesn't need. No deletion, no editing:
-the record is what was said. No disagreeing with a claim, because a denial is
-also a claim and would need its own witnesses. No real-time yet; that's week 10.
+No accounts, no notifications, no direct messages. What is said in a house is
+said to the house; privacy comes from where you are, not from a recipient
+field. Nothing can be deleted or edited. Photos are week ten.
+
+What I most wanted and cut was doing something together — a game, or something
+made in turns. It is the obvious answer to a family in three places, and it is
+a second app. Presence had to work first.
