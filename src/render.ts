@@ -49,7 +49,7 @@ pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-si
 ul.village { list-style: none; padding: 0; display: grid; gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
 li.house { border: 1px solid var(--rule); border-radius: 10px; padding: 1rem; }
-li.house a { font-weight: 600; font-size: 1.05rem; display: inline-block; min-height: 44px; }
+li.house a { font-weight: 600; font-size: 1.05rem; display: inline-block; min-height: 44px; min-width: 44px; }
 li.thing { border-top: 1px solid var(--rule); padding: 1rem 0; }
 `;
 
@@ -65,7 +65,11 @@ ${inner}
 }
 
 const names = (list: string[]): string =>
-  list.length === 1 ? esc(list[0]) : list.slice(0, -1).map(esc).join(", ") + " and " + esc(list[list.length - 1]);
+  list.length === 0
+    ? ""
+    : list.length === 1
+      ? esc(list[0])
+      : list.slice(0, -1).map(esc).join(", ") + " and " + esc(list[list.length - 1]);
 
 /** Two states, and the app says which one it is in. "In the room" is one
  *  person's record of something. "On the shelf" is a thing more than one
@@ -164,16 +168,17 @@ export function mapPage(
 export function housePage(
   house: House,
   me: Person,
-  hereNames: string[],
+  /** Everyone else who has been here inside the TTL. The caller excludes the
+   *  viewer by token before this is called — see the note in the route. */
+  otherNames: string[],
   things: ThingView[],
   message: string | null,
 ): string {
-  const others = hereNames.filter((n) => n !== me.name);
   return page(
     house.name,
     `<main>
       <h1>${esc(house.name)}</h1>
-      <p class="lede" id="who">${others.length ? names(others) + (others.length === 1 ? " was here in the last minute." : " were here in the last minute.") : "Nobody else has been here in the last minute."}</p>
+      <p class="lede" id="who">${otherNames.length ? names(otherNames) + (otherNames.length === 1 ? " was here in the last minute." : " were here in the last minute.") : "Nobody else has been here in the last minute."}</p>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
       <form method="post" action="/place">
         <input type="hidden" name="house" value="${esc(house.slug)}">
@@ -188,9 +193,9 @@ export function housePage(
         // Live updating is the only thing JavaScript adds. Without it the page
         // still renders, and every action is still a form POST.
         const room = document.getElementById("room");
-        const stream = new EventSource("/stream?house=${esc(house.slug)}");
+        const stream = new EventSource("/stream?house=" + encodeURIComponent(${JSON.stringify(house.slug)}));
         stream.onmessage = async () => {
-          const res = await fetch("/house/${esc(house.slug)}/room", { headers: { accept: "text/html" } });
+          const res = await fetch("/house/" + encodeURIComponent(${JSON.stringify(house.slug)}) + "/room", { headers: { accept: "text/html" } });
           if (res.ok) room.innerHTML = await res.text();
         };
       </script>
