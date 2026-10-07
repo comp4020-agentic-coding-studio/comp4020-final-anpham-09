@@ -56,4 +56,11 @@ describe("the rules that live in the schema", () => {
       db.prepare("INSERT INTO keepings (thing_id, person) VALUES (?, ?)").run(id, "bob"),
     ).toThrow(/UNIQUE/);
   });
+
+  it("refuses a keeping that points at a thing which does not exist", async () => {
+    const { db } = await boot();
+    expect(() =>
+      db.prepare("INSERT INTO keepings (thing_id, person) VALUES (?, ?)").run(9999, "bob"),
+    ).toThrow(/FOREIGN KEY/);
+  });
 });

@@ -11,6 +11,10 @@ mkdirSync(dirname(path), { recursive: true });
 
 export const db = new Database(path);
 db.pragma("journal_mode = WAL");
+// SQLite defaults foreign_keys to OFF per connection, and better-sqlite3
+// does not turn it on implicitly. Without this, every REFERENCES clause
+// below is documentation, not a constraint.
+db.pragma("foreign_keys = ON");
 
 // The smallest schema that carries the core interaction: a claim someone
 // made, and the separate, later act of someone else saying they saw it too.
