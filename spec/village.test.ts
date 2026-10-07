@@ -83,6 +83,14 @@ describe("what the app will and won't call a memory", () => {
     expect(things.onShelf("meeting", "alice")[0].keeperNames).toEqual(["Bob"]);
   });
 
+  it("accumulates keepers as people arrive one after another", async () => {
+    const { things } = await boot();
+    const id = things.place("meeting", "alice", "his first steps", 1000) as number;
+    expect(things.takeIn(id, "bob")).toBeNull();
+    expect(things.takeIn(id, "cat")).toBeNull();
+    expect(things.onShelf("meeting", "alice")[0].keeperNames.sort()).toEqual(["Bob", "Cat"]);
+  });
+
   it("records every name, when more than one person was there", async () => {
     const { things, presence } = await boot();
     presence.enter("bob", "meeting", 1000);

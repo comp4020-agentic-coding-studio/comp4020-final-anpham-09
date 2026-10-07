@@ -57,7 +57,16 @@ export function takeIn(thingId: number, person: string): KeepRefusal {
     .prepare("SELECT 1 FROM keepings WHERE thing_id = ? AND person = ?")
     .get(thingId, person);
   if (existing) return "already";
-  db.prepare("INSERT INTO keepings (thing_id, person) VALUES (?, ?)").run(thingId, person);
+  try {
+    db.prepare("INSERT INTO keepings (thing_id, person) VALUES (?, ?)").run(thingId, person);
+  } catch (err: unknown) {
+    // The schema enforces both of these too, and a lost race must still come
+    // back as a reason rather than as a stack trace.
+    const message = String(err);
+    if (message.includes("UNIQUE")) return "already";
+    if (message.includes("cannot be kept by whoever placed it")) return "own-thing";
+    throw err;
+  }
   return null;
 }
 
