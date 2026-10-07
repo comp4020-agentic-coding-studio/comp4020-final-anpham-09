@@ -542,15 +542,22 @@ Expected: PASS (6 tests)
 
 - [ ] **Step 5: Prove the TTL test can fail**
 
-Temporarily flip the threshold arithmetic — `atEpochSeconds - PRESENCE_TTL_SECONDS` to
-`atEpochSeconds + PRESENCE_TTL_SECONDS`, in both `whoIsIn` and `whereEveryoneIs` — re-run, confirm
-**only** the TTL case goes red on an assertion mismatch, restore, confirm green.
+Temporarily **widen the window** — `atEpochSeconds - PRESENCE_TTL_SECONDS` to
+`atEpochSeconds - 100000`, in both `whoIsIn` and `whereEveryoneIs` — re-run, confirm **only** the TTL
+case goes red on an assertion mismatch, restore, confirm green.
 
-Do not break it by editing the SQL text to `last_seen > 0`: that removes a placeholder the call site
-still binds, so every test dies on `RangeError: Too many parameter values` and the TTL arithmetic is
-never exercised. Nor by editing `PRESENCE_TTL_SECONDS` — the test derives its own expected thresholds
-from that same constant, so changing it moves both sides and the test stays green. A break that takes
-down tests it has nothing to do with is a broken break.
+Widening is the break that isolates, because fresh rows still read back correctly and only expiry
+stops working. Three other breaks look plausible and are not:
+
+- `last_seen > ?` → `last_seen > 0` removes a placeholder the call site still binds, so every test
+  dies on `RangeError: Too many parameter values` and the TTL arithmetic is never exercised.
+- Flipping the sign to `atEpochSeconds + PRESENCE_TTL_SECONDS` pushes the threshold past every row,
+  so all read paths return nothing and four tests fail at once.
+- Editing `PRESENCE_TTL_SECONDS` itself does nothing: the test derives its expected thresholds from
+  that same constant, so both sides move together and it stays green.
+
+A break that takes down tests it has nothing to do with has not isolated the behaviour it claims to
+prove.
 
 - [ ] **Step 6: Commit**
 
