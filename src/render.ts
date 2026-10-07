@@ -196,10 +196,16 @@ export function housePage(
         // still renders, and every action is still a form POST.
         const room = document.getElementById("room");
         const stream = new EventSource("/stream?house=" + encodeURIComponent(${JSON.stringify(house.slug)}));
-        stream.onmessage = async () => {
+        const resync = async () => {
           const res = await fetch("/house/" + encodeURIComponent(${JSON.stringify(house.slug)}) + "/room", { headers: { accept: "text/html" } });
           if (res.ok) room.innerHTML = await res.text();
         };
+        stream.onmessage = resync;
+        // EventSource reconnects on its own after the machine stops and
+        // starts again (fly.toml lets it go to zero), but it only fires
+        // onmessage on the NEXT event — whatever changed while the socket
+        // was down would otherwise stay invisible until a full reload.
+        stream.onopen = resync;
       </script>
     </main>`,
   );
