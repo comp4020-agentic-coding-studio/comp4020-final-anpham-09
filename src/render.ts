@@ -50,6 +50,8 @@ ul.village { list-style: none; padding: 0; display: grid; gap: 0.75rem;
 li.house { border: 1px solid var(--rule); border-radius: 10px; padding: 1rem; }
 li.house a { font-weight: 600; font-size: 1.05rem; display: inline-block; min-height: 44px; min-width: 44px; }
 li.thing { border-top: 1px solid var(--rule); padding: 1rem 0; }
+blockquote { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--rule); color: var(--quiet); }
+blockquote p { margin: 0.4rem 0; }
 `;
 
 export function page(title: string, inner: string): string {
@@ -227,8 +229,16 @@ export function markdown(src: string): string {
 
   const out: string[] = [];
   let list: string[] = [];
+  let quote: string[] = [];
   const flush = (): void => {
     if (list.length) { out.push(`<ul>${list.map((i) => `<li>${inline(i)}</li>`).join("")}</ul>`); list = []; }
+    if (quote.length) {
+      const paras = quote.join("\n").split(/\n{2,}/).filter((p) => p.trim());
+      out.push(
+        `<blockquote>${paras.map((p) => `<p>${inline(p.replace(/\n/g, " "))}</p>`).join("")}</blockquote>`,
+      );
+      quote = [];
+    }
   };
   let fenced = false;
   const code: string[] = [];
@@ -247,10 +257,10 @@ export function markdown(src: string): string {
     if (fenced) { code.push(esc(raw)); continue; }
     const h = /^(#{1,6})\s+(.*)$/.exec(line);
     const li = /^[-*]\s+(.*)$/.exec(line);
-    const bq = /^>\s?(.*)$/.exec(line);
+    const bq = /^ {0,3}>\s?(.*)$/.exec(line);
     if (h) { flush(); out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); }
     else if (li) { list.push(li[1]); }
-    else if (bq) { flush(); out.push(`<blockquote>${inline(bq[1])}</blockquote>`); }
+    else if (bq) { quote.push(bq[1]); }
     else if (!line.trim()) { flush(); }
     else { flush(); out.push(`<p>${inline(line)}</p>`); }
   }
