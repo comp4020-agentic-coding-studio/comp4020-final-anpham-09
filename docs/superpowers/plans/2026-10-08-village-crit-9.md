@@ -206,7 +206,7 @@ git commit -m "feat: village schema — four houses, things, keepings, and the t
 **Files:**
 - Create: `src/houses.ts`
 - Create: `src/people.ts`
-- Modify: `src/identity.ts` (delete `ADJECTIVES`, `NOUNS`, `nameFor`, and the `Visitor` interface; keep `newToken` and `readCookie`)
+- Modify: `src/identity.ts` (comment only — the pseudonym generator is deleted in Task 7, together with its last caller, so that every task leaves the repo typechecking)
 - Create: `spec/people.test.ts`
 
 **Interfaces:**
@@ -363,9 +363,9 @@ export function nameOf(token: string): string {
 }
 ```
 
-- [ ] **Step 5: Strip the pseudonym generator from `src/identity.ts`**
+- [ ] **Step 5: Re-comment `src/identity.ts`**
 
-Delete `ADJECTIVES`, `NOUNS`, the `Visitor` interface and `nameFor`. Replace the file's leading comment with:
+Leave `ADJECTIVES`, `NOUNS`, `Visitor` and `nameFor` in place — `src/claims.ts` still calls `nameFor`, and Task 7 deletes both together. Only replace the file's leading comment:
 
 ```ts
 // Who counts as a person is this app's call. Here it is a token in a cookie
@@ -374,14 +374,14 @@ Delete `ADJECTIVES`, `NOUNS`, the `Visitor` interface and `nameFor`. Replace the
 // thing here; the record itself lives in src/people.ts.
 ```
 
-Keep `newToken` and `readCookie` exactly as they are.
+Keep every export exactly as it is. Nothing in this task removes code.
 
 - [ ] **Step 6: Run the test and confirm it passes**
 
 Run: `pnpm vitest run spec/people.test.ts`
 Expected: PASS (5 tests)
 
-Note: `src/claims.ts` and `src/server.ts` still import `nameFor` and will now fail `pnpm typecheck`. That is expected and is fixed in Task 7. Do not "fix" it by restoring `nameFor`.
+Also run `pnpm typecheck` and confirm it is clean. Every task in this plan leaves the repo typechecking; if it does not, something was deleted too early.
 
 - [ ] **Step 7: Commit**
 
@@ -965,7 +965,7 @@ git commit -m "feat: an event hub that knows nothing about HTTP"
 ### Task 6: The pages
 
 **Files:**
-- Modify: `src/render.ts` (replace `claimsPage` and `statusLine`/`claimItem` with the village pages; keep `esc`, `page` and `markdown`)
+- Modify: `src/render.ts` (add the village pages alongside the existing `claimsPage`, which Task 7 deletes with its last caller; keep `esc`, `page` and `markdown`)
 
 **Interfaces:**
 - Consumes: `House` from `src/houses.ts`, `ThingView` from `src/things.ts`
@@ -1011,13 +1011,17 @@ Also change the `nav` in `page()` to:
 
 - [ ] **Step 2: Write the village pages**
 
-Delete `statusLine` and `claimItem` and `claimsPage`. Add, after `page()`:
+Leave `statusLine`, `claimItem` and `claimsPage` where they are — Task 7 deletes them with `src/claims.ts`. Add these three type imports to the **top of the file**, beside the existing `import type { ClaimView }` line (TypeScript import declarations must be at the top; adding them mid-file is a syntax error):
 
 ```ts
 import type { House } from "./houses.ts";
 import type { Person } from "./people.ts";
 import type { ThingView } from "./things.ts";
+```
 
+Then add the rest after `page()`:
+
+```ts
 const names = (list: string[]): string =>
   list.length === 1 ? esc(list[0]) : list.slice(0, -1).map(esc).join(", ") + " and " + esc(list[list.length - 1]);
 
@@ -1152,10 +1156,10 @@ export function housePage(
 }
 ```
 
-- [ ] **Step 3: Confirm it does not yet typecheck**
+- [ ] **Step 3: Confirm the repo still typechecks**
 
 Run: `pnpm typecheck`
-Expected: FAIL — `src/server.ts` still imports `claimsPage` and `nameFor`. Fixed in Task 7.
+Expected: clean. The new page functions are unused so far — Task 7 wires them up — but nothing is broken by adding them.
 
 - [ ] **Step 4: Commit**
 
@@ -1171,6 +1175,8 @@ git commit -m "feat: the map, the house page, and the room fragment the stream s
 **Files:**
 - Modify: `src/server.ts` (replace the claim routes)
 - Delete: `src/claims.ts`, `spec/claims.test.ts`
+- Modify: `src/render.ts` (now delete `statusLine`, `claimItem`, `claimsPage` and the `import type { ClaimView }` line)
+- Modify: `src/identity.ts` (now delete `ADJECTIVES`, `NOUNS`, the `Visitor` interface and `nameFor`; keep `newToken` and `readCookie`)
 - Modify: `src/db.ts` (delete the `claims` and `corroborations` `CREATE TABLE` block — the tables stay in any existing database file, harmlessly, and no code reads them)
 
 **Interfaces:**
@@ -1504,6 +1510,10 @@ git rm src/claims.ts spec/claims.test.ts
 ```
 
 In `src/db.ts`, delete the `db.exec(...)` block that creates `claims` and `corroborations`, and the comment above it.
+
+In `src/render.ts`, delete `statusLine`, `claimItem`, `claimsPage` and the now-unused `import type { ClaimView } from "./claims.ts";` line.
+
+In `src/identity.ts`, delete `ADJECTIVES`, `NOUNS`, the `Visitor` interface and `nameFor`. Keep `newToken` and `readCookie`.
 
 - [ ] **Step 6: Run the whole suite and confirm it passes**
 
