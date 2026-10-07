@@ -542,7 +542,15 @@ Expected: PASS (6 tests)
 
 - [ ] **Step 5: Prove the TTL test can fail**
 
-Temporarily change `last_seen > ?` to `last_seen > 0`, re-run, confirm the TTL case goes red, restore, confirm green.
+Temporarily flip the threshold arithmetic — `atEpochSeconds - PRESENCE_TTL_SECONDS` to
+`atEpochSeconds + PRESENCE_TTL_SECONDS`, in both `whoIsIn` and `whereEveryoneIs` — re-run, confirm
+**only** the TTL case goes red on an assertion mismatch, restore, confirm green.
+
+Do not break it by editing the SQL text to `last_seen > 0`: that removes a placeholder the call site
+still binds, so every test dies on `RangeError: Too many parameter values` and the TTL arithmetic is
+never exercised. Nor by editing `PRESENCE_TTL_SECONDS` — the test derives its own expected thresholds
+from that same constant, so changing it moves both sides and the test stays green. A break that takes
+down tests it has nothing to do with is a broken break.
 
 - [ ] **Step 6: Commit**
 
