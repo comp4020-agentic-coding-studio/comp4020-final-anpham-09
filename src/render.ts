@@ -122,6 +122,9 @@ export function joinPage(houses: House[], message: string | null): string {
       <h1>The village</h1>
       <p class="lede">Four places and the people in them. Before you go in,
         say who you are — the app keeps a name and nothing else.</p>
+      <p class="note">One browser is one person — the app knows you by a
+        cookie, not a face. To be two of you, use a second browser or a
+        private window, not a second tab.</p>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
       <form method="post" action="/join">
         <label for="name">What should everyone call you?</label>
