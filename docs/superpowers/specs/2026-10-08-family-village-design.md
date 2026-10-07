@@ -56,7 +56,9 @@ take it in, and then it is.
 - **On the shelf** — things that two or more people were present for. Permanent,
   named, dated. This is what the family comes back to.
 
-Nothing is ever deleted and nothing expires. The rule is additive: being
+Nothing anyone places is ever deleted and nothing placed expires. The one
+mutable exception is `presence`, which is live state rather than something
+someone put down — see Real-time. The rule is additive: being
 together makes things permanent; being alone takes nothing away.
 
 ### The nephew
@@ -187,11 +189,11 @@ canvas fails all three.
 
 ## Delivery
 
-- **Crit 9 — due ~2026-10-14.** Map, four houses, choose a name, live presence,
+- **Crit 9 — cutoff Wednesday 14 October 2026, 13:30 Canberra** (group Liuru, session Wed 15:30–17:00, Marie Reay 4.03). Map, four houses, choose a name, live presence,
   place a note (text only), the witness rule, shelf and room, SSE. Deployed by
   the cutoff. The written-down multi-person decision the crit spec asks for *is*
   the witness rule. Plus `reflections/crit-9.md` and a rewritten `PROCESS.md`.
-- **Crit 10 — due ~2026-10-21.** Server-side logging, which is the crit's own
+- **Crit 10 — cutoff Wednesday 21 October 2026, 13:30 Canberra.** Server-side logging, which is the crit's own
   topic and reads naturally off the append-only tables. Photos, with a hard size
   cap, stored under `/data`.
 - **Final — due 2026-11-09 noon.** The warm visual direction in CSS; the shelf
