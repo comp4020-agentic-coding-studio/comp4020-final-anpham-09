@@ -1,4 +1,3 @@
-import type { ClaimView } from "./claims.ts";
 import type { House } from "./houses.ts";
 import type { Person } from "./people.ts";
 import type { ThingView } from "./things.ts";
@@ -31,7 +30,7 @@ h1 { font-size: 1.5rem; margin: 1.5rem 0 0.25rem; }
 .lede { color: var(--quiet); margin-top: 0; }
 form { display: grid; gap: 0.5rem; margin: 1.5rem 0; }
 label { font-weight: 600; font-size: 0.9rem; }
-input, button { font: inherit; padding: 0.6rem 0.7rem; min-height: 44px;
+input, button, select { font: inherit; padding: 0.6rem 0.7rem; min-height: 44px;
   border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); }
 button { cursor: pointer; font-weight: 600; }
 ol { list-style: none; padding: 0; }
@@ -200,66 +199,6 @@ export function housePage(
           if (res.ok) room.innerHTML = await res.text();
         };
       </script>
-    </main>`,
-  );
-}
-
-/** The label is the product. "asserted" and "corroborated" are different
- *  states and the app never collapses them into a single notion of true. */
-function statusLine(c: ClaimView): string {
-  if (c.status === "asserted") {
-    return `<span class="status" data-status="asserted">Asserted</span>
-      <span class="note">— nobody else has said they saw this</span>`;
-  }
-  const n = c.others;
-  return `<span class="status" data-status="corroborated">Corroborated</span>
-    <span class="note">— ${n} other ${n === 1 ? "person says" : "people say"} they saw this too</span>`;
-}
-
-function claimItem(c: ClaimView): string {
-  let action: string;
-  if (c.isOwn) {
-    action = `<p class="note">You made this claim, so you can't corroborate it.</p>`;
-  } else if (c.viewerHasCorroborated) {
-    action = `<p class="note">You've said you saw this.</p>`;
-  } else {
-    action = `<form method="post" action="/corroborate">
-      <input type="hidden" name="claim" value="${c.id}">
-      <button>I saw this too</button></form>`;
-  }
-  return `<li class="claim">
-    <p class="body">${esc(c.body)}</p>
-    <p class="meta">${esc(c.place)} · ${esc(c.authorName)} · ${esc(c.createdAt)} UTC</p>
-    <p>${statusLine(c)}</p>
-    ${action}
-  </li>`;
-}
-
-export function claimsPage(claims: ClaimView[], viewerName: string, message: string | null): string {
-  const list = claims.length
-    ? `<ol>${claims.map(claimItem).join("")}</ol>`
-    : `<p class="empty">No claims yet. Make the first one — it'll be marked asserted until somebody else says they saw it too.</p>`;
-  return page(
-    "Corroborated",
-    `<main>
-      <h1>Corroborated</h1>
-      <p class="lede">Small claims about shared spaces at ANU. Nothing here is
-        verified — a claim is either something one person said, or something
-        other people have said they saw too. The app shows which, and never
-        pretends to know the difference between them.</p>
-      ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
-      <form method="post" action="/claim">
-        <label for="body">What did you see?</label>
-        <input id="body" name="body" required maxlength="280"
-               placeholder="The Marie Reay lifts are out again">
-        <label for="place">Where?</label>
-        <input id="place" name="place" required maxlength="80" placeholder="Marie Reay, level 3">
-        <button>Post claim</button>
-      </form>
-      <p class="note">You're posting as <strong>${esc(viewerName)}</strong>, a name this
-        browser was given. There's no account, and nothing here identifies you.</p>
-      <h2>Claims</h2>
-      ${list}
     </main>`,
   );
 }

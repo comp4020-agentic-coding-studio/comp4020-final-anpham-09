@@ -2,22 +2,6 @@
 // plus a name the person chose, because the family are specific people and a
 // generated pseudonym would undo the point. The cookie helpers are the only
 // thing here; the record itself lives in src/people.ts.
-const ADJECTIVES = ["quiet", "bright", "steady", "amber", "wandering", "patient", "sudden", "plain"];
-const NOUNS = ["lyrebird", "wattle", "currawong", "brindabella", "kurrajong", "rosella", "ibis", "gum"];
-
-export interface Visitor {
-  token: string;
-  name: string;
-}
-
-/** A readable name derived from the token, so the same visitor always reads
- *  the same way without storing a profile anywhere. */
-export function nameFor(token: string): string {
-  let h = 0;
-  for (const ch of token) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return `${ADJECTIVES[h % ADJECTIVES.length]} ${NOUNS[(h >> 8) % NOUNS.length]}`;
-}
-
 export function newToken(): string {
   return crypto.randomUUID();
 }

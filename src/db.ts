@@ -16,30 +16,6 @@ db.pragma("journal_mode = WAL");
 // below is documentation, not a constraint.
 db.pragma("foreign_keys = ON");
 
-// The smallest schema that carries the core interaction: a claim someone
-// made, and the separate, later act of someone else saying they saw it too.
-// Those are different events and the app never merges them.
-db.exec(`
-  CREATE TABLE IF NOT EXISTS claims (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    body       TEXT    NOT NULL,
-    place      TEXT    NOT NULL,
-    author     TEXT    NOT NULL,
-    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-  );
-
-  -- UNIQUE(claim_id, author) is the honesty rule in the schema rather than in
-  -- a code path that can be forgotten: one person corroborating twice is one
-  -- witness, not two.
-  CREATE TABLE IF NOT EXISTS corroborations (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    claim_id   INTEGER NOT NULL REFERENCES claims(id),
-    author     TEXT    NOT NULL,
-    created_at TEXT    NOT NULL DEFAULT (datetime('now')),
-    UNIQUE (claim_id, author)
-  );
-`);
-
 // The village. Four places, the people in them, the things people put down,
 // and who else was in the room when they did. "On the shelf" is not a column:
 // a thing is kept iff a keepings row exists for it, so the state cannot drift

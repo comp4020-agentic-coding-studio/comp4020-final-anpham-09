@@ -1,11 +1,16 @@
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { addClaim, addCorroboration, listClaims, type Refusal } from "./claims.ts";
-import { nameFor, newToken, readCookie } from "./identity.ts";
-import { claimsPage, markdown, page } from "./render.ts";
+import { publish, subscribe } from "./events.ts";
+import { houseBySlug, listHouses } from "./houses.ts";
+import { newToken, readCookie } from "./identity.ts";
+import { ensurePerson, getPerson, nameOf, type Person } from "./people.ts";
+import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
+import { housePage, joinPage, mapPage, markdown, page, roomFragment } from "./render.ts";
+import { inRoom, place, takeIn } from "./things.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const COOKIE = "who";
+const PING_MS = 15_000;
 
 async function formData(req: IncomingMessage): Promise<URLSearchParams> {
   const chunks: Buffer[] = [];
@@ -27,58 +32,147 @@ const seeOther = (res: ServerResponse, to: string, cookie?: string): void => {
   res.end();
 };
 
-/** Every refusal gets words. An app whose argument is that systems should say
- *  what they know must never silently drop an action. */
-const REFUSALS: Record<NonNullable<Refusal>, string> = {
-  "unknown-claim": "That claim doesn't exist, so nothing was recorded.",
-  "own-claim": "You can't corroborate your own claim — a claim can't be its own witness.",
-  already: "You'd already said you saw that. One person is one witness, however many times they click.",
+const said = (to: string, message: string): string => `${to}?said=${encodeURIComponent(message)}`;
+
+/** Every refusal gets words. A button that appears to do nothing teaches the
+ *  user the system is broken; being told the rule teaches them the rule. */
+const REFUSALS: Record<string, string> = {
+  "unknown-house": "There's no such house in this village.",
+  "blank-name": "The app needs something to call you.",
+  "blank-body": "There's nothing there to put down.",
+  "unknown-thing": "That isn't here any more, so nothing was recorded.",
+  "own-thing": "You put this down, so you can't be the one who was here for it. A memory is something two of you were there for.",
+  already: "You'd already said you were here for this. One person is one keeper, however many times they click.",
 };
 
 const server = createServer((req, res) => {
   void (async () => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+    const path = url.pathname.replace(/\/+$/, "") || "/";
+    const message = url.searchParams.get("said");
+
     let token = readCookie(req.headers.cookie, COOKIE);
     let setCookie: string | undefined;
     if (!token) {
       token = newToken();
       setCookie = `${COOKIE}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=31536000`;
     }
+    const me: Person | undefined = getPerson(token);
 
-    if (req.method === "GET" && (url.pathname === "/" || url.pathname === "")) {
-      const message = url.searchParams.get("said");
-      html(res, 200, claimsPage(listClaims(token), nameFor(token), message), setCookie);
-      return;
-    }
-
-    if (req.method === "GET" && (url.pathname === "/readme/" || url.pathname === "/readme")) {
+    // The README is published whether or not you've said who you are.
+    if (req.method === "GET" && path === "/readme") {
       const src = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-      html(res, 200, page("About — Corroborated", `<main>${markdown(src)}</main>`), setCookie);
+      html(res, 200, page("About — the village", `<main>${markdown(src)}</main>`), setCookie);
       return;
     }
 
-    if (req.method === "POST" && url.pathname === "/claim") {
+    if (req.method === "POST" && path === "/join") {
       const form = await formData(req);
-      const body = (form.get("body") ?? "").trim();
-      const place = (form.get("place") ?? "").trim();
-      if (!body || !place) {
-        seeOther(res, "/?said=" + encodeURIComponent("A claim needs both what you saw and where."), setCookie);
+      const result = ensurePerson(token, form.get("name") ?? "", form.get("home") ?? "");
+      if (typeof result === "string") {
+        seeOther(res, said("/", REFUSALS[result]), setCookie);
         return;
       }
-      addClaim(body, place, token);
       seeOther(res, "/", setCookie);
       return;
     }
 
-    if (req.method === "POST" && url.pathname === "/corroborate") {
+    if (!me) {
+      // No door and no password — the brief leaves who counts as a person
+      // open — but the app does need something to call you.
+      html(res, 200, joinPage(listHouses(), message), setCookie);
+      return;
+    }
+
+    if (req.method === "GET" && path === "/") {
+      const everywhere = whereEveryoneIs();
+      const houses = listHouses().map((h) => ({
+        ...h,
+        hereNames: (everywhere[h.slug] ?? []).map(nameOf),
+      }));
+      html(res, 200, mapPage(houses, me, message), setCookie);
+      return;
+    }
+
+    if (req.method === "GET" && path === "/leave") {
+      leave(token);
+      seeOther(res, said("/", "You've left the village. Everything you put down is still where you put it."), setCookie);
+      return;
+    }
+
+    const room = /^\/house\/([a-z-]+)\/room$/.exec(path);
+    if (req.method === "GET" && room) {
+      const house = houseBySlug(room[1]);
+      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>")); return; }
+      enter(token, house.slug);
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(roomFragment(inRoom(house.slug, token), house.slug));
+      return;
+    }
+
+    const stream = req.method === "GET" && path === "/stream" ? url.searchParams.get("house") : null;
+    if (stream) {
+      const house = houseBySlug(stream);
+      if (!house) { res.writeHead(404).end(); return; }
+      res.writeHead(200, {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache",
+        connection: "keep-alive",
+      });
+      res.write(": open\n\n");
+      const unsubscribe = subscribe(house.slug, (payload) => res.write(`data: ${payload}\n\n`));
+      // An open stream is what keeps someone present: the heartbeat refreshes
+      // their 45 seconds and keeps intermediaries from closing the socket.
+      const ping = setInterval(() => {
+        enter(token, house.slug);
+        res.write(": ping\n\n");
+      }, PING_MS);
+      req.on("close", () => {
+        clearInterval(ping);
+        unsubscribe();
+      });
+      return;
+    }
+
+    const visit = /^\/house\/([a-z-]+)$/.exec(path);
+    if (req.method === "GET" && visit) {
+      const house = houseBySlug(visit[1]);
+      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>"), setCookie); return; }
+      // Arriving is what makes you present, so a reader with JavaScript off
+      // still counts for the 45 seconds the app will admit to.
+      enter(token, house.slug);
+      const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameOf);
+      html(res, 200, housePage(house, me, others, inRoom(house.slug, token), message), setCookie);
+      publish(house.slug, "arrived");
+      return;
+    }
+
+    if (req.method === "POST" && path === "/place") {
       const form = await formData(req);
-      const claimId = Number(form.get("claim"));
-      if (!Number.isInteger(claimId)) {
-        seeOther(res, "/?said=" + encodeURIComponent(REFUSALS["unknown-claim"]), setCookie);
+      const slug = (form.get("house") ?? "").trim();
+      const result = place(slug, token, form.get("body") ?? "");
+      if (typeof result === "string") {
+        seeOther(res, said(`/house/${slug}`, REFUSALS[result]), setCookie);
         return;
       }
-      const refusal = addCorroboration(claimId, token);
-      seeOther(res, refusal ? "/?said=" + encodeURIComponent(REFUSALS[refusal]) : "/", setCookie);
+      publish(slug, "placed");
+      seeOther(res, `/house/${slug}`, setCookie);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/take") {
+      const form = await formData(req);
+      const thingId = Number(form.get("thing"));
+      const back = form.get("house") ?? "";
+      if (!Number.isInteger(thingId)) {
+        seeOther(res, said(`/house/${back}`, REFUSALS["unknown-thing"]), setCookie);
+        return;
+      }
+      const refusal = takeIn(thingId, token);
+      const slug = back || "meeting";
+      if (refusal) { seeOther(res, said(`/house/${slug}`, REFUSALS[refusal]), setCookie); return; }
+      publish(slug, "kept");
+      seeOther(res, `/house/${slug}`, setCookie);
       return;
     }
 
