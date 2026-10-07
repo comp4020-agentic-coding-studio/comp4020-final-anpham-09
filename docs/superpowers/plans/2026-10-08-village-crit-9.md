@@ -1002,7 +1002,7 @@ git commit -m "feat: an event hub that knows nothing about HTTP"
 
 **Interfaces:**
 - Consumes: `House` from `src/houses.ts`, `ThingView` from `src/things.ts`
-- Produces: `esc`, `page(title: string, inner: string): string`, `markdown(src: string): string` (all unchanged), plus `mapPage(houses: Array<House & { hereNames: string[] }>, me: Person | undefined, message: string | null): string`, `housePage(house: House, me: Person, hereNames: string[], things: ThingView[], message: string | null): string`, `roomFragment(things: ThingView[]): string`, `joinPage(houses: House[], message: string | null): string`
+- Produces: `esc`, `page(title: string, inner: string): string`, `markdown(src: string): string` (all unchanged), plus `mapPage(houses: Array<House & { hereNames: string[] }>, me: Person, message: string | null): string`, `housePage(house: House, me: Person, hereNames: string[], things: ThingView[], message: string | null): string`, `roomFragment(things: ThingView[]): string`, `joinPage(houses: House[], message: string | null): string`
 
 - [ ] **Step 1: Replace the stylesheet tokens**
 
@@ -1154,7 +1154,9 @@ export function mapPage(
 export function housePage(
   house: House,
   me: Person,
-  hereNames: string[],
+  /** Everyone else who has been here inside the TTL. The caller excludes the
+   *  viewer by token before this is called — see the note in the route. */
+  otherNames: string[],
   things: ThingView[],
   message: string | null,
 ): string {
@@ -1463,8 +1465,11 @@ const server = createServer((req, res) => {
       // Arriving is what makes you present, so a reader with JavaScript off
       // still counts for the 45 seconds the app will admit to.
       enter(token, house.slug);
-      const here = whoIsIn(house.slug).map(nameOf);
-      html(res, 200, housePage(house, me, here, inRoom(house.slug, token), message), setCookie);
+      // Exclude yourself by token, never by display name: two people may
+      // choose the same name, and filtering on the string would subtract each
+      // of them from the other's view and tell both they were here alone.
+      const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameOf);
+      html(res, 200, housePage(house, me, others, inRoom(house.slug, token), message), setCookie);
       publish(house.slug, "arrived");
       return;
     }
