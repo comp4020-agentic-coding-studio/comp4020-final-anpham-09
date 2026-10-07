@@ -9,6 +9,12 @@ export const PRESENCE_TTL_SECONDS = 45;
 
 const now = (): number => Math.floor(Date.now() / 1000);
 
+/** Known limitation, deliberately out of scope for this crit: presence is one
+ *  row per person, keyed only on `person`. Two tabs open on different houses
+ *  for the same person will flip that person's recorded location back and
+ *  forth every 15 seconds, as each tab's SSE heartbeat calls `enter` for its
+ *  own house. Keying presence on `(person, house_id)` instead is the real
+ *  fix, and is left for later. */
 export function enter(token: string, houseSlug: string, atEpochSeconds: number = now()): void {
   const house = houseBySlug(houseSlug);
   if (!house) return;

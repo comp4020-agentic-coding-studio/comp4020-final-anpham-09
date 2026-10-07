@@ -34,7 +34,6 @@ input, button, select { font: inherit; padding: 0.6rem 0.7rem; min-height: 44px;
   border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); }
 button { cursor: pointer; font-weight: 600; }
 ol { list-style: none; padding: 0; }
-li.claim { border-top: 1px solid var(--rule); padding: 1rem 0; }
 .body { font-size: 1.05rem; margin: 0 0 0.35rem; }
 .meta { color: var(--quiet); font-size: 0.85rem; margin: 0 0 0.6rem; }
 .note { color: var(--quiet); font-size: 0.85rem; }

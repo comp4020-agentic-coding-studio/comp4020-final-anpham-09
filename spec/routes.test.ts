@@ -64,11 +64,17 @@ describe("what a browser gets", () => {
     await s.get("/");
     await s.post("/join", { name: "Alice", home: "cabin" });
     await s.get("/house/cabin");
-    const placed = await s.post("/place", { house: "cabin", body: "a form post works" });
+    // A body unique to this run, not just this test: "contains the text" and
+    // "contains In the room" are each satisfiable by some OTHER thing already
+    // in cabin (e.g. a previous run's, on a warm database), so the assertions
+    // below are bound to the specific <li> for the thing just placed.
+    const body = `a form post works ${Date.now()}`;
+    const placed = await s.post("/place", { house: "cabin", body });
     expect(placed.status).toBe(303);
     const room = await (await s.get("/house/cabin/room")).text();
-    expect(room).toContain("a form post works");
-    expect(room).toContain("In the room");
+    const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
+    expect(item, "the thing just placed is not in the room").not.toBeNull();
+    expect(item![0]).toContain("In the room");
   });
 
   it("explains a refusal in words rather than dropping it", async () => {

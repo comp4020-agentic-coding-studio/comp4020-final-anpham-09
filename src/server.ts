@@ -3,10 +3,10 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { publish, subscribe } from "./events.ts";
 import { houseBySlug, listHouses } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
-import { ensurePerson, getPerson, nameOf, type Person } from "./people.ts";
+import { ensurePerson, getPerson, nameOf, type Person, type PersonRefusal } from "./people.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
 import { housePage, joinPage, mapPage, markdown, page, roomFragment } from "./render.ts";
-import { inRoom, place, takeIn } from "./things.ts";
+import { inRoom, place, takeIn, type KeepRefusal, type PlaceRefusal } from "./things.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const COOKIE = "who";
@@ -34,9 +34,14 @@ const seeOther = (res: ServerResponse, to: string, cookie?: string): void => {
 
 const said = (to: string, message: string): string => `${to}?said=${encodeURIComponent(message)}`;
 
+/** A refusal has to land somewhere that can show it. An unvalidated slug from
+ *  a form would redirect to a 404, and the 404 page carries no message. */
+const backTo = (slug: string): string =>
+  houseBySlug(slug) ? `/house/${encodeURIComponent(slug)}` : "/";
+
 /** Every refusal gets words. A button that appears to do nothing teaches the
  *  user the system is broken; being told the rule teaches them the rule. */
-const REFUSALS: Record<string, string> = {
+const REFUSALS: Record<PersonRefusal | PlaceRefusal | NonNullable<KeepRefusal>, string> = {
   "unknown-house": "There's no such house in this village.",
   "blank-name": "The app needs something to call you.",
   "blank-body": "There's nothing there to put down.",
@@ -78,6 +83,13 @@ const server = createServer((req, res) => {
     }
 
     if (!me) {
+      if (req.method === "POST") {
+        // A POST from an unjoined visitor (a stale tab, say) must still be
+        // told something — answering with the join page at 200 would read
+        // the body never, silently.
+        seeOther(res, said("/", "Say who you are first — the app needs a name before you can put anything down."), setCookie);
+        return;
+      }
       // No door and no password — the brief leaves who counts as a person
       // open — but the app does need something to call you.
       html(res, 200, joinPage(listHouses(), message), setCookie);
@@ -103,7 +115,7 @@ const server = createServer((req, res) => {
     const room = /^\/house\/([a-z-]+)\/room$/.exec(path);
     if (req.method === "GET" && room) {
       const house = houseBySlug(room[1]);
-      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>")); return; }
+      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>"), setCookie); return; }
       enter(token, house.slug);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(roomFragment(inRoom(house.slug, token), house.slug));
@@ -152,27 +164,28 @@ const server = createServer((req, res) => {
       const slug = (form.get("house") ?? "").trim();
       const result = place(slug, token, form.get("body") ?? "");
       if (typeof result === "string") {
-        seeOther(res, said(`/house/${slug}`, REFUSALS[result]), setCookie);
+        seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
         return;
       }
       publish(slug, "placed");
-      seeOther(res, `/house/${slug}`, setCookie);
+      seeOther(res, backTo(slug), setCookie);
       return;
     }
 
     if (req.method === "POST" && path === "/take") {
       const form = await formData(req);
       const thingId = Number(form.get("thing"));
-      const back = form.get("house") ?? "";
+      const back = (form.get("house") ?? "").trim();
       if (!Number.isInteger(thingId)) {
-        seeOther(res, said(`/house/${back}`, REFUSALS["unknown-thing"]), setCookie);
+        seeOther(res, said(backTo(back), REFUSALS["unknown-thing"]), setCookie);
         return;
       }
       const refusal = takeIn(thingId, token);
-      const slug = back || "meeting";
-      if (refusal) { seeOther(res, said(`/house/${slug}`, REFUSALS[refusal]), setCookie); return; }
-      publish(slug, "kept");
-      seeOther(res, `/house/${slug}`, setCookie);
+      if (refusal) { seeOther(res, said(backTo(back), REFUSALS[refusal]), setCookie); return; }
+      // Only nudge the room that actually changed. A guessed destination
+      // would publish to the wrong house's event stream.
+      if (houseBySlug(back)) publish(back, "kept");
+      seeOther(res, backTo(back), setCookie);
       return;
     }
 
