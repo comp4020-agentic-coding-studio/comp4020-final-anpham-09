@@ -12,9 +12,21 @@ const PORT = Number(process.env.PORT ?? 8080);
 const COOKIE = "who";
 const PING_MS = 15_000;
 
+/** Past this, the app stops reading rather than buffer the rest: a 64MB POST
+ *  on a 256MB machine is how one request takes the whole thing down. No
+ *  legitimate form here (a name, a house slug, a 280-char body) comes close. */
+const MAX_BODY_BYTES = 64 * 1024;
+
+class BodyTooLarge extends Error {}
+
 async function formData(req: IncomingMessage): Promise<URLSearchParams> {
   const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(chunk as Buffer);
+  let total = 0;
+  for await (const chunk of req) {
+    total += (chunk as Buffer).length;
+    if (total > MAX_BODY_BYTES) throw new BodyTooLarge();
+    chunks.push(chunk as Buffer);
+  }
   return new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
 }
 
@@ -209,6 +221,15 @@ const server = createServer((req, res) => {
 
     html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such page.</p></main>"), setCookie);
   })().catch((err: unknown) => {
+    if (err instanceof BodyTooLarge) {
+      // Stop reading rather than buffer the rest of an oversized body —
+      // destroying the socket means the client's remaining bytes are
+      // dropped on the floor instead of continuing to arrive.
+      if (!res.headersSent) res.writeHead(413, { "content-type": "text/plain" });
+      res.end("Request body too large.");
+      req.destroy();
+      return;
+    }
     console.error(JSON.stringify({ at: new Date().toISOString(), level: "error", err: String(err) }));
     if (!res.headersSent) res.writeHead(500, { "content-type": "text/plain" });
     res.end("Something went wrong.");
