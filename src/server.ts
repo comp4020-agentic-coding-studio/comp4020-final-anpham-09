@@ -5,8 +5,8 @@ import { houseBySlug, listHouses } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
 import { ensurePerson, getPerson, nameOf, type Person, type PersonRefusal } from "./people.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
-import { housePage, joinPage, mapPage, markdown, page, roomFragment } from "./render.ts";
-import { inRoom, place, takeIn, type KeepRefusal, type PlaceRefusal } from "./things.ts";
+import { housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage } from "./render.ts";
+import { inRoom, onShelf, place, takeIn, type KeepRefusal, type PlaceRefusal } from "./things.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const COOKIE = "who";
@@ -79,7 +79,7 @@ const server = createServer((req, res) => {
     // The README is published whether or not you've said who you are.
     if (req.method === "GET" && path === "/readme") {
       const src = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-      html(res, 200, page("About — the village", `<main>${markdown(src)}</main>`), setCookie);
+      html(res, 200, page("About — the village", `<main>${markdown(src)}</main>`, me), setCookie);
       return;
     }
 
@@ -128,6 +128,12 @@ const server = createServer((req, res) => {
       return;
     }
 
+    if (req.method === "GET" && path === "/shelf") {
+      const houses = listHouses().map((h) => ({ ...h, shelved: onShelf(h.slug, token) }));
+      html(res, 200, shelfPage(houses, me, message), setCookie);
+      return;
+    }
+
     if (req.method === "GET" && path === "/leave") {
       leave(token);
       // Clearing presence but not the cookie would still resolve this token
@@ -142,7 +148,7 @@ const server = createServer((req, res) => {
     const room = /^\/house\/([a-z-]+)\/room$/.exec(path);
     if (req.method === "GET" && room) {
       const house = houseBySlug(room[1]);
-      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>"), setCookie); return; }
+      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
       enter(token, house.slug);
       // Computed exactly as the /house/:slug route does, so a reconnecting
       // stream's resync carries the same who-line the full page would.
@@ -179,7 +185,7 @@ const server = createServer((req, res) => {
     const visit = /^\/house\/([a-z-]+)$/.exec(path);
     if (req.method === "GET" && visit) {
       const house = houseBySlug(visit[1]);
-      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>"), setCookie); return; }
+      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
       // Arriving is what makes you present, so a reader with JavaScript off
       // still counts for the 45 seconds the app will admit to.
       enter(token, house.slug);
@@ -219,7 +225,7 @@ const server = createServer((req, res) => {
       return;
     }
 
-    html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such page.</p></main>"), setCookie);
+    html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such page.</p></main>", me), setCookie);
   })().catch((err: unknown) => {
     if (err instanceof BodyTooLarge) {
       // Stop reading rather than buffer the rest of an oversized body —

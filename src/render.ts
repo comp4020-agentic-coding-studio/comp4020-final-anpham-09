@@ -5,62 +5,170 @@ import type { ThingView } from "./things.ts";
 export const esc = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
+/** Fonts load over the network with `display=swap`; every fallback below is
+ *  chosen for metric compatibility so a slow connection or a blocked CDN
+ *  still lands on a readable page, not a layout-shifted or blank one. */
+const FONTS_HEAD = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet">`;
+
 const STYLE = `
 :root {
-  --ink: oklch(0.24 0.02 60);
-  --paper: oklch(0.98 0.012 85);
-  --rule: oklch(0.86 0.02 70);
-  --quiet: oklch(0.52 0.02 70);
-  --room: oklch(0.58 0.10 55);
-  --shelf: oklch(0.50 0.09 150);
-  --here: oklch(0.55 0.13 250);
+  --paper:#FBF8F2; --card:#F4EFE6; --card-raised:#EDE4D6; --rule:#E2D5C3;
+  --ink:#2C2421; --ink-soft:#56423D;
+  --hearth:#C86446; --hearth-deep:#9A3E23; --on-hearth:#FFFFFF;
+  --sage:#5F7464; --sage-deep:#3E5343;
+  --amber:#D9933B; --amber-deep:#8F5B19;
+  --shadow-1:0 2px 8px -2px rgba(44,36,33,.05), 0 4px 16px -4px rgba(44,36,33,.06);
+  --shadow-2:0 4px 12px -2px rgba(44,36,33,.08), 0 8px 24px -4px rgba(44,36,33,.08);
+  --display:"Merriweather",Georgia,"Times New Roman",serif;
+  --body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: oklch(0.93 0.01 80); --paper: oklch(0.19 0.02 60); --rule: oklch(0.36 0.02 70);
-    --quiet: oklch(0.72 0.02 70); --room: oklch(0.80 0.10 55);
-    --shelf: oklch(0.78 0.09 150); --here: oklch(0.80 0.11 250);
+    /* Warm ink-wood base, not grey. Terracotta is lifted (toward the
+       reference's own --inverse-primary) rather than darkened, since a
+       darkened terracotta on a dark ground reads muddy rather than warm. */
+    --paper:#1A1512; --card:#241D19; --card-raised:#2E2520; --rule:#3E322B;
+    --ink:#F2E7DF; --ink-soft:#C3AFA5;
+    --hearth:#E8927A; --hearth-deep:#FFB59F; --on-hearth:#2C2421;
+    --sage:#A8C4AE; --sage-deep:#CBDCCF;
+    --amber:#E8B877; --amber-deep:#FFD9A8;
+    --shadow-1:0 2px 8px -2px rgba(0,0,0,.35), 0 4px 16px -4px rgba(0,0,0,.40);
+    --shadow-2:0 4px 12px -2px rgba(0,0,0,.45), 0 8px 24px -4px rgba(0,0,0,.50);
   }
 }
 * { box-sizing: border-box; }
-body { margin: 0 auto; padding: 1.5rem 1rem 4rem; max-width: 42rem;
-  font: 16px/1.6 ui-sans-serif, system-ui, sans-serif; color: var(--ink); background: var(--paper); }
-nav { display: flex; gap: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--rule); }
-nav a, a.hop { display: inline-block; min-height: 44px; padding: 0.6rem 0; }
-h1 { font-size: 1.5rem; margin: 1.5rem 0 0.25rem; }
-.lede { color: var(--quiet); margin-top: 0; }
-form { display: grid; gap: 0.5rem; margin: 1.5rem 0; }
-label { font-weight: 600; font-size: 0.9rem; }
-input, button, select { font: inherit; padding: 0.6rem 0.7rem; min-height: 44px;
-  border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); }
+html { background: var(--paper); }
+body { margin: 0 auto; padding: 0 0 4rem; max-width: 72rem;
+  font: 16px/1.5 var(--body); color: var(--ink); background: var(--paper); }
+a { color: var(--hearth-deep); }
+main { padding: 0 1.25rem; }
+@media (min-width: 768px) { main { padding: 0 2rem; } }
+
+/* Chrome: a slim header, then the four-link nav, on every page. */
+header.chrome { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+  gap: .5rem 1rem; padding: 1.25rem 1.25rem .75rem; }
+@media (min-width: 768px) { header.chrome { padding: 1.5rem 2rem .75rem; } }
+.brand { font-family: var(--display); font-weight: 700; font-size: 1.375rem; color: var(--hearth); margin: 0; }
+.whoami { margin: 0; font-size: .875rem; color: var(--ink-soft); }
+.whoami strong { color: var(--ink); }
+nav.site { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; padding: 0 1.25rem .9rem; border-bottom: 1px solid var(--rule); }
+@media (min-width: 768px) { nav.site { padding: 0 2rem .9rem; } }
+nav.site a { display: inline-flex; align-items: center; min-height: 44px; padding: .2rem 0;
+  font-weight: 600; font-size: .9375rem; color: var(--ink-soft); text-decoration: none; }
+nav.site a:hover { color: var(--hearth-deep); }
+
+h1 { font-family: var(--display); font-weight: 700; font-size: 2.75rem; line-height: 3.5rem;
+  letter-spacing: -0.02em; margin: 1.5rem 0 .5rem; color: var(--ink); }
+h2 { font-family: var(--display); font-weight: 700; font-size: 2rem; line-height: 2.75rem;
+  letter-spacing: -0.01em; margin: 2rem 0 .5rem; color: var(--ink); }
+h3 { font-family: var(--display); font-weight: 700; font-size: 1.5rem; line-height: 2.125rem;
+  margin: 1.5rem 0 .5rem; color: var(--ink); }
+@media (max-width: 640px) {
+  h1 { font-size: 2rem; line-height: 2.625rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.625rem; line-height: 2.25rem; letter-spacing: 0; }
+}
+p { margin: 0 0 .75rem; }
+.lede { color: var(--ink-soft); font-size: 1.125rem; line-height: 1.75rem; margin-top: 0; }
+.note { color: var(--ink-soft); font-size: .875rem; }
+.empty { color: var(--ink-soft); }
+.quiet { color: var(--ink-soft); font-size: .875rem; font-style: italic; }
+
+form { display: grid; gap: .6rem; margin: 1.25rem 0; }
+label { font-weight: 600; font-size: .9375rem; }
+input, button, select, textarea { font: inherit; padding: .65rem .8rem; min-height: 44px;
+  border: 1.5px solid var(--rule); border-radius: .5rem; background: var(--paper); color: var(--ink); }
 button { cursor: pointer; font-weight: 600; }
-ol { list-style: none; padding: 0; }
-.body { font-size: 1.05rem; margin: 0 0 0.35rem; }
-.meta { color: var(--quiet); font-size: 0.85rem; margin: 0 0 0.6rem; }
-.note { color: var(--quiet); font-size: 0.85rem; }
-.empty { color: var(--quiet); }
+button.primary { background: var(--hearth); color: var(--on-hearth); border: none;
+  box-shadow: 0 -2px 0 color-mix(in srgb, var(--ink) 15%, transparent) inset; }
+button.primary:hover { background: var(--hearth-deep); }
+:is(a, button, input, select, textarea):focus-visible {
+  outline: none; border-radius: .5rem;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hearth) 20%, transparent);
+}
+
+ol { list-style: none; padding: 0; margin: 0; }
+pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+.state { font-weight: 600; font-size: .875rem; letter-spacing: .02em; }
+.state[data-state="in-the-room"] { color: var(--amber-deep); }
+.state[data-state="on-the-shelf"] { color: var(--sage-deep); }
+.here { color: var(--ink-soft); font-size: .9375rem; }
+
+/* Parchment cards. */
+.card { background: var(--card); border: 1px solid var(--rule); border-radius: 1rem;
+  box-shadow: var(--shadow-1); padding: 1.25rem; }
+.card-raised { background: var(--card-raised); border: 1px solid var(--rule); border-radius: 1rem;
+  box-shadow: var(--shadow-2); padding: 1.25rem; }
+.eyebrow { display: block; font-size: .8125rem; font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--sage-deep); margin-bottom: .25rem; }
+.dashed-rule { border: none; border-top: 1px dashed var(--rule); margin: 1rem 0; }
+.chip { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .75rem;
+  border-radius: .5rem; font-size: .8125rem; font-weight: 600; }
+.chip-home { background: color-mix(in srgb, var(--sage) 16%, var(--card)); color: var(--sage-deep); }
+
+/* The village map. */
+ul.village { list-style: none; padding: 0; margin: 1.25rem 0; display: grid; gap: 1.25rem;
+  grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 640px) { ul.village { grid-template-columns: 1fr; } }
+li.house { list-style: none; }
+a.house-card { display: block; min-height: 44px; text-decoration: none; color: inherit; }
+a.house-card:hover .card { box-shadow: var(--shadow-2); }
+a.house-card h2 { font-size: 1.5rem; line-height: 2rem; margin: 0 0 .75rem; }
+
+/* The CSS-drawn placeholder panel — decorative, never a photograph. */
+.placeholder { --tint: var(--hearth); aspect-ratio: 16 / 10; border-radius: 1rem; position: relative;
+  overflow: hidden; box-shadow: inset 0 0 0 1px var(--rule);
+  background-image:
+    radial-gradient(ellipse at 75% 20%, color-mix(in srgb, var(--tint) 30%, transparent) 0%, transparent 55%),
+    linear-gradient(135deg, color-mix(in srgb, var(--tint) 32%, var(--card)) 0%,
+      color-mix(in srgb, var(--tint) 10%, var(--paper)) 55%, var(--card-raised) 100%); }
+.placeholder-caption { font-style: italic; color: var(--ink-soft); font-size: .875rem; margin: .5rem 0 1rem; }
+
+/* Memory slips, alternately tilted as handwritten note slips. */
+li.thing { list-style: none; background: var(--card); border: 1px solid var(--rule); border-radius: .75rem;
+  box-shadow: var(--shadow-1); padding: 1rem 1.1rem; margin: 0 0 1rem; }
+li.thing:nth-of-type(odd) { transform: rotate(-0.4deg); }
+li.thing:nth-of-type(even) { transform: rotate(0.4deg); }
+li.thing:has(.state[data-state="on-the-shelf"]) { border-left: 3px solid var(--sage); }
+li.thing:has(.state[data-state="in-the-room"]) { border-left: 3px solid var(--amber); }
+.body { font-size: 1.0625rem; margin: 0 0 .35rem; }
+.meta { color: var(--ink-soft); font-size: .8125rem; margin: 0 0 .5rem; }
+
+/* The house page's two-column layout. */
+.layout-house { display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem; align-items: start; }
+@media (max-width: 768px) { .layout-house { grid-template-columns: 1fr; } }
+.panel-stack { display: grid; gap: 1.25rem; }
+.rule-title { margin: 0 0 .5rem; font-size: 1.125rem; }
+.consequence { font-size: .9375rem; }
+
+blockquote { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--rule); color: var(--ink-soft); }
+blockquote p { margin: .4rem 0; }
 main :is(h2,h3) { margin-top: 2rem; }
-pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
-.state { font-weight: 600; font-size: 0.85rem; letter-spacing: 0.02em; }
-.state[data-state="in-the-room"] { color: var(--room); }
-.state[data-state="on-the-shelf"] { color: var(--shelf); }
-.here { color: var(--here); font-size: 0.9rem; }
-ul.village { list-style: none; padding: 0; display: grid; gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
-li.house { border: 1px solid var(--rule); border-radius: 10px; padding: 1rem; }
-li.house a { font-weight: 600; font-size: 1.05rem; display: inline-block; min-height: 44px; min-width: 44px; }
-li.thing { border-top: 1px solid var(--rule); padding: 1rem 0; }
-blockquote { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--rule); color: var(--quiet); }
-blockquote p { margin: 0.4rem 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  a.house-card { transition: transform .15s ease; }
+  a.house-card:hover { transform: translateY(-2px); }
+}
 `;
 
-export function page(title: string, inner: string): string {
+export function page(title: string, inner: string, me?: Person | null): string {
   return `<!doctype html>
 <html lang="en-AU"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+${FONTS_HEAD}
 <title>${esc(title)}</title><style>${STYLE}</style>
 </head><body>
-<nav aria-label="site"><a href="/">The village</a><a href="/readme/">About</a></nav>
+<header class="chrome">
+  <p class="brand">The village</p>
+  ${me ? `<p class="whoami">You are <strong>${esc(me.name)}</strong></p>` : ""}
+</header>
+<nav class="site" aria-label="site">
+  <a href="/">Village map</a>
+  <a href="/shelf">Memory shelf</a>
+  <a href="/house/meeting">The meeting house</a>
+  <a href="/leave">Leave the village</a>
+</nav>
 ${inner}
 </body></html>`;
 }
@@ -139,10 +247,28 @@ export function joinPage(houses: House[], message: string | null): string {
         <input id="name" name="name" required maxlength="40" placeholder="An">
         <label for="home">Which house is yours?</label>
         <select id="home" name="home" required>${options}</select>
-        <button>Go in</button>
+        <button class="primary">Go in</button>
       </form>
     </main>`,
   );
+}
+
+/** A house's own tint for the CSS-drawn placeholder panel — terracotta for
+ *  the ancestral house, sage for the brother's, amber for mine, and a deep
+ *  ink wash for the shared one, so the four stay visually distinguishable
+ *  without ever claiming to be a photograph. */
+function tintFor(slug: string): string {
+  switch (slug) {
+    case "nghe-an": return "var(--hearth)";
+    case "hanoi": return "var(--sage)";
+    case "canberra": return "var(--amber)";
+    default: return "var(--ink-soft)";
+  }
+}
+
+function placeholderPanel(slug: string): string {
+  return `<div class="placeholder" style="--tint:${tintFor(slug)}" aria-hidden="true"></div>
+    <p class="placeholder-caption">A photograph of the real place belongs here.</p>`;
 }
 
 export function mapPage(
@@ -151,12 +277,23 @@ export function mapPage(
   message: string | null,
 ): string {
   const cards = houses
-    .map(
-      (h) => `<li class="house">
-        <a href="/house/${esc(h.slug)}">${esc(h.name)}</a>
-        <p class="here">${h.hereNames.length ? names(h.hereNames) + (h.hereNames.length === 1 ? " is here" : " are here") : "Nobody is here"}</p>
-      </li>`,
-    )
+    .map((h) => {
+      const presence = h.hereNames.length
+        ? names(h.hereNames) + (h.hereNames.length === 1 ? " is here" : " are here")
+        : "Nobody is here";
+      const home = h.slug === me.homeSlug ? `<span class="chip chip-home">Your house</span>` : "";
+      return `<li class="house">
+        <a class="house-card" href="/house/${esc(h.slug)}">
+          <div class="card">
+            <span class="eyebrow">${esc(h.kind === "meeting" ? "Shared common room" : "A family house")}</span>
+            <h2>${esc(h.name)} ${home}</h2>
+            ${placeholderPanel(h.slug)}
+            <hr class="dashed-rule">
+            <p class="here">${esc(presence)}</p>
+          </div>
+        </a>
+      </li>`;
+    })
     .join("");
   return page(
     "The village",
@@ -166,12 +303,22 @@ export function mapPage(
         It goes on that house's shelf when somebody else was there for it —
         a memory is something two of you were there for.</p>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
-      <h2>Houses</h2>
       <ul class="village">${cards}</ul>
-      <p class="note">You're here as <strong>${esc(me.name)}</strong>.
-        <a class="hop" href="/leave">Leave the village</a></p>
+      <p class="quiet">The map updates on its own as people arrive and leave.</p>
     </main>`,
+    me,
   );
+}
+
+/** The real consequence of putting something down right now, built only from
+ *  the presence names the route already computed — never invented. */
+function consequenceLine(otherNames: string[]): string {
+  if (!otherNames.length) {
+    return "Nobody else is here. What you put down will stay in the room until someone comes.";
+  }
+  const verb = otherNames.length === 1 ? "is" : "are";
+  const whose = otherNames.length === 1 ? "their name" : "their names";
+  return `${names(otherNames)} ${verb} here right now. If ${otherNames.length === 1 ? "they are" : "they are"} still here, this goes on the shelf with ${whose}.`;
 }
 
 export function housePage(
@@ -188,16 +335,29 @@ export function housePage(
     `<main>
       <h1>${esc(house.name)}</h1>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
-      <form method="post" action="/place">
-        <input type="hidden" name="house" value="${esc(house.slug)}">
-        <label for="body">What do you want to put down here?</label>
-        <input id="body" name="body" required maxlength="280" placeholder="He stood up on his own today">
-        <button>Put it down</button>
-      </form>
-      <h2>In this house</h2>
-      <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
-      <p class="note">You're here as <strong>${esc(me.name)}</strong>.
-        <a class="hop" href="/">Back to the village</a></p>
+      <div class="layout-house">
+        <div>
+          ${placeholderPanel(house.slug)}
+          <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
+        </div>
+        <div class="panel-stack">
+          <div class="card">
+            <h3 class="rule-title">The two-state rule</h3>
+            <p class="body-sm"><strong>In the room</strong> — nobody else was here yet.</p>
+            <p class="body-sm"><strong>On the shelf</strong> — someone was here with you, and it stays.</p>
+          </div>
+          <div class="card-raised">
+            <p class="consequence">${esc(consequenceLine(otherNames))}</p>
+          </div>
+          <form method="post" action="/place">
+            <input type="hidden" name="house" value="${esc(house.slug)}">
+            <label for="body">What do you want to put down here?</label>
+            <input id="body" name="body" required maxlength="280" placeholder="He stood up on his own today">
+            <button class="primary">Put this down</button>
+          </form>
+          <p class="quiet">No notifications, no alerts. You find out by visiting.</p>
+        </div>
+      </div>
       <script type="module">
         // Live updating is the only thing JavaScript adds. Without it the page
         // still renders, and every action is still a form POST.
@@ -215,6 +375,34 @@ export function housePage(
         stream.onopen = resync;
       </script>
     </main>`,
+    me,
+  );
+}
+
+export function shelfPage(
+  houses: Array<House & { shelved: ThingView[] }>,
+  me: Person,
+  message: string | null,
+): string {
+  const sections = houses
+    .map((h) => {
+      const body = h.shelved.length
+        ? `<ol>${h.shelved.map((t) => thingItem(t, h.slug)).join("")}</ol>`
+        : `<p class="empty">Nothing from ${esc(h.name)} is on the shelf yet. Something
+            gets here when two of you are in the room together.</p>`;
+      return `<section><h2>${esc(h.name)}</h2>${body}</section>`;
+    })
+    .join("");
+  return page(
+    "The memory shelf",
+    `<main>
+      <h1>The memory shelf</h1>
+      <p class="lede">Only the things more than one of you were there for. No
+        compose box here — the shelf is for looking at.</p>
+      ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
+      ${sections}
+    </main>`,
+    me,
   );
 }
 
