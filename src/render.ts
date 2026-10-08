@@ -195,13 +195,24 @@ li.thread-msg .thread-body { flex: 1; min-width: 0; }
   margin: 0 0 .3rem; font-size: .9375rem; }
 .thread-time { color: var(--ink-soft); font-size: .8125rem; }
 /* Oldest at the top, newest at the bottom — a conversation reads downward,
-   the opposite of the other rooms' most-recent-first list — and the thread
-   scrolls on its own so the presence strip above it stays put. */
-ol.thread { max-height: 32rem; overflow-y: auto; padding-right: .25rem; }
-@media (prefers-reduced-motion: no-preference) { ol.thread { scroll-behavior: smooth; } }
+   the opposite of the other rooms' most-recent-first list. The thread has
+   no height limit of its own and no inner scrollbar: it grows with the page,
+   the same way the reference's own conversation panel does. A fixed-height
+   scroll box here used to clip the oldest message into a content-less sliver
+   once the page auto-scrolled to the newest one — the page scrolling as a
+   whole, handled in housePage's script, replaces that. */
 /* A conversation's rows don't tilt like a loose memory slip — same source
    order as the tilt rules above, same specificity, so this simply wins. */
 li.thread-msg:nth-of-type(odd), li.thread-msg:nth-of-type(even) { transform: none; }
+
+/* The state label and its one small action share a line instead of the
+   action being a loud full-width button under every message — the content
+   is the loud part, not the housekeeping. Wraps below on narrow screens. */
+.state-row { display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: .3rem .75rem; margin: 0 0 .5rem; }
+.state-row .state-text { margin: 0; flex: 1 1 auto; min-width: 0; }
+form.inline-take { display: inline-flex; margin: 0; flex: 0 0 auto; }
+form.inline-take button { min-height: 44px; padding: .4rem .85rem; font-size: .8125rem; }
 
 blockquote { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--rule); color: var(--ink-soft); }
 blockquote p { margin: .4rem 0; }
@@ -254,23 +265,39 @@ function stateLine(t: ThingView): string {
     <span class="note">— ${names(t.keeperNames)} ${n === 1 ? "was" : "were"} here too</span>`;
 }
 
+/** The one small action a thing can offer — taking it in — as an inline
+ *  control rather than a full-width button. Empty when there's nothing to
+ *  do (the viewer put it down themself, or has already kept it): those two
+ *  cases get a plain note instead, via `postNote`. */
+function takeForm(t: ThingView, houseSlug: string): string {
+  if (t.isOwn || t.viewerHasKept) return "";
+  return `<form method="post" action="/take" class="inline-take">
+    <input type="hidden" name="thing" value="${t.id}">
+    <input type="hidden" name="house" value="${esc(houseSlug)}">
+    <button>I was here for this</button></form>`;
+}
+
+/** The state label and its one action, sharing a line — see `.state-row`.
+ *  Shared by the ordinary room list and the meeting house's thread, since
+ *  both show the same two-state rule on the same kind of row. */
+function stateRow(t: ThingView, houseSlug: string): string {
+  return `<div class="state-row"><p class="state-text">${stateLine(t)}</p>${takeForm(t, houseSlug)}</div>`;
+}
+
+/** The quiet text for the two cases `takeForm` has nothing to offer for —
+ *  never a button, since there's no action left to take. */
+function postNote(t: ThingView): string {
+  if (t.isOwn) return `<p class="note">You put this down, so you can't be the one who was here for it.</p>`;
+  if (t.viewerHasKept) return `<p class="note">You were here for this.</p>`;
+  return "";
+}
+
 function thingItem(t: ThingView, houseSlug: string): string {
-  let action: string;
-  if (t.isOwn) {
-    action = `<p class="note">You put this down, so you can't be the one who was here for it.</p>`;
-  } else if (t.viewerHasKept) {
-    action = `<p class="note">You were here for this.</p>`;
-  } else {
-    action = `<form method="post" action="/take">
-      <input type="hidden" name="thing" value="${t.id}">
-      <input type="hidden" name="house" value="${esc(houseSlug)}">
-      <button>I was here for this</button></form>`;
-  }
   return `<li class="thing">
     <p class="body">${esc(t.body)}</p>
     <p class="meta">${esc(t.placedByName)} · ${esc(t.createdAt)} UTC</p>
-    <p>${stateLine(t)}</p>
-    ${action}
+    ${stateRow(t, houseSlug)}
+    ${postNote(t)}
   </li>`;
 }
 
@@ -330,25 +357,14 @@ function homeChip(placedByToken: string): string {
 }
 
 function threadMessage(t: ThingView, houseSlug: string): string {
-  let action: string;
-  if (t.isOwn) {
-    action = `<p class="note">You put this down, so you can't be the one who was here for it.</p>`;
-  } else if (t.viewerHasKept) {
-    action = `<p class="note">You were here for this.</p>`;
-  } else {
-    action = `<form method="post" action="/take">
-      <input type="hidden" name="thing" value="${t.id}">
-      <input type="hidden" name="house" value="${esc(houseSlug)}">
-      <button>I was here for this</button></form>`;
-  }
   return `<li class="thing thread-msg">
     ${monogram(t.placedByName)}
     <div class="thread-body">
       <p class="thread-meta"><strong>${esc(t.placedByName)}</strong> ${homeChip(t.placedBy)}
         <span class="thread-time">${esc(timeAgo(t.createdAt))}</span></p>
       <p class="body">${esc(t.body)}</p>
-      <p>${stateLine(t)}</p>
-      ${action}
+      ${stateRow(t, houseSlug)}
+      ${postNote(t)}
     </div>
   </li>`;
 }
@@ -552,20 +568,29 @@ export function housePage(
   const quietLine = isMeeting
     ? "Whatever is said here reaches everyone in the room. No alerts, no unread marks."
     : "No notifications, no alerts. You find out by visiting.";
-  // The meeting house alone reads newest-at-the-bottom, so after every swap
-  // of the room fragment — the initial render and every live resync — the
-  // thread is scrolled to its newest message, the way a chat window would be.
-  // Reduced motion is respected by the CSS (`scroll-behavior` is only set
-  // under `prefers-reduced-motion: no-preference`), so this jumps rather
-  // than animates for anyone who asked for that.
-  const scrollScript = isMeeting
-    ? `const scrollThreadToBottom = () => {
-          const thread = room.querySelector("ol.thread");
-          if (thread) thread.scrollTop = thread.scrollHeight;
-        };
-        scrollThreadToBottom();`
+  // The meeting house's thread has no height limit or scrollbar of its own —
+  // it grows with the page, oldest message at the top. The page loads at the
+  // top, same as any other page; no initial jump to the bottom is needed,
+  // since reading oldest-to-newest naturally ends at the newest message
+  // anyway. After a live resync swaps in fresh messages, the newest one is
+  // brought into view — but only when the reader was already near the
+  // bottom before the swap, so scrolling up to read older messages is never
+  // undone out from under them. `scrollIntoView`'s own `behavior` is picked
+  // at call time from `prefers-reduced-motion`, so this jumps rather than
+  // animates for anyone who asked for that.
+  const scrollHelper = isMeeting
+    ? `const scrollToNewestMessage = () => {
+          const items = room.querySelectorAll("li.thread-msg");
+          const last = items[items.length - 1];
+          if (!last) return;
+          const behavior = window.matchMedia("(prefers-reduced-motion: no-preference)").matches ? "smooth" : "auto";
+          last.scrollIntoView({ block: "nearest", behavior });
+        };`
     : "";
-  const resyncExtra = isMeeting ? "\n          scrollThreadToBottom();" : "";
+  const nearBottomCheck = isMeeting
+    ? `const wasNearBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 200);`
+    : "";
+  const scrollAfterSwap = isMeeting ? "\n            if (wasNearBottom) scrollToNewestMessage();" : "";
   return page(
     house.name,
     `<main>
@@ -598,11 +623,14 @@ export function housePage(
         // Live updating is the only thing JavaScript adds. Without it the page
         // still renders, and every action is still a form POST.
         const room = document.getElementById("room");
-        ${scrollScript}
+        ${scrollHelper}
         const stream = new EventSource("/stream?house=" + encodeURIComponent(${JSON.stringify(house.slug)}));
         const resync = async () => {
+          ${nearBottomCheck}
           const res = await fetch("/house/" + encodeURIComponent(${JSON.stringify(house.slug)}) + "/room", { headers: { accept: "text/html" } });
-          if (res.ok) room.innerHTML = await res.text();${resyncExtra}
+          if (res.ok) {
+            room.innerHTML = await res.text();${scrollAfterSwap}
+          }
         };
         stream.onmessage = resync;
         // EventSource reconnects on its own after the machine stops and
