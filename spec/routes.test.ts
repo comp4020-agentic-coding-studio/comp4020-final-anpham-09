@@ -124,4 +124,44 @@ describe("what a browser gets", () => {
     await s.post("/join", { name: "Alice", home: "canberra" });
     expect((await s.get("/house/treehouse")).status).toBe(404);
   });
+
+  it("serves a house photograph without requiring a name", async () => {
+    // A fresh fetch, no session helper at all — no cookie jar, no /join.
+    const res = await fetch(new URL("/img/nghe-an.jpg", baseUrl));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/jpeg");
+    const body = await res.arrayBuffer();
+    expect(body.byteLength).toBeGreaterThan(0);
+  });
+
+  it("refuses to serve anything outside the images directory, or a picture that doesn't exist", async () => {
+    // Joined, so an unmatched path falls through to the real 404 handler
+    // rather than the join page a logged-out GET gets instead.
+    const s = session();
+    await s.get("/");
+    await s.post("/join", { name: "Alice", home: "canberra" });
+    const traversal = await s.get("/img/../package.json");
+    expect(traversal.status).toBe(404);
+    const missing = await s.get("/img/nope.jpg");
+    expect(missing.status).toBe(404);
+  });
+
+  it("puts a photograph of Hanoi on the village map", async () => {
+    const s = session();
+    await s.get("/");
+    await s.post("/join", { name: "Alice", home: "canberra" });
+    const html = await (await s.get("/")).text();
+    expect(html).toContain('<img class="photo" src="/img/hanoi.jpg"');
+  });
+
+  it("answers a HEAD request for a picture with the real headers and no body", async () => {
+    // `curl -I` sends HEAD, not GET — without routing HEAD to the same match
+    // as GET, this falls through to the unjoined-visitor gate and reports
+    // text/html for what is actually a picture.
+    const res = await fetch(new URL("/img/nghe-an.jpg", baseUrl), { method: "HEAD" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/jpeg");
+    const body = await res.arrayBuffer();
+    expect(body.byteLength).toBe(0);
+  });
 });

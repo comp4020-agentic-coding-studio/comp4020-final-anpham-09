@@ -1,4 +1,4 @@
-import type { House } from "./houses.ts";
+import { hasPicture, type House } from "./houses.ts";
 import type { Person } from "./people.ts";
 import type { ThingView } from "./things.ts";
 
@@ -124,6 +124,12 @@ a.house-card h2 { font-size: 1.5rem; line-height: 2rem; margin: 0 0 .75rem; }
     linear-gradient(135deg, color-mix(in srgb, var(--tint) 32%, var(--card)) 0%,
       color-mix(in srgb, var(--tint) 10%, var(--paper)) 55%, var(--card-raised) 100%); }
 .placeholder-caption { font-style: italic; color: var(--ink-soft); font-size: .875rem; margin: .5rem 0 1rem; }
+
+/* A real photograph, standing in the placeholder's place: same rounding and
+   inset hairline, cropped to the same aspect ratio so the four different
+   source ratios don't make four differently-shaped cards. */
+.photo { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: 1rem;
+  box-shadow: inset 0 0 0 1px var(--rule); object-fit: cover; }
 
 /* Memory slips, alternately tilted as handwritten note slips. */
 li.thing { list-style: none; background: var(--card); border: 1px solid var(--rule); border-radius: .75rem;
@@ -271,6 +277,48 @@ function placeholderPanel(slug: string): string {
     <p class="placeholder-caption">A photograph of the real place belongs here.</p>`;
 }
 
+/** These four pictures are stand-ins, not photographs of this family's actual
+ *  houses — the real pixel dimensions are fixed here so the <img> never
+ *  reflows while it loads, and the alt text describes what is actually in
+ *  the frame, for someone who cannot see it. */
+const PICTURES: Record<string, { width: number; height: number; alt: string }> = {
+  "nghe-an": {
+    width: 800,
+    height: 470,
+    alt: "A tiled courtyard house with its doors open and potted plants along the step.",
+  },
+  hanoi: {
+    width: 1024,
+    height: 683,
+    alt: "A narrow balcony crowded with potted plants and small flags.",
+  },
+  canberra: {
+    width: 1024,
+    height: 683,
+    alt: "A timber deck under eucalypts at dusk, with lanterns strung in a tree.",
+  },
+  meeting: {
+    width: 1400,
+    height: 875,
+    alt: "A long timber hall with a central fireplace and rows of tables.",
+  },
+};
+
+/** Reworded for a real picture that is still, honestly, a stand-in. Written
+ *  once, here, rather than repeated per house. */
+const STAND_IN_CAPTION = "A stand-in picture, until we take our own.";
+
+/** The photograph if the house has one, falling back to the CSS-drawn
+ *  placeholder when it does not — a house without a file still has to look
+ *  deliberate, not broken. */
+function photoPanel(slug: string): string {
+  const pic = PICTURES[slug];
+  if (!pic || !hasPicture(slug)) return placeholderPanel(slug);
+  return `<img class="photo" src="/img/${slug}.jpg" width="${pic.width}" height="${pic.height}"
+    loading="lazy" decoding="async" alt="${esc(pic.alt)}">
+    <p class="placeholder-caption">${STAND_IN_CAPTION}</p>`;
+}
+
 export function mapPage(
   houses: Array<House & { hereNames: string[] }>,
   me: Person,
@@ -287,7 +335,7 @@ export function mapPage(
           <div class="card">
             <span class="eyebrow">${esc(h.kind === "meeting" ? "Shared common room" : "A family house")}</span>
             <h2>${esc(h.name)} ${home}</h2>
-            ${placeholderPanel(h.slug)}
+            ${photoPanel(h.slug)}
             <hr class="dashed-rule">
             <p class="here">${esc(presence)}</p>
           </div>
@@ -337,7 +385,7 @@ export function housePage(
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
       <div class="layout-house">
         <div>
-          ${placeholderPanel(house.slug)}
+          ${photoPanel(house.slug)}
           <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
         </div>
         <div class="panel-stack">

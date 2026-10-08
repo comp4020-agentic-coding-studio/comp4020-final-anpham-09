@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { publish, subscribe } from "./events.ts";
 import { houseBySlug, listHouses } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
@@ -16,6 +18,10 @@ const PING_MS = 15_000;
  *  on a 256MB machine is how one request takes the whole thing down. No
  *  legitimate form here (a name, a house slug, a 280-char body) comes close. */
 const MAX_BODY_BYTES = 64 * 1024;
+
+// Resolved relative to this module, like the README path below — not
+// process.cwd(), which differs between `pnpm dev` and the container.
+const IMAGES_DIR = fileURLToPath(new URL("../img/", import.meta.url));
 
 class BodyTooLarge extends Error {}
 
@@ -67,6 +73,14 @@ const server = createServer((req, res) => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
     const path = url.pathname.replace(/\/+$/, "") || "/";
     const message = url.searchParams.get("said");
+    // A HEAD request is answered exactly like the matching GET: Node drops
+    // the body for HEAD at the HTTP layer on its own, so every route below
+    // just needs to be reachable by one, not rewritten for it. Without this,
+    // every GET-only match above falls through to the unjoined-visitor gate,
+    // which answers 200 text/html regardless of what was asked for — actively
+    // wrong for something like `curl -I /img/meeting.jpg`, which would report
+    // a web page instead of the image it's checking.
+    const method = req.method === "HEAD" ? "GET" : req.method;
 
     let token = readCookie(req.headers.cookie, COOKIE);
     let setCookie: string | undefined;
@@ -77,9 +91,41 @@ const server = createServer((req, res) => {
     const me: Person | undefined = getPerson(token);
 
     // The README is published whether or not you've said who you are.
-    if (req.method === "GET" && path === "/readme") {
+    if (method === "GET" && path === "/readme") {
       const src = readFileSync(new URL("../README.md", import.meta.url), "utf8");
       html(res, 200, page("About — the village", `<main>${markdown(src)}</main>`, me), setCookie);
+      return;
+    }
+
+    // Pictures are chrome, not content: they sit on the join page itself and
+    // gating them behind a name would be pointless, so this is answered
+    // before the join gate below, same as the README.
+    const img = /^\/img\/([a-z-]+)\.jpg$/.exec(path);
+    if (method === "GET" && img) {
+      const filePath = join(IMAGES_DIR, `${img[1]}.jpg`);
+      // The slug is already constrained to [a-z-]+ by the regex above, so it
+      // cannot contain a path separator or "..", but the resolved path is
+      // checked against the images directory anyway, as a second line of
+      // defence against a future loosening of that pattern.
+      if (!filePath.startsWith(IMAGES_DIR)) {
+        res.writeHead(404).end();
+        return;
+      }
+      try {
+        const data = readFileSync(filePath);
+        res.writeHead(200, {
+          "content-type": "image/jpeg",
+          "content-length": data.length,
+          // An hour: long enough to matter on a slow connection, short enough
+          // that a real family photo dropped in under the same filename shows
+          // up the same afternoon.
+          "cache-control": "public, max-age=3600",
+        });
+        res.end(data);
+      } catch {
+        // Never a 500 for a missing or unreadable file — just no picture.
+        res.writeHead(404).end();
+      }
       return;
     }
 
@@ -102,7 +148,7 @@ const server = createServer((req, res) => {
         seeOther(res, said("/", "Say who you are first — the app needs a name before you can put anything down."), setCookie);
         return;
       }
-      if (req.method === "GET" && path === "/stream") {
+      if (method === "GET" && path === "/stream") {
         // EventSource isn't a page a person reads, so there are no words to
         // give it. Answering 200 with the join page would make it retry
         // forever, every ~3 seconds, with nobody ever joining from here.
@@ -118,7 +164,7 @@ const server = createServer((req, res) => {
       return;
     }
 
-    if (req.method === "GET" && path === "/") {
+    if (method === "GET" && path === "/") {
       const everywhere = whereEveryoneIs();
       const houses = listHouses().map((h) => ({
         ...h,
@@ -128,13 +174,13 @@ const server = createServer((req, res) => {
       return;
     }
 
-    if (req.method === "GET" && path === "/shelf") {
+    if (method === "GET" && path === "/shelf") {
       const houses = listHouses().map((h) => ({ ...h, shelved: onShelf(h.slug, token) }));
       html(res, 200, shelfPage(houses, me, message), setCookie);
       return;
     }
 
-    if (req.method === "GET" && path === "/leave") {
+    if (method === "GET" && path === "/leave") {
       leave(token);
       // Clearing presence but not the cookie would still resolve this token
       // to a person on the next request — the app would say "you've left"
@@ -146,7 +192,7 @@ const server = createServer((req, res) => {
     }
 
     const room = /^\/house\/([a-z-]+)\/room$/.exec(path);
-    if (req.method === "GET" && room) {
+    if (method === "GET" && room) {
       const house = houseBySlug(room[1]);
       if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
       enter(token, house.slug);
@@ -158,7 +204,7 @@ const server = createServer((req, res) => {
       return;
     }
 
-    const stream = req.method === "GET" && path === "/stream" ? url.searchParams.get("house") : null;
+    const stream = method === "GET" && path === "/stream" ? url.searchParams.get("house") : null;
     if (stream) {
       const house = houseBySlug(stream);
       if (!house) { res.writeHead(404).end(); return; }
@@ -183,7 +229,7 @@ const server = createServer((req, res) => {
     }
 
     const visit = /^\/house\/([a-z-]+)$/.exec(path);
-    if (req.method === "GET" && visit) {
+    if (method === "GET" && visit) {
       const house = houseBySlug(visit[1]);
       if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
       // Arriving is what makes you present, so a reader with JavaScript off

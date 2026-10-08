@@ -30,5 +30,9 @@ COPY --from=deps /app/node_modules /app/node_modules
 COPY package.json ./
 COPY src/ /app/src/
 COPY README.md /app/README.md
+# Served at /img/ — a missing copy here means the pictures 404 in production
+# while working perfectly in development, since `pnpm dev` reads img/ straight
+# off the checkout.
+COPY img/ /app/img/
 EXPOSE 8080
 CMD ["node", "src/server.ts"]
