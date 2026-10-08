@@ -134,16 +134,30 @@ describe("what a browser gets", () => {
     expect(body.byteLength).toBeGreaterThan(0);
   });
 
-  it("refuses to serve anything outside the images directory, or a picture that doesn't exist", async () => {
-    // Joined, so an unmatched path falls through to the real 404 handler
-    // rather than the join page a logged-out GET gets instead.
-    const s = session();
-    await s.get("/");
-    await s.post("/join", { name: "Alice", home: "canberra" });
-    const traversal = await s.get("/img/../package.json");
-    expect(traversal.status).toBe(404);
-    const missing = await s.get("/img/nope.jpg");
+  it("refuses anything that isn't exactly a known slug plus .jpg, with no cookie at all", async () => {
+    // `/img/../package.json` cannot test the traversal defence: a normal
+    // client (fetch, a browser, curl without --path-as-is) normalises the
+    // ".." out of the URL before the request is ever sent, and the
+    // resulting path doesn't end in ".jpg" either way — so it never reaches
+    // the route's regex regardless of how strict that regex is. The real
+    // defence is the [a-z-]+ character class, and these cases exercise it:
+    // uppercase, an underscore, the wrong extension, and a doubled suffix.
+    for (const bad of ["/img/NGHE-AN.jpg", "/img/a_b.jpg", "/img/nghe-an.png", "/img/nghe-an.jpg.jpg"]) {
+      const res = await fetch(new URL(bad, baseUrl));
+      expect(res.status, `${bad} should 404`).toBe(404);
+    }
+    const missing = await fetch(new URL("/img/nope.jpg", baseUrl));
     expect(missing.status).toBe(404);
+  });
+
+  it("404s for an unknown path even when nobody has joined", async () => {
+    // Regression test: the `!me` gate used to answer every unmatched path
+    // with the join page at 200, so the app could never 404 for a visitor
+    // without a cookie — which is every crawler, every hotlink, and the
+    // marker's first `curl`. A 404 is a fact about the path, not about who
+    // is asking.
+    const res = await fetch(new URL("/definitely-not-a-page", baseUrl));
+    expect(res.status).toBe(404);
   });
 
   it("puts a photograph of Hanoi on the village map", async () => {

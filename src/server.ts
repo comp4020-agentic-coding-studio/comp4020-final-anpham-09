@@ -57,6 +57,13 @@ const said = (to: string, message: string): string => `${to}?said=${encodeURICom
 const backTo = (slug: string): string =>
   houseBySlug(slug) ? `/house/${encodeURIComponent(slug)}` : "/";
 
+/** The pages an unjoined visitor is allowed to see the join page for: the
+ *  map, the shelf, leaving, and any house (with or without its /room
+ *  fragment). Everything else is not a page the app has, whether or not the
+ *  visitor has said who they are — see the comment at the gate itself. */
+const isJoinablePath = (p: string): boolean =>
+  p === "/" || p === "/shelf" || p === "/leave" || /^\/house\/[a-z-]+(\/room)?$/.test(p);
+
 /** Every refusal gets words. A button that appears to do nothing teaches the
  *  user the system is broken; being told the rule teaches them the rule. */
 const REFUSALS: Record<PersonRefusal | PlaceRefusal | NonNullable<KeepRefusal>, string> = {
@@ -158,9 +165,22 @@ const server = createServer((req, res) => {
         res.end();
         return;
       }
-      // No door and no password — the brief leaves who counts as a person
-      // open — but the app does need something to call you.
-      html(res, 200, joinPage(listHouses(), message), setCookie);
+      // A 404 is a fact about the path, not about who is asking. Someone
+      // following a link to a house should be asked who they are, not
+      // 404'd — but a path the app does not recognise is not a page just
+      // because nobody has signed in, and every crawler, hotlink and the
+      // marker's first `curl` arrives exactly like that, with no cookie at
+      // all. Without this check every unmatched path fell into the join
+      // page at 200, so the app could never 404 for anyone who hadn't
+      // already joined.
+      if (method === "GET" && isJoinablePath(path)) {
+        html(res, 200, joinPage(listHouses(), message), setCookie);
+        return;
+      }
+      // Nothing else is a page this visitor can see without joining — the
+      // same 404 the rest of the app gives, reached here directly rather
+      // than falling through to routes below that assume `me` is a Person.
+      html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such page.</p></main>", me), setCookie);
       return;
     }
 
