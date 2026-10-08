@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nghe An House · The Village</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Merriweather & Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&amp;family=Plus Jakarta Sans:wght@400;500;600;700&amp;family=Caveat:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-container": "#b9583b",
+            "primary-fixed": "#ffdbd1",
+            "on-tertiary-fixed": "#2b1700",
+            "inverse-primary": "#ffb59f",
+            "on-primary-fixed-variant": "#7d2c13",
+            "on-secondary-container": "#516656",
+            "surface-tint": "#9c4328",
+            "on-tertiary-container": "#fffbff",
+            "secondary-fixed": "#d1e8d5",
+            "secondary-fixed-dim": "#b5ccb9",
+            "on-secondary-fixed": "#0c1f13",
+            "surface-bright": "#fff8f6",
+            "outline-variant": "#dcc1b9",
+            "surface-container-low": "#fff1ec",
+            "secondary": "#4f6354",
+            "tertiary": "#845000",
+            "tertiary-container": "#a4670d",
+            "on-surface-variant": "#56423d",
+            "surface-variant": "#eedfda",
+            "surface-container-highest": "#eedfda",
+            "primary-fixed-dim": "#ffb59f",
+            "on-tertiary": "#ffffff",
+            "on-primary": "#ffffff",
+            "on-secondary": "#ffffff",
+            "on-background": "#211a17",
+            "on-error-container": "#93000a",
+            "tertiary-fixed": "#ffddba",
+            "on-surface": "#211a17",
+            "tertiary-fixed-dim": "#ffb866",
+            "inverse-surface": "#372f2b",
+            "secondary-container": "#cce3cf",
+            "surface": "#fff8f6",
+            "surface-container-lowest": "#ffffff",
+            "on-tertiary-fixed-variant": "#673d00",
+            "on-error": "#ffffff",
+            "surface-dim": "#e6d7d2",
+            "error": "#ba1a1a",
+            "outline": "#89726c",
+            "background": "#fff8f6",
+            "error-container": "#ffdad6",
+            "on-primary-fixed": "#3a0a00",
+            "inverse-on-surface": "#fdeee8",
+            "on-primary-container": "#fffbff",
+            "on-secondary-fixed-variant": "#374b3d",
+            "surface-container": "#faebe6",
+            "surface-container-high": "#f4e5e0",
+            "primary": "#994126"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xl": "2.5rem",
+            "space-lg": "1.5rem",
+            "margin-mobile": "1.25rem",
+            "space-xs": "0.25rem",
+            "margin": "2rem",
+            "gutter-mobile": "0.875rem",
+            "space-md": "1rem",
+            "space-sm": "0.5rem",
+            "gutter": "1.25rem"
+          },
+          "fontFamily": {
+            "body-md": ["Plus Jakarta Sans"],
+            "headline-sm": ["Merriweather"],
+            "headline-lg-mobile": ["Merriweather"],
+            "display-lg": ["Merriweather"],
+            "label-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "display-lg-mobile": ["Merriweather"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "headline-md": ["Merriweather"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "headline-lg": ["Merriweather"],
+            "script": ["Caveat", "cursive"]
+          },
+          "fontSize": {
+            "body-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "30px", "letterSpacing": "0", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "36px", "letterSpacing": "0", "fontWeight": "700" }],
+            "display-lg": ["44px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "display-lg-mobile": ["32px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-lg": ["15px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "34px", "letterSpacing": "0", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0", "fontWeight": "400" }],
+            "headline-lg": ["32px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    
+    /* Tactile Papercraft Details */
+    .deckled-paper {
+      background: #fdfaf4;
+      box-shadow: 0 1px 3px rgba(44, 36, 33, 0.08), 0 4px 16px rgba(44, 36, 33, 0.04);
+      border: 1px solid rgba(220, 193, 185, 0.45);
+    }
+    
+    .wood-shelf-border {
+      border-bottom: 2px solid #e2d5c3;
+      box-shadow: 0 1px 0 #ffffff;
+    }
+    
+    .bamboo-weave-pattern {
+      background-color: #f7eee2;
+      background-image: radial-gradient(#dfccb6 0.75px, transparent 0.75px), radial-gradient(#dfccb6 0.75px, #f7eee2 0.75px);
+      background-size: 16px 16px;
+      background-position: 0 0, 8px 8px;
+    }
+    
+    /* Soft breathing pulse for gentle oil lamp effect */
+    @keyframes hearth-breath {
+      0%, 100% { opacity: 0.85; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+    .animate-hearth-glow {
+      animation: hearth-breath 4s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased min-h-full flex flex-col selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- Top Navigation Bar (Shared Component: TopNavBar with contextual Back link) -->
+<header class="bg-surface-container-low border-b border-outline-variant shadow-sm sticky top-0 z-50">
+<div class="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
+<!-- Leading: Return to Village Map with Context -->
+<div class="flex items-center gap-4">
+<a class="group flex items-center gap-2 text-primary font-headline-sm text-headline-sm hover:text-primary-container transition-colors" href="#village-map">
+<span class="material-symbols-outlined transition-transform group-hover:-translate-x-1" data-icon="arrow_back">arrow_back</span>
+<span class="font-label-lg text-label-lg tracking-tight">Village Map</span>
+</a>
+<span class="text-outline-variant hidden sm:inline">|</span>
+<div class="hidden sm:flex flex-col">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-base" data-icon="roofing" data-weight="fill" style="font-variation-settings: 'FILL' 1;">roofing</span>
+<h1 class="text-headline-sm font-headline-sm text-primary tracking-tight font-bold">Nghe An House</h1>
+</div>
+<p class="text-on-surface-variant font-body-sm text-body-sm text-xs opacity-85">Ancestral tiled eaves &amp; morning courtyard breeze · Nghe An hearth</p>
+</div>
+</div>
+<!-- Navigation links cluster for desktop -->
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-on-surface-variant hover:text-on-surface pb-1 font-medium transition-colors font-label-md text-label-md" href="#village-map">Village Map</a>
+<a class="text-primary border-b-2 border-primary pb-1 font-semibold font-label-md text-label-md" href="#nghe-an-house">Nghe An House</a>
+<a class="text-on-surface-variant hover:text-on-surface pb-1 font-medium transition-colors font-label-md text-label-md" href="#memory-shelf">Memory Shelf</a>
+<a class="text-on-surface-variant hover:text-on-surface pb-1 font-medium transition-colors font-label-md text-label-md" href="#meeting-house">Meeting House</a>
+</nav>
+<!-- Trailing Action: Leave the Village -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-xs" title="You are resting here">
+          VN
+        </div>
+<a class="text-on-surface-variant hover:text-primary font-label-sm text-label-sm flex items-center gap-1 transition-colors pl-2" href="#leave">
+<span>Leave the village</span>
+<span class="material-symbols-outlined text-sm" data-icon="cottage">cottage</span>
+</a>
+</div>
+</div>
+</header>
+<!-- Mobile Context Subheader -->
+<div class="sm:hidden bg-surface-container-low px-6 py-2 border-b border-outline-variant/50">
+<h1 class="text-headline-sm font-headline-sm text-primary font-bold">Nghe An House</h1>
+<p class="text-on-surface-variant font-body-sm text-body-sm text-xs">Ancestral tiled eaves &amp; morning courtyard breeze</p>
+</div>
+<!-- Main Canvas -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+<!-- Quiet Presence & Living Hearth Status Banner (No ping counts, pure gentle human context) -->
+<section class="bg-surface-container rounded-xl p-4 sm:p-5 border border-outline-variant/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex items-start sm:items-center gap-3.5">
+<!-- Glowing Amber Lantern Warmth Indicator -->
+<div class="relative flex-shrink-0 mt-0.5 sm:mt-0">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary animate-hearth-glow shadow-inner">
+<span class="material-symbols-outlined text-xl" data-icon="wb_sunny" data-weight="fill" style="font-variation-settings: 'FILL' 1;">wb_sunny</span>
+</div>
+<span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-secondary rounded-full ring-2 ring-surface flex items-center justify-center" title="Awake &amp; calm">
+<span class="w-1.5 h-1.5 bg-secondary-fixed rounded-full"></span>
+</span>
+</div>
+<div>
+<div class="flex flex-wrap items-baseline gap-x-2">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold text-base sm:text-lg">Uncle Binh and Dad are sitting on the porch right now</span>
+<span class="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+              Gentle company
+            </span>
+</div>
+<p class="text-on-surface-variant font-body-sm text-body-sm text-sm mt-0.5 flex items-center gap-2">
+<span>Mum stopped by 15 minutes ago</span>
+<span class="text-outline-variant">·</span>
+<span class="italic">The kettle has just been brought to a quiet simmer</span>
+</p>
+</div>
+</div>
+<!-- Quick Atmosphere Sensory Anchor -->
+<div class="flex items-center gap-2 self-start md:self-auto bg-surface-container-lowest/80 px-3 py-1.5 rounded-lg border border-outline-variant/40 text-xs font-label-md text-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="spa">spa</span>
+<span>Scent of dried pomelo peels &amp; green tea</span>
+</div>
+</section>
+<!-- Asymmetrical Layout: 2-Column Storybook Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- LEFT COLUMN: Room Atmosphere & Tactile Keepsake Pinboard (7 Cols) -->
+<div class="lg:col-span-7 space-y-8">
+<!-- The Living Courtyard & Ancestral Room Setting Card -->
+<article class="deckled-paper rounded-xl p-6 relative overflow-hidden">
+<div class="flex items-start justify-between mb-4 pb-3 wood-shelf-border">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="deck">deck</span>
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface tracking-tight">The Living Courtyard &amp; Ancestral Room</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs">A shaded breezeway framed by hand-carved jackfruit timber</p>
+</div>
+</div>
+<span class="px-2.5 py-1 bg-surface-container-high text-on-surface-variant rounded-md text-xs font-label-sm text-label-sm">
+              Summer Breeze · 28°C
+            </span>
+</div>
+<!-- Room Descriptive Micro-Sensory Vignette -->
+<div class="relative rounded-lg overflow-hidden border border-outline-variant/40 mb-4 bg-surface-container-low">
+<div class="h-44 sm:h-52 w-full bg-cover bg-center relative" data-alt="A tranquil Vietnamese ancestral courtyard bathed in warm golden afternoon sunlight. Terracotta roof tiles glisten gently after morning rain, while ancient jackfruit timber columns frame a stone porch with two ceramic tea bowls on a low wooden bench. In the courtyard garden, pomelo trees and fragrant white jasmine bloom beside traditional unglazed terracotta water urns. The atmosphere is nostalgic, intimate, and peacefully grounded." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBUNXMvpLbeUpi_Usq9RlTZ9yR8I43Zlt0VGVLQqxbOCXH6VZ45TR94T0M5FFO8m4rAMKsL4B2dgAmgWdrTNg-qnzqdd57HjyT5bA2fYtlV_As7d9ffJziT9edbGjT5DZ2MuPyXXvB6SQk2DCmQ2ZIpZ2-kmKrlmUR1b98bk2O91wC0nc41ZEE1oB0B9i24VvkniHB6cAZayp1gKMbhxFruSU_MFyY1rPyyxdyhRvya')">
+<div class="absolute inset-0 bg-gradient-to-t from-inverse-surface/80 via-transparent to-black/20 flex flex-col justify-end p-4 text-inverse-on-surface">
+<p class="font-headline-sm text-headline-sm text-sm sm:text-base italic drop-shadow-sm font-normal">
+                  "The afternoon light slips between the clay eaves, laying quiet golden stripes across the cool brick pavers."
+                </p>
+<div class="flex items-center gap-3 mt-1 text-xs opacity-90">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="air">air</span> Southern breeze</span>
+<span>·</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-xs" data-icon="coffee">coffee</span> Freshly scalded lotus leaves</span>
+</div>
+</div>
+</div>
+</div>
+<p class="text-on-surface font-body-md text-body-md text-sm leading-relaxed">
+            The heart of Nghe An House has neither locks nor heavy doors. Rafters of dark weathered cedar carry seventy years of woodsmoke. Here, family members wander in without knocking, check the ceramic water jar, and sit quietly beside whoever is peeling fruit on the veranda.
+          </p>
+</article>
+<!-- A Shared Tactile Family Mood Board / Keepsake Photo Pinboard -->
+<section class="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
+<div class="flex items-center justify-between pb-3 wood-shelf-border mb-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="photo_library">photo_library</span>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface text-lg">Keepsake Photo Pinboard</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs">Clipped onto the woven bamboo screen on the northern veranda</p>
+</div>
+</div>
+<button class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-label-md text-label-md text-primary bg-primary-fixed hover:bg-primary-fixed-dim rounded-lg transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+<span>Pin a memory</span>
+</button>
+</div>
+<!-- Bamboo Weave Pinboard Container -->
+<div class="bamboo-weave-pattern p-4 sm:p-6 rounded-xl border border-outline-variant/60 shadow-inner">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<!-- Keepsake Photo 1 -->
+<div class="deckled-paper p-3 rounded-lg transform -rotate-1 hover:rotate-0 transition-transform duration-200 relative group">
+<!-- Wooden Peg Tack -->
+<div class="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-tertiary shadow-md border border-tertiary-fixed flex items-center justify-center z-10">
+<div class="w-1 h-1 rounded-full bg-white/70"></div>
+</div>
+<div class="aspect-[4/3] w-full rounded overflow-hidden mb-2.5 bg-surface-dim">
+<img class="w-full h-full object-cover sepia-[0.35] brightness-95 group-hover:scale-102 transition-transform duration-300" data-alt="A soft sepia toned archival photograph from 1984 showing a gentle Vietnamese grandmother with her hair neatly pinned, standing smiling beneath lush green pomelo branches in a quiet village orchard. The sunlight filters warmly through heavy citrus leaves, casting soft natural grain across the warm paper print. The mood is peaceful, tender, and deeply cherished." src="https://lh3.googleusercontent.com/aida-public/AB6AXuByX7qQF4ur9bJypiIY8L44FCGFirig35Ug4FRL5EzwBqR0hNMCnRZhqIjlTrtZ7iUgIcDFIRScKUfDsGl27bGsZYqtYUPBEjmJ8UHOI7tD7Gs5rhdyc3Dxx3mNCFCgrI9KznVVXf3W0wFCRLvTQa7w_F8Teu_Rcwjo2sQT87sR3nUH-aMmSSbwcqpMGdYTEeoJy83MyfWSNulr_2PYKibz6sH5JGKbSsmUTmNinysP"/>
+</div>
+<div class="px-1">
+<p class="font-script text-base text-on-surface font-semibold leading-tight text-primary">
+                    "Grandmother harvesting pomelo in the orchard, 1984"
+                  </p>
+<p class="font-body-sm text-body-sm text-xs text-on-surface-variant mt-1">
+                    Clipped with twine · Preserved by Aunt Thu
+                  </p>
+</div>
+</div>
+<!-- Keepsake Photo 2 -->
+<div class="deckled-paper p-3 rounded-lg transform rotate-1 hover:rotate-0 transition-transform duration-200 relative group">
+<!-- Wooden Peg Tack -->
+<div class="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-tertiary shadow-md border border-tertiary-fixed flex items-center justify-center z-10">
+<div class="w-1 h-1 rounded-full bg-white/70"></div>
+</div>
+<div class="aspect-[4/3] w-full rounded overflow-hidden mb-2.5 bg-surface-dim">
+<img class="w-full h-full object-cover brightness-95 group-hover:scale-102 transition-transform duration-300" data-alt="Uncle Binh perched gently on the curved clay roof eaves of an ancestral Vietnamese village house, carefully replacing an orange terracotta tile against an overcast afternoon sky after a summer storm. Droplets of clear rainwater glisten on the eaves, and the dark carved wooden rafters underneath look grounded and sturdy. Soft natural lighting, documentary editorial style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJUMWlXPt0tP2NCaCZai80IPH7UQsruTzFkZ4HKaCEITZ057aYQpiPq3b8bcSUqVzdGCnIFUPHR1D3srz--79czwDQXVbU1H62nnEdQkT0y8CHDeExk8qQYxvAOkPRIefzN7r83y3rM5hLDPId2k9R360N49Eo77ChFfbQDmU1OcEIHj_7i3oP3QFgScCPwHWKiPXKfVEps4Sqjg40jBnXCgTwMc3jbfFekpVtKEH1"/>
+</div>
+<div class="px-1">
+<p class="font-script text-base text-on-surface font-semibold leading-tight text-primary">
+                    "Uncle Binh repairing the clay roof tile after summer rain"
+                  </p>
+<p class="font-body-sm text-body-sm text-xs text-on-surface-variant mt-1">
+                    July 2021 · "The tiles held firm all winter"
+                  </p>
+</div>
+</div>
+<!-- Keepsake Photo 3 -->
+<div class="deckled-paper p-3 rounded-lg transform rotate-0.5 hover:rotate-0 transition-transform duration-200 relative group">
+<!-- Brass Paper Clip -->
+<div class="absolute -top-3 left-4 w-3.5 h-6 rounded-t-full border-2 border-tertiary-container border-b-0 shadow-sm z-10"></div>
+<div class="aspect-[4/3] w-full rounded overflow-hidden mb-2.5 bg-surface-dim">
+<img class="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300" data-alt="A warm generational Vietnamese family gathered closely around a low solid wood dining table in a cozy lamp lit room for a Lunar New Year feast. Platters of banh chung wrapped in fragrant dong leaves, pickled shallots, braised pork, and steaming broth sit between smiling elders and young grandchildren. Warm incandescent hearth light fills the room with amber warmth and gentle celebration." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLxIE5ZLa-XU8XSxJYhPP2fMuNSypghntcLDRsdt3aG347sSYviHRVO7m1yqwDrpm9dUN7NuyFFKGdr0Y-ghaC6TB3LDXVv3eFm9YkzgLAkdJriBtsLmtFuyjjZG0JdLAaJ7GCp6wYcWZV_qMtJRJnmhsfgJBONKhg15kt5ERG9ONXsrZv5p-Aj0_nRio6DH_7xG1JrEXXaWRqnlouWi6dT92yRqt_tKdAplGK4Wf0"/>
+</div>
+<div class="px-1">
+<p class="font-script text-base text-on-surface font-semibold leading-tight text-primary">
+                    "Family gathering around the low wooden table for Tet feast"
+                  </p>
+<p class="font-body-sm text-body-sm text-xs text-on-surface-variant mt-1">
+                    Spring 2023 · Three generations seated together
+                  </p>
+</div>
+</div>
+<!-- Keepsake Photo 4 -->
+<div class="deckled-paper p-3 rounded-lg transform -rotate-1.5 hover:rotate-0 transition-transform duration-200 relative group">
+<!-- Wooden Peg Tack -->
+<div class="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-tertiary shadow-md border border-tertiary-fixed flex items-center justify-center z-10">
+<div class="w-1 h-1 rounded-full bg-white/70"></div>
+</div>
+<div class="aspect-[4/3] w-full rounded overflow-hidden mb-2.5 bg-surface-dim">
+<img class="w-full h-full object-cover brightness-95 group-hover:scale-102 transition-transform duration-300" data-alt="An ancient brick-lined courtyard well in a quiet rural Vietnamese garden, surrounded by deep brown unglazed ceramic water jars and a wooden water scoop resting on wet river stones. Ferns grow softly in the brick mortar cracks, illuminated by soft golden morning sunbeams breaking through bamboo shoots. Tactile, tranquil, and historic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCBhuLL2BpJAD8agBq1BuZP2hNiN0zbOE5RapvlI8_9bCavaL_kcqGkQk1dRP0bpUddWVeny6XazJjOLY7bfntbYxx3A0CoXryl4UD7mO211_7QZVWxQCr9uQHTOMe5WYEZXJCoDDlV0X-0MO6vyF-MRwDbeRejGTuAqFFCix6C1hIFp-F3Ul_Z6FaGMARjFW4oKA3PIvyFPeCnPw0_e0PSArdLD9b0CkDMi9x6R1eS"/>
+</div>
+<div class="px-1">
+<p class="font-script text-base text-on-surface font-semibold leading-tight text-primary">
+                    "The old courtyard well with ceramic water jars"
+                  </p>
+<p class="font-body-sm text-body-sm text-xs text-on-surface-variant mt-1">
+                    Morning cool · Always sweet water since 1952
+                  </p>
+</div>
+</div>
+</div>
+<!-- Footer note inside pinboard -->
+<div class="mt-6 pt-3 text-center border-t border-dashed border-outline-variant/70">
+<span class="text-xs font-label-sm text-label-sm text-on-surface-variant italic">
+                Resting safely in Nghe An House · Every keepsake is shared with Hanoi &amp; Canberra
+              </span>
+</div>
+</div>
+</section>
+</div>
+<!-- RIGHT COLUMN: Live Hearth Updates & The Village Writing Desk (5 Cols) -->
+<div class="lg:col-span-5 space-y-8">
+<!-- Live Hearth Updates / Peaceful Ambient Stream -->
+<section class="bg-surface-container-low rounded-xl p-5 border border-outline-variant/70 shadow-sm">
+<div class="flex items-center justify-between pb-3 wood-shelf-border mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary" data-icon="local_fire_department">local_fire_department</span>
+<h3 class="font-headline-md text-headline-md text-on-surface text-lg">Hearth Updates</h3>
+</div>
+<span class="inline-flex items-center gap-1 text-xs text-secondary font-label-md text-label-md">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+              Unrushed
+            </span>
+</div>
+<p class="text-xs text-on-surface-variant font-body-sm text-body-sm mb-4">
+            Ambient moments happening quietly. No notifications, no alerts.
+          </p>
+<!-- Ambient Timeline Stream -->
+<ol class="relative border-l border-outline-variant/60 ml-3 space-y-5">
+<!-- Moment 1 -->
+<li class="pl-5 relative group">
+<div class="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-primary ring-4 ring-surface-container-low"></div>
+<div class="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/40 shadow-xs">
+<p class="font-body-md text-body-md text-sm text-on-surface">
+<span class="font-semibold text-primary">An</span> just brewed fresh lotus tea on the charcoal stove
+                </p>
+<div class="flex items-center gap-2 mt-1.5 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span>
+<span>4 minutes ago</span>
+<span>·</span>
+<span class="text-secondary font-medium">Porch table</span>
+</div>
+</div>
+</li>
+<!-- Moment 2 -->
+<li class="pl-5 relative group">
+<div class="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-outline ring-4 ring-surface-container-low"></div>
+<div class="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/40 shadow-xs">
+<p class="font-body-md text-body-md text-sm text-on-surface">
+<span class="font-semibold text-primary">Uncle Binh</span> opened the courtyard wooden shutters to let the morning breeze through
+                </p>
+<div class="flex items-center gap-2 mt-1.5 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span>
+<span>18 minutes ago</span>
+<span>·</span>
+<span class="text-secondary font-medium">East Veranda</span>
+</div>
+</div>
+</li>
+<!-- Moment 3 -->
+<li class="pl-5 relative group">
+<div class="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-outline ring-4 ring-surface-container-low"></div>
+<div class="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/40 shadow-xs">
+<p class="font-body-md text-body-md text-sm text-on-surface">
+                  Lights dimmed in the ancestral room, oil lamp flickers gently
+                </p>
+<div class="flex items-center gap-2 mt-1.5 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span>
+<span>1 hour ago</span>
+<span>·</span>
+<span class="text-tertiary font-medium">Ancestral Hearth</span>
+</div>
+</div>
+</li>
+<!-- Moment 4 -->
+<li class="pl-5 relative group">
+<div class="absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-outline-variant ring-4 ring-surface-container-low"></div>
+<div class="bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/40 shadow-xs">
+<p class="font-body-md text-body-md text-sm text-on-surface">
+<span class="font-semibold text-primary">Dad</span> set down fresh persimmons on the wooden credenza
+                </p>
+<div class="flex items-center gap-2 mt-1.5 text-xs text-on-surface-variant">
+<span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span>
+<span>3 hours ago</span>
+<span>·</span>
+<span class="text-secondary font-medium">Pantry Basket</span>
+</div>
+</div>
+</li>
+</ol>
+</section>
+<!-- Room Interaction: Putting Something Down in Nghe An House -->
+<section class="deckled-paper rounded-xl p-6 border border-outline-variant shadow-sm relative">
+<!-- Small corner leaf icon -->
+<div class="absolute top-4 right-4 text-secondary/40">
+<span class="material-symbols-outlined text-2xl" data-icon="park">park</span>
+</div>
+<div class="pb-3 wood-shelf-border mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface text-lg">
+              Putting something down
+            </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs mt-0.5">
+              The signature desk in Nghe An House for family words
+            </p>
+</div>
+<!-- Two-State Village Memory Rule Reminder Box -->
+<div class="bg-surface-container-low rounded-lg p-3.5 mb-4 border border-outline-variant/50 space-y-2">
+<p class="text-xs font-label-md text-label-md text-primary tracking-wide">
+              THE TWO-STATE VILLAGE RULE
+            </p>
+<div class="space-y-1.5 text-xs text-on-surface">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-tertiary text-sm mt-0.5" data-icon="hourglass_empty">hourglass_empty</span>
+<div>
+<span class="font-semibold">In the room</span> — waiting for someone to sit with this.
+                </div>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary text-sm mt-0.5" data-icon="shelf_auto_stories" style="font-variation-settings: 'FILL' 1;">animated_images</span>
+<div>
+<span class="font-semibold">On the shelf</span> — witnessed together, resting permanently.
+                </div>
+</div>
+</div>
+</div>
+<!-- Note Composition Area -->
+<form class="space-y-3" onsubmit="event.preventDefault();">
+<div>
+<label class="sr-only" for="keepsake-note">Your quiet thought or note</label>
+<textarea class="w-full rounded-lg bg-surface-container-lowest border-1.5 border-outline-variant focus:border-primary focus:ring-2 focus:ring-primary/20 text-on-surface font-body-sm text-body-sm p-3 placeholder:text-outline/70 resize-none" id="keepsake-note" placeholder="Leave a quiet thought, an ingredient remembered, or a gentle note for the porch..." rows="3"></textarea>
+</div>
+<!-- Co-presence Witness Note -->
+<div class="flex items-start gap-2 text-xs text-on-surface-variant bg-surface-container p-2.5 rounded-lg border border-outline-variant/30">
+<span class="material-symbols-outlined text-tertiary text-base flex-shrink-0" data-icon="groups">groups</span>
+<p class="leading-relaxed">
+<strong class="text-on-surface">Uncle Binh</strong> and <strong class="text-on-surface">Dad</strong> are in the house right now. If they witness this, it will rest on the village shelf permanently.
+              </p>
+</div>
+<!-- Primary Action Button (Terracotta Hearth style) -->
+<button class="w-full bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg py-3 px-4 rounded-lg shadow-sm transition-all duration-150 active:scale-[0.99] flex items-center justify-center gap-2 border-b-2 border-black/15" type="submit">
+<span class="material-symbols-outlined text-lg" data-icon="ink_pen">ink_pen</span>
+<span>Put this down in Nghe An House</span>
+</button>
+</form>
+</section>
+<!-- Mutual Aid / Pantry Quick Peek for this house -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/60 text-xs">
+<div class="flex items-center justify-between text-on-surface font-medium pb-2 border-b border-dashed border-outline-variant">
+<span class="flex items-center gap-1.5 font-label-md text-label-md">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="inventory_2">inventory_2</span>
+              Veranda Pantry Shelf
+            </span>
+<span class="text-secondary font-label-sm text-label-sm">3 open jars</span>
+</div>
+<div class="mt-2.5 space-y-1.5 text-on-surface-variant">
+<div class="flex justify-between items-center">
+<span>Sun-dried star anise</span>
+<span class="px-2 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed text-[10px]">Plenty</span>
+</div>
+<div class="flex justify-between items-center">
+<span>Stone mortar &amp; heavy pestle</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant text-[10px]">Under the porch</span>
+</div>
+<div class="flex justify-between items-center">
+<span>Clay teacups (set of 6)</span>
+<span class="px-2 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed text-[10px]">Rinsed &amp; clean</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quiet Sister Houses Linkage Section (Connecting the 3 houses) -->
+<section class="mt-12 pt-6 wood-shelf-border">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Other hearths in The Village</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant text-xs">A single step across the village courtyard</p>
+</div>
+<a class="text-primary hover:text-primary-container font-label-md text-label-md mt-2 sm:mt-0 flex items-center gap-1 transition-colors" href="#village-map">
+<span>View entire Village Map</span>
+<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+<!-- Nghe An (Current) -->
+<div class="p-4 rounded-xl bg-surface-container border-2 border-primary/40 relative">
+<span class="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-primary text-on-primary text-[10px] font-label-sm text-label-sm">You are here</span>
+<div class="flex items-center gap-2 text-primary font-headline-sm text-headline-sm text-base">
+<span class="material-symbols-outlined text-lg" data-icon="roofing" data-weight="fill" style="font-variation-settings: 'FILL' 1;">roofing</span>
+<span>Nghe An House</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1">Ancestral eaves &amp; porch tea</p>
+<p class="text-xs text-primary font-medium mt-3">2 family members resting</p>
+</div>
+<!-- Hanoi House -->
+<a class="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant hover:border-primary/50 transition-all hover:bg-surface-container-low group" href="#hanoi-house">
+<div class="flex items-center gap-2 text-on-surface group-hover:text-primary font-headline-sm text-headline-sm text-base transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="home_pin">home_pin</span>
+<span>Hanoi House</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1">Balcony jasmine &amp; morning radio</p>
+<p class="text-xs text-secondary font-medium mt-3">Mum is tending the balcony plants</p>
+</a>
+<!-- Canberra House -->
+<a class="p-4 rounded-xl bg-surface-container-lowest border border-outline-variant hover:border-primary/50 transition-all hover:bg-surface-container-low group" href="#canberra-house">
+<div class="flex items-center gap-2 text-on-surface group-hover:text-primary font-headline-sm text-headline-sm text-base transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="cottage">cottage</span>
+<span>Canberra House</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-1">Eucalyptus shade &amp; warm stew</p>
+<p class="text-xs text-on-surface-variant mt-3">Quiet late night</p>
+</a>
+</div>
+</section>
+</main>
+<!-- Shared Component: Footer -->
+<footer class="mt-16 bg-surface-container-lowest border-t border-outline-variant">
+<div class="flex flex-col sm:flex-row justify-between items-center w-full px-6 py-6 max-w-7xl mx-auto gap-4">
+<div class="flex items-center gap-2 text-center sm:text-left">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="cottage">cottage</span>
+<p class="text-body-sm font-body-sm text-on-surface-variant">The Village · A shared quiet corner for family memories</p>
+</div>
+<nav class="flex flex-wrap justify-center items-center gap-4 text-label-sm font-label-sm">
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#village-map">Village Map</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#hanoi">Hanoi</a>
+<a class="text-primary font-medium" href="#nghe-an">Nghe An</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#canberra">Canberra</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#meeting-house">Meeting House</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#leave">Leave the village</a>
+</nav>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Village - Hamlet Map</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-on-surface": "#fdeee8",
+            "secondary-container": "#cce3cf",
+            "background": "#fff8f6",
+            "secondary-fixed": "#d1e8d5",
+            "tertiary-container": "#a4670d",
+            "inverse-surface": "#372f2b",
+            "error-container": "#ffdad6",
+            "on-tertiary-fixed-variant": "#673d00",
+            "tertiary-fixed-dim": "#ffb866",
+            "on-tertiary-fixed": "#2b1700",
+            "on-surface": "#211a17",
+            "secondary": "#4f6354",
+            "tertiary-fixed": "#ffddba",
+            "on-background": "#211a17",
+            "surface-container": "#faebe6",
+            "primary-container": "#b9583b",
+            "inverse-primary": "#ffb59f",
+            "on-primary-container": "#fffbff",
+            "on-tertiary-container": "#fffbff",
+            "surface-variant": "#eedfda",
+            "error": "#ba1a1a",
+            "on-error": "#ffffff",
+            "primary-fixed": "#ffdbd1",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed-variant": "#7d2c13",
+            "on-surface-variant": "#56423d",
+            "on-secondary-fixed": "#0c1f13",
+            "secondary-fixed-dim": "#b5ccb9",
+            "tertiary": "#845000",
+            "on-primary": "#ffffff",
+            "surface": "#fff8f6",
+            "on-secondary-container": "#516656",
+            "surface-bright": "#fff8f6",
+            "outline": "#89726c",
+            "surface-container-highest": "#eedfda",
+            "outline-variant": "#dcc1b9",
+            "primary-fixed-dim": "#ffb59f",
+            "surface-container-lowest": "#ffffff",
+            "surface-tint": "#9c4328",
+            "on-primary-fixed": "#3a0a00",
+            "surface-dim": "#e6d7d2",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed-variant": "#374b3d",
+            "primary": "#994126",
+            "on-error-container": "#93000a",
+            "surface-container-high": "#f4e5e0",
+            "surface-container-low": "#fff1ec"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "2rem",
+            "space-md": "1rem",
+            "margin-mobile": "1.25rem",
+            "space-xl": "2.5rem",
+            "space-lg": "1.5rem",
+            "space-sm": "0.5rem",
+            "gutter": "1.25rem",
+            "gutter-mobile": "0.875rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Merriweather"],
+            "label-md": ["Plus Jakarta Sans"],
+            "display-lg-mobile": ["Merriweather"],
+            "display-lg": ["Merriweather"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "headline-md": ["Merriweather"],
+            "headline-lg-mobile": ["Merriweather"],
+            "body-md": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Merriweather"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "30px", "letterSpacing": "0", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "display-lg-mobile": ["32px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "display-lg": ["44px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "headline-md": ["24px", { "lineHeight": "34px", "letterSpacing": "0", "fontWeight": "700" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "36px", "letterSpacing": "0", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400" }],
+            "label-lg": ["15px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0", "fontWeight": "400" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "headline-lg": ["32px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-weight: normal;
+      font-style: normal;
+      font-size: 20px;
+      line-height: 1;
+      display: inline-block;
+      text-transform: none;
+      letter-spacing: normal;
+      word-wrap: normal;
+      white-space: nowrap;
+      direction: ltr;
+    }
+    @keyframes pulse-lantern {
+      0%, 100% { opacity: 0.9; transform: scale(1); filter: drop-shadow(0 0 6px rgba(217, 147, 59, 0.45)); }
+      50% { opacity: 1; transform: scale(1.08); filter: drop-shadow(0 0 14px rgba(217, 147, 59, 0.75)); }
+    }
+    @keyframes gentle-drift {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-3px); }
+    }
+    .lantern-glow-pulse {
+      animation: pulse-lantern 3.2s ease-in-out infinite;
+    }
+    .lantern-steady {
+      filter: drop-shadow(0 0 8px rgba(217, 147, 59, 0.55));
+    }
+    .drift-element {
+      animation: gentle-drift 5s ease-in-out infinite;
+    }
+    /* Subtle parchment textural overlay */
+    .parchment-pattern {
+      background-color: #FBF8F2;
+      background-image: radial-gradient(#dcc1b9 0.75px, transparent 0.75px), radial-gradient(#dcc1b9 0.75px, #FBF8F2 0.75px);
+      background-size: 30px 30px;
+      background-position: 0 0, 15px 15px;
+      background-opacity: 0.2;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col font-body-md selection:bg-primary-fixed selection:text-primary">
+<!-- TOP NAV BAR (Shared Component Execution) -->
+<header class="bg-surface-container-low dark:bg-surface-container-high border-b border-outline-variant dark:border-outline-variant/40 shadow-sm dark:shadow-none sticky top-0 z-50">
+<div class="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
+<!-- Brand & Current Traveler anchor -->
+<div class="flex items-center gap-4">
+<a class="text-headline-md font-headline-md text-primary dark:text-inverse-primary tracking-tight flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-primary" data-icon="cottage" style="font-variation-settings: 'FILL' 1;">cottage</span>
+          The Village
+        </a>
+<div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high border border-outline-variant/60">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Traveler: <strong class="text-on-surface font-semibold">An (Canberra House)</strong></span>
+</div>
+</div>
+<!-- Navigation Links: "Village Map" is active -->
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-primary dark:text-inverse-primary border-b-2 border-primary dark:border-inverse-primary pb-1 font-semibold text-label-md font-label-md flex items-center gap-1.5" href="#">
+<span class="material-symbols-outlined text-base" data-icon="map" style="font-variation-settings: 'FILL' 1;">map</span>
+          Village Map
+        </a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-inverse-on-surface pb-1 font-medium text-label-md font-label-md transition-colors flex items-center gap-1.5" href="#">
+<span class="material-symbols-outlined text-base" data-icon="auto_stories">auto_stories</span>
+          Memory Shelf
+        </a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-inverse-on-surface pb-1 font-medium text-label-md font-label-md transition-colors flex items-center gap-1.5" href="#">
+<span class="material-symbols-outlined text-base" data-icon="roofing">roofing</span>
+          Meeting House
+        </a>
+</nav>
+<!-- Trailing Action -->
+<div class="flex items-center gap-3">
+<button class="hover:bg-surface-container dark:hover:bg-inverse-surface hover:text-primary dark:hover:text-inverse-primary rounded-lg transition-colors px-3 py-1.5 text-label-md font-label-md text-on-surface-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-lg" data-icon="logout">logout</span>
+<span>Leave the village</span>
+</button>
+</div>
+</div>
+</header>
+<!-- MAIN HAMLET MAP CANVAS -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex flex-col gap-6">
+<!-- Hamlet Introduction Banner & Soft Live Status Indicator -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-outline-variant/40 pb-5">
+<div>
+<div class="flex items-center gap-2 mb-1.5">
+<span class="text-label-sm font-label-sm uppercase tracking-wider text-secondary flex items-center gap-1 bg-secondary-container px-2 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs" data-icon="nest_cam_wired_stand">nest_cam_wired_stand</span>
+            Quiet Hearth &amp; Presence
+          </span>
+<span class="text-on-surface-variant/40 text-xs">•</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Late afternoon light</span>
+</div>
+<h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight">Village Hamlet Map</h1>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1 max-w-xl">
+          Four quiet homes connected by moss-lined cobblestone paths and amber street lanterns. Touch any home to step inside.
+        </p>
+</div>
+<!-- Real-time soft status indicator badge -->
+<div class="inline-flex items-center gap-2.5 px-4 py-2 bg-surface-container-low border border-outline-variant/60 rounded-xl shadow-xs self-start md:self-auto">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary-fixed-dim opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-tertiary-container"></span>
+</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">
+          Updates softly on its own as family arrives and leaves
+        </span>
+</div>
+</div>
+<!-- Interactive Visual Village Landscape (Storybook Isometric / Topographic Tactile Map) -->
+<div class="relative bg-surface-container-lowest rounded-2xl border border-outline-variant/70 shadow-sm overflow-hidden p-4 sm:p-8 parchment-pattern">
+<!-- SVG Hand-Drawn Cobblestone Paths & Decorative Foliage Backdrop -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none opacity-80" preserveaspectratio="none" viewbox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<radialgradient cx="50%" cy="50%" id="lanternGlow" r="50%">
+<stop offset="0%" stop-color="#ffb866" stop-opacity="0.45"></stop>
+<stop offset="60%" stop-color="#ffddba" stop-opacity="0.15"></stop>
+<stop offset="100%" stop-color="#fff8f6" stop-opacity="0"></stop>
+</radialgradient>
+</defs>
+<!-- Winding Cobblestone Paths -->
+<path d="M 240 220 Q 380 270 480 340 T 730 200" fill="none" opacity="0.4" stroke="#dcc1b9" stroke-dasharray="2 10" stroke-linecap="round" stroke-width="26"></path>
+<path d="M 240 220 Q 380 270 480 340 T 730 200" fill="none" opacity="0.7" stroke="#E2D5C3" stroke-linecap="round" stroke-width="18"></path>
+<path d="M 480 340 Q 490 440 290 530" fill="none" opacity="0.4" stroke="#dcc1b9" stroke-dasharray="2 10" stroke-linecap="round" stroke-width="26"></path>
+<path d="M 480 340 Q 490 440 290 530" fill="none" opacity="0.7" stroke="#E2D5C3" stroke-linecap="round" stroke-width="18"></path>
+<path d="M 480 340 Q 560 410 740 500" fill="none" opacity="0.4" stroke="#dcc1b9" stroke-dasharray="2 10" stroke-linecap="round" stroke-width="26"></path>
+<path d="M 480 340 Q 560 410 740 500" fill="none" opacity="0.7" stroke="#E2D5C3" stroke-linecap="round" stroke-width="18"></path>
+<!-- Ambient Lantern Light Halos on the Ground -->
+<circle cx="270" cy="240" fill="url(#lanternGlow)" r="110"></circle>
+<circle cx="710" cy="210" fill="url(#lanternGlow)" r="130"></circle>
+<circle cx="490" cy="350" fill="url(#lanternGlow)" r="140"></circle>
+<circle cx="310" cy="510" fill="url(#lanternGlow)" r="100"></circle>
+<circle cx="730" cy="480" fill="url(#lanternGlow)" r="90"></circle>
+<!-- Hand-drawn Shrub and Tree Clusters -->
+<g fill="#cce3cf" opacity="0.5" stroke="#4f6354" stroke-width="1">
+<!-- Central junction grove -->
+<circle cx="430" cy="310" r="16"></circle>
+<circle cx="445" cy="325" r="12"></circle>
+<circle cx="530" cy="370" r="14"></circle>
+<circle cx="545" cy="360" r="10"></circle>
+<!-- North bushes -->
+<circle cx="340" cy="180" r="15"></circle>
+<circle cx="610" cy="170" r="18"></circle>
+<circle cx="625" cy="185" r="13"></circle>
+<!-- South eucalyptus sprigs -->
+<circle cx="210" cy="460" r="20"></circle>
+<circle cx="225" cy="445" r="14"></circle>
+<circle cx="650" cy="520" r="16"></circle>
+</g>
+</svg>
+<!-- Four Hamlet Houses Grid Container -->
+<div class="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto py-4">
+<!-- HOUSE 1: 'Nghe An' House -->
+<article class="group relative bg-surface-container-low rounded-xl border border-outline-variant/80 p-5 sm:p-6 transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-primary/50">
+<div class="flex items-start justify-between gap-4 mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="roofing" style="font-variation-settings: 'FILL' 1;">roofing</span>
+</div>
+<div>
+<span class="text-label-sm font-label-sm text-secondary uppercase tracking-wider">Ancestral Grounds</span>
+<h2 class="text-headline-md font-headline-md text-on-surface">Nghe An House</h2>
+</div>
+</div>
+<!-- Amber Glowing Lantern -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed/60 border border-tertiary-container/30 text-on-tertiary-fixed lantern-steady" title="Lantern glowing warm at dusk">
+<span class="material-symbols-outlined text-tertiary text-sm" data-icon="light_mode" style="font-variation-settings: 'FILL' 1;">light_mode</span>
+<span class="text-label-sm font-label-sm font-semibold">Lit</span>
+</div>
+</div>
+<!-- Illustrated Keepsake View / Detail -->
+<div class="relative w-full h-36 rounded-lg overflow-hidden border border-outline-variant/40 mb-4 bg-surface-container">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="A peaceful countryside Vietnamese ancestral courtyard in Nghe An featuring weathered terracotta clay roof tiles, warm amber lantern light spilling from the open wooden doors, aged wooden pillars, and flowering sage shrubs in stone planters under a gentle late afternoon golden sun." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBddD21SlnagGVc3kZMuBnzpKadTPuFJuhfo5HkMqiFYAu0v3EmO3RLIUTEQCbYGsnlWyEEACdjorHu5QayRfyykqAXG6cr6DOZvPfcFKFczLEjK07ACv6sNWogPuVW49DBFTVULhFcjHX_t_Iy0pU4-fLZfctZa2d5HQkEk1vcvj-wHpZSwndRAlD_EuUg5MHIJ69MXNP1NbXZuUQeJyICLjhlBhdgEHa_lkzio8Ig"/>
+<div class="absolute bottom-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-xs text-label-sm font-label-sm text-on-surface border border-outline-variant/40">
+              Hand-carved threshold
+            </div>
+</div>
+<!-- Description -->
+<p class="text-body-sm font-body-sm text-on-surface-variant italic mb-4">
+            "The ancestral hearth"
+          </p>
+<!-- Presence Banner -->
+<div class="flex items-center justify-between pt-3 border-t border-dashed border-outline-variant/80">
+<div class="flex items-center gap-2">
+<span class="flex h-2.5 w-2.5 rounded-full bg-secondary"></span>
+<span class="text-label-md font-label-md text-on-surface font-medium">
+                Uncle Binh &amp; Aunt Mai are here
+              </span>
+</div>
+<span class="text-xs text-on-surface-variant font-body-sm">Active 12m ago</span>
+</div>
+</article>
+<!-- HOUSE 2: 'Hanoi' House (Interactive Target: "Clicking 'Hanoi' leads inside") -->
+<article class="group relative bg-surface-container-low rounded-xl border-2 border-primary/40 p-5 sm:p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary cursor-pointer ring-4 ring-primary/5" onclick="alert('Entering Hanoi House... Balcony kettle is warm.')">
+<!-- Warm subtle ribbon indicating interactive open door -->
+<div class="absolute -top-3 right-6 bg-primary text-on-primary text-label-sm font-label-sm px-3 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="sensor_door">sensor_door</span>
+            Door is open · Tap to enter
+          </div>
+<div class="flex items-start justify-between gap-4 mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-primary-fixed border border-primary/30 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="home_pin" style="font-variation-settings: 'FILL' 1;">home_pin</span>
+</div>
+<div>
+<span class="text-label-sm font-label-sm text-primary uppercase tracking-wider font-bold">Old Quarter Quarterdeck</span>
+<h2 class="text-headline-md font-headline-md text-on-surface group-hover:text-primary transition-colors flex items-center gap-2">
+                  Hanoi House
+                  <span class="material-symbols-outlined text-lg text-primary" data-icon="arrow_forward">arrow_forward</span>
+</h2>
+</div>
+</div>
+<!-- Softly Pulsing Lantern Indicator -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed border border-tertiary-container/40 lantern-glow-pulse" title="Mum is currently by the kettle">
+<span class="material-symbols-outlined text-tertiary text-sm" data-icon="wb_twilight" style="font-variation-settings: 'FILL' 1;">wb_twilight</span>
+<span class="text-label-sm font-label-sm font-bold">Pulsing Warm</span>
+</div>
+</div>
+<!-- Illustrated Keepsake View -->
+<div class="relative w-full h-36 rounded-lg overflow-hidden border border-outline-variant/40 mb-4 bg-surface-container">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="An intimate warm Hanoi balcony at twilight with vintage ceramic green and white tea cups resting on a low wooden table, blooming potted jasmine plants, wrought iron railings overlooking warm amber street lamps, rendered in a tender tactile storybook style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1663sw4-rEyDIgA1Rw79zBbYiofNRu75tJ94-rkH1maAR5Wzb39Vz-oKfNlhmWWa505j9tnVGZLli_QqVE5C9nTNM65ItFMMfZP9I-9FjaYbNWzZEVYp0nLaonGslFhxAwM1emaThB4k1gfguL0WC3xi2Pfr2Cxy2eVU9rLMmSR7Ih4HPvvaoibP6Cg1IaFRQeWBwWgABeCX4OwiMOTgQUgPNTXXJcmvMPNq9mI_t"/>
+<div class="absolute bottom-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-xs text-label-sm font-label-sm text-on-surface border border-outline-variant/40 flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+              Kettle freshly brewed
+            </div>
+</div>
+<!-- Description -->
+<p class="text-body-sm font-body-sm text-on-surface-variant italic mb-4">
+            "Quiet balcony with old tea cups"
+          </p>
+<!-- Presence Banner -->
+<div class="flex items-center justify-between pt-3 border-t border-dashed border-outline-variant/80 bg-surface-container/60 -mx-5 sm:-mx-6 -mb-5 sm:-mb-6 p-4 rounded-b-xl border-t">
+<div class="flex items-center gap-2">
+<div class="relative flex h-3 w-3">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+</div>
+<span class="text-label-md font-label-md text-primary font-bold">
+                Mum is here right now
+              </span>
+</div>
+<span class="text-xs font-label-md text-primary bg-primary/10 px-2 py-0.5 rounded">
+              Come on in →
+            </span>
+</div>
+</article>
+<!-- HOUSE 3: 'Canberra' House (Current traveler location) -->
+<article class="group relative bg-surface-container-low rounded-xl border border-outline-variant/80 p-5 sm:p-6 transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-secondary/60">
+<div class="flex items-start justify-between gap-4 mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-secondary-container border border-secondary/30 flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="cottage" style="font-variation-settings: 'FILL' 1;">cottage</span>
+</div>
+<div>
+<span class="text-label-sm font-label-sm text-secondary uppercase tracking-wider">Southern Haven</span>
+<h2 class="text-headline-md font-headline-md text-on-surface">Canberra House</h2>
+</div>
+</div>
+<!-- You are here badge -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed border border-secondary/20">
+<span class="material-symbols-outlined text-secondary text-sm" data-icon="person_pin_circle" style="font-variation-settings: 'FILL' 1;">person_pin_circle</span>
+<span class="text-label-sm font-label-sm font-semibold">Your Haven</span>
+</div>
+</div>
+<!-- Illustrated Keepsake View -->
+<div class="relative w-full h-36 rounded-lg overflow-hidden border border-outline-variant/40 mb-4 bg-surface-container">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="A tranquil wooden veranda in Canberra looking out to silver eucalyptus trees under a gentle sky, with a comfortable canvas chair, hand-knitted woolen blanket, and morning steam rising softly, captured with bookish storybook warmth and earthy organic hues." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa3UbNFi1Ky3rpkRE_FhZRgK6wYbf9xQaemzh9KlfnNztBvIwFfn433-Dd2kA_NvJR4xVM20pFh6_SIC4bXVofm-F8EKcd9HqjqE6qciieCUHxNa1buWrH47jKP_vGjio3HQHB6mRgXPtNWCgXOKUA_gyD4APRzCOFMJT-4zEN-TnYuVWQiVcwSJxknDLJTL2elL5iRI49GcJzqx4RmrO31QSw4ecKCyRW8w_isD9B"/>
+<div class="absolute bottom-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-xs text-label-sm font-label-sm text-on-surface border border-outline-variant/40">
+              Cool eucalyptus breeze
+            </div>
+</div>
+<!-- Description -->
+<p class="text-body-sm font-body-sm text-on-surface-variant italic mb-4">
+            "Veranda looking out to eucalyptus trees"
+          </p>
+<!-- Presence Banner -->
+<div class="flex items-center justify-between pt-3 border-t border-dashed border-outline-variant/80">
+<div class="flex items-center gap-2">
+<span class="flex h-2.5 w-2.5 rounded-full bg-secondary"></span>
+<span class="text-label-md font-label-md text-on-surface font-medium">
+                You (An) are here
+              </span>
+</div>
+<span class="text-xs text-secondary font-label-sm bg-secondary-container px-2 py-0.5 rounded">Present</span>
+</div>
+</article>
+<!-- HOUSE 4: 'The meeting house' -->
+<article class="group relative bg-surface-container-low rounded-xl border border-outline-variant/80 p-5 sm:p-6 transition-all duration-300 hover:shadow-md hover:-translate-y-1 hover:border-tertiary/50">
+<div class="flex items-start justify-between gap-4 mb-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-xl bg-tertiary-fixed/60 border border-tertiary/20 flex items-center justify-center text-tertiary group-hover:bg-tertiary group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-2xl" data-icon="table_restaurant" style="font-variation-settings: 'FILL' 1;">table_restaurant</span>
+</div>
+<div>
+<span class="text-label-sm font-label-sm text-tertiary uppercase tracking-wider">Shared Common Room</span>
+<h2 class="text-headline-md font-headline-md text-on-surface">The meeting house</h2>
+</div>
+</div>
+<!-- Quiet lantern state -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high border border-outline-variant/40 text-on-surface-variant">
+<span class="material-symbols-outlined text-outline text-sm" data-icon="nights_stay">nights_stay</span>
+<span class="text-label-sm font-label-sm">Resting</span>
+</div>
+</div>
+<!-- Illustrated Keepsake View -->
+<div class="relative w-full h-36 rounded-lg overflow-hidden border border-outline-variant/40 mb-4 bg-surface-container">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="An expansive open village wooden meeting lodge with a long hand-hewn oak table, an open stone hearth with glowing gentle embers, wide timber beams, and soft terracotta floor tiles quietly waiting for evening family gatherings, storybook artistic lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJraQbebmOHpYrKSB8iWnYAcHp-Fr7h2VKFiXuhjkaPa3zUlnzfUmn624Sqz-g4UopD1OA3-w1f21Y0k3OPBQ-xsbwAV8kSHTDfI1LJu1af7MDpJdr7jhPIlwKHh_WLXqbBIGVhaiqsoFqr8qTeWtS_mE4fNyjmMjY65R5th32z1Ikupr0cObfsw0HuimouX5ozZfLKf1kPzESWtMEZJbueNdEcJWhIL2t231ubb6T"/>
+<div class="absolute bottom-2 left-2 px-2.5 py-1 rounded bg-surface-container-lowest/90 backdrop-blur-xs text-label-sm font-label-sm text-on-surface border border-outline-variant/40">
+              Hearth coals still warm
+            </div>
+</div>
+<!-- Description -->
+<p class="text-body-sm font-body-sm text-on-surface-variant italic mb-4">
+            "Large wooden table and open hearth for everyone"
+          </p>
+<!-- Presence Banner -->
+<div class="flex items-center justify-between pt-3 border-t border-dashed border-outline-variant/80">
+<div class="flex items-center gap-2">
+<span class="flex h-2.5 w-2.5 rounded-full bg-outline-variant"></span>
+<span class="text-label-md font-label-md text-on-surface-variant">
+                Nobody is here right now (quiet)
+              </span>
+</div>
+<span class="text-xs text-on-surface-variant/70 font-body-sm">Awaiting evening tea</span>
+</div>
+</article>
+</div>
+<!-- Hamlet Paths Legend & Tactile Weather/Light Note -->
+<div class="mt-6 pt-5 border-t border-outline-variant/50 flex flex-wrap items-center justify-between gap-4 text-xs text-on-surface-variant">
+<div class="flex items-center gap-4">
+<span class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded-full bg-tertiary-fixed border border-tertiary-container/40"></span>
+            Lantern lit (family gathered)
+          </span>
+<span class="flex items-center gap-1.5">
+<span class="w-3 h-3 rounded-full bg-secondary-fixed border border-secondary/30"></span>
+            Your residence
+          </span>
+<span class="flex items-center gap-1.5">
+<span class="w-3 h-1 bg-outline-variant rounded"></span>
+            Stone footpaths
+          </span>
+</div>
+<div class="flex items-center gap-1 italic">
+<span class="material-symbols-outlined text-sm" data-icon="nature_people">nature_people</span>
+          No rings, no badges, just gentle hearthlight.
+        </div>
+</div>
+</div>
+<!-- Quick Keepsake Shelf Glance -->
+<section class="bg-surface-container-low rounded-xl border border-outline-variant/60 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="local_florist">local_florist</span>
+</div>
+<div>
+<h3 class="text-label-lg font-label-lg text-on-surface">Recent village whisper</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Mum set out ripe pomelos on the Hanoi windowsill 2 hours ago.</p>
+</div>
+</div>
+<a class="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md transition-colors flex items-center gap-1.5 shrink-0" href="#">
+<span>Visit Memory Shelf</span>
+<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</section>
+</main>
+<!-- FOOTER (Shared Component Execution) -->
+<footer class="bg-surface-container-lowest dark:bg-surface-container-high border-t border-outline-variant dark:border-outline-variant/30 mt-auto">
+<div class="flex flex-col sm:flex-row justify-between items-center w-full px-6 py-6 max-w-7xl mx-auto gap-4">
+<!-- Brand & Copyright -->
+<div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+<span class="text-headline-sm font-headline-sm text-primary dark:text-inverse-primary">The Village</span>
+<span class="hidden sm:inline text-outline-variant">•</span>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+          The Village · A shared quiet corner for family memories
+        </p>
+</div>
+<!-- Links -->
+<nav class="flex flex-wrap justify-center items-center gap-4 text-label-sm font-label-sm">
+<a class="text-primary dark:text-inverse-primary font-medium" href="#">Village Map</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-inverse-on-surface transition-colors" href="#">Hanoi</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-inverse-on-surface transition-colors" href="#">Nghe An</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-inverse-on-surface transition-colors" href="#">Canberra</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-inverse-on-surface transition-colors" href="#">Meeting House</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-inverse-on-surface transition-colors" href="#">Leave the village</a>
+</nav>
+</div>
+</footer>
+</body></html>

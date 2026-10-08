@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-surface" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Village · The Keepsake Cabinet (Memory Shelf &amp; Gallery)</title>
+<!-- Google Fonts: Merriweather & Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Caveat:wght@500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface": "#fff8f6",
+            "on-secondary": "#ffffff",
+            "error": "#ba1a1a",
+            "inverse-primary": "#ffb59f",
+            "surface-bright": "#fff8f6",
+            "on-tertiary": "#ffffff",
+            "on-primary-container": "#fffbff",
+            "surface-container-low": "#fff1ec",
+            "on-secondary-container": "#516656",
+            "tertiary-container": "#a4670d",
+            "on-surface-variant": "#56423d",
+            "primary-fixed-dim": "#ffb59f",
+            "secondary-fixed": "#d1e8d5",
+            "on-primary-fixed": "#3a0a00",
+            "primary-fixed": "#ffdbd1",
+            "on-tertiary-container": "#fffbff",
+            "primary": "#994126",
+            "primary-container": "#b9583b",
+            "on-tertiary-fixed": "#2b1700",
+            "on-primary-fixed-variant": "#7d2c13",
+            "outline-variant": "#dcc1b9",
+            "on-error": "#ffffff",
+            "on-primary": "#ffffff",
+            "surface-variant": "#eedfda",
+            "on-secondary-fixed": "#0c1f13",
+            "outline": "#89726c",
+            "secondary-fixed-dim": "#b5ccb9",
+            "on-tertiary-fixed-variant": "#673d00",
+            "inverse-surface": "#372f2b",
+            "secondary": "#4f6354",
+            "on-surface": "#211a17",
+            "inverse-on-surface": "#fdeee8",
+            "surface-tint": "#9c4328",
+            "on-background": "#211a17",
+            "surface-dim": "#e6d7d2",
+            "tertiary": "#845000",
+            "surface-container": "#faebe6",
+            "surface-container-highest": "#eedfda",
+            "on-secondary-fixed-variant": "#374b3d",
+            "surface-container-high": "#f4e5e0",
+            "error-container": "#ffdad6",
+            "tertiary-fixed": "#ffddba",
+            "on-error-container": "#93000a",
+            "background": "#fff8f6",
+            "tertiary-fixed-dim": "#ffb866",
+            "secondary-container": "#cce3cf",
+            "surface-container-lowest": "#ffffff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-md": "1rem",
+            "margin-mobile": "1.25rem",
+            "space-sm": "0.5rem",
+            "space-lg": "1.5rem",
+            "gutter": "1.25rem",
+            "space-xl": "2.5rem",
+            "space-xs": "0.25rem",
+            "gutter-mobile": "0.875rem",
+            "margin": "2rem"
+          },
+          "fontFamily": {
+            "body-lg": ["Plus Jakarta Sans"],
+            "display-lg-mobile": ["Merriweather"],
+            "headline-lg": ["Merriweather"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "headline-md": ["Merriweather"],
+            "body-md": ["Plus Jakarta Sans"],
+            "headline-sm": ["Merriweather"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Merriweather"],
+            "display-lg": ["Merriweather"],
+            "handwriting": ["Caveat", "cursive"]
+          },
+          "fontSize": {
+            "body-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0", "fontWeight": "400" }],
+            "display-lg-mobile": ["32px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "label-lg": ["15px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "headline-md": ["24px", { "lineHeight": "34px", "letterSpacing": "0", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "30px", "letterSpacing": "0", "fontWeight": "400" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "36px", "letterSpacing": "0", "fontWeight": "700" }],
+            "display-lg": ["44px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined.fill-1 {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Subtle parchment textured stippling effect */
+    .bg-grain {
+      background-image: radial-gradient(rgba(153, 65, 38, 0.04) 1px, transparent 0);
+      background-size: 20px 20px;
+    }
+    /* Paper deckle edge illusion */
+    .deckle-edge {
+      box-shadow: 0 1px 3px rgba(44, 36, 33, 0.08), 0 4px 12px rgba(44, 36, 33, 0.04);
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(137, 114, 108, 0.08) 28px);
+    }
+    /* Clothespin wooden clip */
+    .wooden-clip {
+      width: 14px;
+      height: 32px;
+      background: linear-gradient(180deg, #c49a6c 0%, #aa7e52 80%, #855f3a 100%);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.4);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-body-md text-on-surface bg-surface bg-grain antialiased selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TOP APP BAR (Aligned with Shared Component JSON: TopNavBar) -->
+<header class="w-full bg-surface-container-low border-b border-outline-variant shadow-sm sticky top-0 z-30">
+<div class="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
+<!-- Brand & Traveler Hearth Presence -->
+<div class="flex items-center gap-6">
+<a class="flex items-center gap-2 group" href="#">
+<span class="material-symbols-outlined text-primary text-2xl group-hover:rotate-6 transition-transform" data-icon="cottage">cottage</span>
+<span class="font-headline-md text-headline-md text-primary tracking-tight">The Village</span>
+</a>
+<div class="h-4 w-px bg-outline-variant hidden sm:block"></div>
+<div class="hidden lg:flex items-center gap-2 px-3 py-1 bg-surface-container rounded-full border border-outline-variant/60">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span class="font-label-md text-label-md text-on-surface-variant">Traveler: An (Canberra House)</span>
+</div>
+</div>
+<!-- Navigation Links from Shared Components JSON -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant hover:text-on-surface pb-1 font-medium transition-colors font-label-md text-label-md" href="#">Village Map</a>
+<a class="text-on-surface-variant hover:text-on-surface pb-1 font-medium transition-colors font-label-md text-label-md" href="#">Memory Shelf</a>
+<!-- Active Nav: Memory Shelf / Keepsake Cabinet -->
+<a class="text-primary border-b-2 border-primary pb-1 font-semibold font-label-md text-label-md flex items-center gap-1.5" href="#">
+<span>Gallery</span>
+<span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+</a>
+<a class="text-on-surface-variant hover:text-on-surface pb-1 font-medium transition-colors font-label-md text-label-md" href="#">Meeting House</a>
+</nav>
+<!-- Trailing Action -->
+<div class="flex items-center gap-4">
+<button class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-surface-container">
+<span class="material-symbols-outlined text-lg" data-icon="logout">logout</span>
+<span>Leave the village</span>
+</button>
+</div>
+</div>
+</header>
+<!-- HEARTH PRESENCE & SCENT RIBBON -->
+<div class="w-full bg-surface-container border-b border-outline-variant/50 px-6 py-2">
+<div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between text-xs text-on-surface-variant gap-2 font-label-sm">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-base" data-icon="air">air</span>
+<span class="italic font-normal">Scent of dried pomelo peels and warm sunlit veranda</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-base fill-1" data-icon="favorite">favorite</span>
+<span class="text-on-secondary-container bg-secondary-fixed/50 px-2.5 py-0.5 rounded-full font-semibold">
+          Mum and Uncle Binh placed new mementos earlier today
+        </span>
+</div>
+</div>
+</div>
+<!-- MAIN CANVAS CONTAINER -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+<!-- PAGE HEADER & PHILOSOPHY -->
+<section class="mb-10">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b-2 border-[#E2D5C3]">
+<div class="max-w-3xl space-y-2">
+<div class="flex items-center gap-2 text-primary font-label-md text-label-md tracking-wider">
+<span class="material-symbols-outlined text-lg" data-icon="shelves">shelves</span>
+<span>HEARTH ARCHIVE · LIVING REPOSITORY</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface text-balance">
+            The Keepsake Cabinet: Village Mementos &amp; Journal Slips
+          </h1>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed pt-1">
+            Photographs pinned with wooden clothespins, aged journal slips, pressed autumn leaves, and tea labels gathered across Hanoi, Nghe An, and Canberra. Every artifact carries two witness signatures.
+          </p>
+</div>
+<!-- Co-witness & Share Action Button -->
+<div class="flex items-center gap-3">
+<button class="bg-primary hover:bg-[#85361e] text-on-primary font-label-lg text-label-lg px-5 py-2.5 rounded-lg shadow-sm flex items-center gap-2 transition-all active:scale-[0.98]" id="quick-contribute-btn">
+<span class="material-symbols-outlined text-xl" data-icon="add_photo_alternate">add_photo_alternate</span>
+<span>Share a Keepsake</span>
+</button>
+</div>
+</div>
+</section>
+<!-- FILTER RUNNER (WOODEN SHELF RUNNER STYLE) -->
+<section class="mb-10 bg-surface-container-low p-3 sm:p-4 rounded-xl border border-outline-variant flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 shadow-sm">
+<!-- Category Pills -->
+<div class="flex flex-wrap items-center gap-2">
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 py-1.5 rounded-full transition-all shadow-sm">
+          All Keepsakes (16)
+        </button>
+<button class="bg-surface hover:bg-surface-container text-on-surface font-label-md text-label-md px-4 py-1.5 rounded-full border border-outline-variant/60 transition-colors">
+          Polaroids &amp; Sunlit Photos
+        </button>
+<button class="bg-surface hover:bg-surface-container text-on-surface font-label-md text-label-md px-4 py-1.5 rounded-full border border-outline-variant/60 transition-colors">
+          Journal Entries &amp; Slips
+        </button>
+<button class="bg-surface hover:bg-surface-container text-on-surface font-label-md text-label-md px-4 py-1.5 rounded-full border border-outline-variant/60 transition-colors">
+          Pressed Flora &amp; Objects
+        </button>
+</div>
+<!-- House Filter Selector -->
+<div class="flex items-center gap-1.5 pt-2 lg:pt-0 border-t lg:border-t-0 border-outline-variant/40">
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">Origin Hearth:</span>
+<button class="px-3 py-1 bg-surface rounded-lg text-xs font-label-md border border-outline-variant text-on-surface hover:border-primary transition-colors flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span>Nghe An</span>
+</button>
+<button class="px-3 py-1 bg-surface rounded-lg text-xs font-label-md border border-outline-variant text-on-surface hover:border-primary transition-colors flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span>Hanoi</span>
+</button>
+<button class="px-3 py-1 bg-surface rounded-lg text-xs font-label-md border border-outline-variant text-on-surface hover:border-primary transition-colors flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span>Canberra</span>
+</button>
+</div>
+</section>
+<!-- RICH GALLERY BENTO GRID -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start mb-16">
+<!-- ITEM 1: POLAROID CARD (Uncle Binh on Clay Roof Tiles) -->
+<div class="memento-card group cursor-pointer bg-[#fffefa] p-4 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1.5 -rotate-[0.8deg] hover:rotate-0 border border-[#e6dcce] relative" data-category="Polaroid Photograph" data-date="Yesterday at 4:15 PM" data-image="placeholder" data-image-alt="A warm nostalgic polaroid photograph of an elderly Vietnamese man named Uncle Binh in a linen shirt sitting on weathered terracotta clay roof tiles under late afternoon sunlight. The sky has a gentle golden-hour glow. The style is soft, tactile, bookish storybook warmth with earth tones, terracotta reds, and natural brick textures." data-note="He insisted that two replacement tiles from 1984 were still stronger than anything fired today. The red mud dust coated his thumbs." data-origin="Nghe An Hearth" data-title="Uncle Binh mending terracotta roof tiles after rain" data-witnesses="Uncle Binh &amp; Mum">
+<!-- Realistic Wooden Clothespin Graphic -->
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center">
+<div class="wooden-clip"></div>
+<div class="w-2 h-1 bg-black/20 rounded-full blur-[1px]"></div>
+</div>
+<!-- Polaroid Frame Container -->
+<div class="overflow-hidden rounded-lg bg-surface-dim aspect-square mb-3 relative">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A warm nostalgic polaroid photograph of an elderly Vietnamese man named Uncle Binh in a linen shirt sitting on weathered terracotta clay roof tiles under late afternoon sunlight. The sky has a gentle golden-hour glow. The style is soft, tactile, bookish storybook warmth with earth tones, terracotta reds, and natural brick textures." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgW5aZgvLTl41-CnTXb-sIFbjgMQWcH_V-54mZT8qzRosgqNk1axN0b0TfTBQLPGwwLheMTtwkXfb_89Yn55jdf9Jp7UsoF2gsgoZJqTBGuVLeXuBiN2s9t29jALRintcjf6pumVtm6y0N_PctwxIYuFqG1_5MEGuAslMWD5I3whiC-tAH_UrgO1QBUkZROnz65FxA8hkCWFMbtVhtWiGZWA9UQgv14qS2PNGxNFP5"/>
+<div class="absolute bottom-2 left-2 px-2 py-0.5 bg-black/40 backdrop-blur-sm rounded text-[10px] text-white font-mono">
+            KODAK EKTA 100
+          </div>
+</div>
+<!-- Handwritten Caption Area -->
+<div class="pt-2 px-1">
+<p class="font-handwriting text-xl text-on-surface leading-snug">
+            "Roof tiles cured under Nghe An sun — Uncle Binh checking the eaves."
+          </p>
+<div class="mt-4 flex items-center justify-between text-xs text-on-surface-variant border-t border-dashed border-[#e2d5c3] pt-2 font-label-sm">
+<span class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-sm" data-icon="roofing">roofing</span>
+              Nghe An Hearth
+            </span>
+<span>Witnessed by Mum</span>
+</div>
+</div>
+</div>
+<!-- ITEM 2: DECKLE-EDGED AGED JOURNAL NOTE (Grandmother's Lotus Soup) -->
+<div class="memento-card group cursor-pointer bg-[#fcf8ee] p-6 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1.5 rotate-[0.6deg] hover:rotate-0 border border-[#e2d3bf] deckle-edge relative" data-category="Aged Journal Slip" data-date="3 days ago · 9:00 AM" data-image="placeholder" data-image-alt="A macro close-up of a vintage hand-penned Vietnamese recipe slip on yellowed parchment paper resting alongside dried white lotus seeds and rock sugar crystals. Soft natural morning window light reveals tactile paper fibers and delicate fountain pen calligraphy with warm amber highlights." data-note="Written on blue-ruled accounting paper. The ink had softened around the edges: 'Simmer dry lotus seeds with crushed rock sugar; never stir until boiling breaks.'" data-origin="Hanoi Balcony" data-title="Grandmother's lotus seed recipe found in cassette case" data-witnesses="Sister Lien &amp; An">
+<!-- Brass Paperclip Graphic -->
+<div class="absolute -top-2 right-6 w-4 h-9 border-2 border-[#b59868] rounded-full opacity-80 shadow-sm"></div>
+<div class="flex items-center gap-2 mb-3 text-secondary font-label-md text-label-md">
+<span class="material-symbols-outlined text-lg" data-icon="edit_note">edit_note</span>
+<span>JOURNAL SLIP #042 · HANOI</span>
+</div>
+<div class="space-y-3 font-serif text-[#2c2421] text-base leading-relaxed">
+<p class="italic text-on-surface-variant font-headline-sm text-headline-sm">
+            "Mum found grandfather's handwritten recipe for lotus seed sweet soup tucked inside the cassette case."
+          </p>
+<p class="text-sm text-on-surface-variant/90 font-body-sm">
+            "Ten dried seeds per cup of water, simmer over charcoal embers until the skins surrender quietly. Do not rush the sweetening."
+          </p>
+</div>
+<div class="mt-8 pt-3 border-t border-dashed border-[#d5c3ad] flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1 text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="history_edu">history_edu</span>
+            Fountain pen in sepia ink
+          </span>
+<span class="text-xs bg-secondary-fixed/50 px-2 py-0.5 rounded text-on-secondary-container font-medium">Hanoi Balcony</span>
+</div>
+</div>
+<!-- ITEM 3: PRESSED BOTANICAL & TACTILE RELIC (Canberra Eucalypt Sprig) -->
+<div class="memento-card group cursor-pointer bg-[#f9f5ed] p-5 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1.5 -rotate-[0.5deg] hover:rotate-0 border border-[#ded2c1] relative" data-category="Pressed Flora Artifact" data-date="October 28 · Autumn in Southern Tablelands" data-image="placeholder" data-image-alt="A delicate botanical specimen arrangement of dried silver-dollar eucalyptus leaves mounted on creamy archival paper with kraft paper tape. A small brass wax seal stamp in burnt terracotta wax is placed on the corner. Soft directional studio lighting highlights textures and subtle silver sage tones." data-note="Collected after the morning frost along the Molonglo river trail. The scent remains distinctly herbal, peppermint, and cool rain." data-origin="Canberra Veranda" data-title="Pressed Eucalyptus cinerea leaves with red soil trace" data-witnesses="An &amp; Uncle Binh">
+<!-- Wax Seal Embellishment -->
+<div class="absolute -top-3 -right-2 w-8 h-8 rounded-full bg-primary shadow flex items-center justify-center text-on-primary text-[10px] font-bold border-2 border-[#fff8f6]">
+          V
+        </div>
+<div class="aspect-[4/3] rounded-lg bg-[#f0eae1] overflow-hidden mb-4 border border-[#e0d6c7] p-2 flex items-center justify-center relative">
+<img class="w-full h-full object-cover rounded shadow-inner group-hover:scale-105 transition-transform duration-500" data-alt="A delicate botanical specimen arrangement of dried silver-dollar eucalyptus leaves mounted on creamy archival paper with kraft paper tape. A small brass wax seal stamp in burnt terracotta wax is placed on the corner. Soft directional studio lighting highlights textures and subtle silver sage tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGRahcKvOCyqs9r926SxH5zEBPvg6yV9CsVCE88Ldqo5UJGyrBlzkl8p9KvyLau_d9jBKk7TigxeBh9AX8yJe3QTT-p7dc0fIGHrsx8e2n2u_Mxyg8M2mxEDPnd3kY023HnV2V6kJQwH3P6JZN946o77Bjyl55K-sW232lwWadYAibrUT0CMwaLPK_07BHt8RFcNvS-HAhjQo_K_NItQ9d2carSTsKcoFS0FK3h37i"/>
+<span class="absolute top-3 left-3 bg-[#fdfaf5]/90 px-2 py-0.5 text-[10px] uppercase font-mono tracking-wider border border-[#d2c4b0] rounded">
+            Specimen 14-ACT
+          </span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-1">
+          Pressed Silver Dollar Branch
+        </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+          Carried from the veranda in Dickson down to the library drawer. Pinned alongside two drops of rain gum resin.
+        </p>
+<div class="mt-4 pt-3 border-t border-[#e3d7c5] flex items-center justify-between text-xs font-label-sm">
+<span class="text-tertiary font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="park">park</span>
+            Canberra House
+          </span>
+<span class="text-on-surface-variant">2 Co-witness Seals</span>
+</div>
+</div>
+<!-- ITEM 4: POLAROID CARD (Grandmother Harvesting Pomelos) -->
+<div class="memento-card group cursor-pointer bg-[#fffefa] p-4 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1.5 rotate-[0.7deg] hover:rotate-0 border border-[#e6dcce] relative" data-category="Polaroid Photograph" data-date="Five days ago" data-image="placeholder" data-image-alt="A heartfelt polaroid photo of an elderly Asian grandmother in a dark brown traditional cotton jacket holding a large green pomelo fruit in an orchard garden. Golden sunshine filters through lush foliage creating dappled light and warm organic earth shadows." data-note="She held each pomelo to her ear to tap for density. 'The ones facing west drink the dry summer wind, so their flesh is sweetest,' she told the boys." data-origin="Nghe An Hearth" data-title="Grandmother harvesting sweet winter pomelos" data-witnesses="Auntie Nga &amp; Uncle Binh">
+<div class="absolute -top-3 left-8 z-10 flex flex-col items-center">
+<div class="wooden-clip"></div>
+</div>
+<div class="overflow-hidden rounded-lg bg-surface-dim aspect-square mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A heartfelt polaroid photo of an elderly Asian grandmother in a dark brown traditional cotton jacket holding a large green pomelo fruit in an orchard garden. Golden sunshine filters through lush foliage creating dappled light and warm organic earth shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBopikLtG1GllloFe_cWb6luIUKxL08w8aLCtDEivmgQn66Voox9hI0VajX4E5ROseGnIUwOUSAJIa4lleDdKV8BkOIQg8zXX6XL7rbqavRftuHalEAK7NxMQZMTEQtUOGkn4uMKMqCYZo9OTHAPc19bZISGonjRWN_2zQ0cW7N78KARztWAe_2JXHTXQz5tzpt-w8Ld1KQbPf8FeEj75USClBB-pLxAMrkrWlEJHsS"/>
+</div>
+<div class="pt-2 px-1">
+<p class="font-handwriting text-xl text-on-surface leading-snug">
+            "Testing pomelos by the stone well before evening tea."
+          </p>
+<div class="mt-4 flex items-center justify-between text-xs text-on-surface-variant border-t border-dashed border-[#e2d5c3] pt-2 font-label-sm">
+<span class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-sm" data-icon="cottage">cottage</span>
+              Nghe An Garden
+            </span>
+<span>Witnessed by Auntie Nga</span>
+</div>
+</div>
+</div>
+<!-- ITEM 5: CERAMIC OBJECT RELIC (Bat Trang Ceramic Shard) -->
+<div class="memento-card group cursor-pointer bg-[#fcf9f2] p-5 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1.5 -rotate-[0.6deg] hover:rotate-0 border border-[#ded3c2] relative" data-category="Ceramic Relic" data-date="Saved since Autumn 1999" data-image="placeholder" data-image-alt="A museum quality still life of an antique Vietnamese celadon porcelain shard with hand-painted iron-brush pattern sitting on a raw cedar wood block. Soft warm ambient lighting highlighting the crackle glaze texture and authentic patina of age." data-note="The teacup broke during a typhoon storm on Ly Nam De street. Grandfather preserved the handle and bottom seal in bees-wax paper." data-origin="Hanoi Balcony" data-title="Glazed dragon scale celadon shard from 1978 teacup" data-witnesses="Grandfather &amp; Mum">
+<div class="aspect-[4/3] rounded-lg bg-surface-dim overflow-hidden mb-4 border border-[#e0d6c7]">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A museum quality still life of an antique Vietnamese celadon porcelain shard with hand-painted iron-brush pattern sitting on a raw cedar wood block. Soft warm ambient lighting highlighting the crackle glaze texture and authentic patina of age." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgyQs9PpP4c-TLyN43R7ImCGtwA8l1e7uOcRDQ4Cf7f2R7sv7BHQziKnHnB-k3s6hypQ83U68L4ec1gAXCZEhp_09OqlcoV98aFpBEw2KFCSGourZGjQ83qMhEPfRbYXrFroZKx7XOzFL06shDI00MxRYm4C7QDCKgO6edt_OALBtc7hab5xflLxqsa1dbYfcCBk-AFMwQ9KaGoNxMqrsFugDFiV_-oVa_26uXssGJ"/>
+</div>
+<div class="flex items-center gap-1.5 mb-1.5">
+<span class="px-2 py-0.5 rounded text-[11px] font-label-md bg-tertiary-fixed text-on-tertiary-fixed">HEIRLOOM PIECE</span>
+<span class="text-xs text-on-surface-variant font-label-sm">Bat Trang Pottery</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-1">
+          Crackle Glaze Teacup Fragment
+        </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2">
+          Recovered from the lower shelf in Hanoi. Sealed with warm beeswax to protect the iron-rich clay underside.
+        </p>
+<div class="mt-4 pt-3 border-t border-[#e3d7c5] flex items-center justify-between text-xs font-label-sm">
+<span class="text-secondary font-medium">Hanoi House</span>
+<span class="text-on-surface-variant">Archived 24 yrs ago</span>
+</div>
+</div>
+<!-- ITEM 6: POLAROID CARD (Canberra Eucalypt Porch in Morning Mist) -->
+<div class="memento-card group cursor-pointer bg-[#fffefa] p-4 rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1.5 rotate-[0.9deg] hover:rotate-0 border border-[#e6dcce] relative" data-category="Polaroid Photograph" data-date="Two days ago · 7:10 AM" data-image="placeholder" data-image-alt="A poetic polaroid photograph showing warm steam rising from an earthy stoneware tea cup on a rustic wooden veranda railing. In the background are soft misty Australian eucalyptus trees during early morning sun. Warm terracotta tones blend with sage greens in gentle light." data-note="The morning frost had just started to turn into dew. We drank Thai Nguyen green tea poured into Australian stoneware cups." data-origin="Canberra Veranda" data-title="Morning tea steam mingling with Canberra eucalyptus air" data-witnesses="An &amp; Mum">
+<div class="absolute -top-3 right-10 z-10 flex flex-col items-center">
+<div class="wooden-clip"></div>
+</div>
+<div class="overflow-hidden rounded-lg bg-surface-dim aspect-square mb-3">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A poetic polaroid photograph showing warm steam rising from an earthy stoneware tea cup on a rustic wooden veranda railing. In the background are soft misty Australian eucalyptus trees during early morning sun. Warm terracotta tones blend with sage greens in gentle light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBVO3naTRYLyRkwdPh4XJq_X36oFvmz9-uFDon4a-MgzW5oMv78XzWu47UpNf-OUUZF3aKttuejeVGmkCO7xHMLcxCGvqNpEjQTo4iPSwaUo9W2PSllzntwDFKmzEcGVOUdwuN4PsY969e-UNgFn992rMabJERsaG9WZq0kRwXNm9HVPM0S75uyF1wFO4HdqQDdOoUJYFiTETouNCecQTkA7vMzm9FmOCuBhcFcy_6"/>
+</div>
+<div class="pt-2 px-1">
+<p class="font-handwriting text-xl text-on-surface leading-snug">
+            "First mug of Thai Nguyen tea on the Canberra deck — misty frost."
+          </p>
+<div class="mt-4 flex items-center justify-between text-xs text-on-surface-variant border-t border-dashed border-[#e2d5c3] pt-2 font-label-sm">
+<span class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-sm" data-icon="coffee">coffee</span>
+              Canberra Porch
+            </span>
+<span>Witnessed by An</span>
+</div>
+</div>
+</div>
+</section>
+<!-- CURATORIAL PLEDGE CARD (STORYBOOK CO-WITNESS BOX) -->
+<section class="bg-surface-container p-8 rounded-2xl border border-outline-variant relative overflow-hidden mb-12">
+<div class="max-w-2xl">
+<span class="material-symbols-outlined text-primary text-3xl mb-2" data-icon="menu_book">menu_book</span>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-2">The Village Co-Witness Custom</h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed mb-4">
+          In this village, no memory stands in solitude. Every photograph taken, every dried blossom saved, and every scrap of cursive must be verified by another family member who remembers the light, the smell of rain, or the taste of the broth.
+        </p>
+<div class="flex items-center gap-4 text-xs font-label-md text-primary">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-base" data-icon="verified">verified</span>
+            Never erased
+          </span>
+<span>·</span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-base" data-icon="lock_clock">lock_clock</span>
+            Preserved across three houses
+          </span>
+</div>
+</div>
+</section>
+</main>
+<!-- INTERACTIVE MEMENTO INSPECTION MODAL (EXPANDED DETAIL PREVIEW) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[#211a17]/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300" id="memento-modal">
+<div class="bg-surface max-w-3xl w-full rounded-2xl shadow-2xl border border-outline-variant overflow-hidden transform scale-95 transition-all duration-300 max-h-[921px] flex flex-col md:flex-row" id="modal-container">
+<!-- Left: Big Visual / Artifact Display -->
+<div class="md:w-1/2 bg-[#f4ebe6] p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-outline-variant relative">
+<div class="bg-white p-3 rounded-xl shadow-lg border border-[#e5dcd1] max-w-sm w-full transform rotate-1">
+<div class="aspect-square bg-surface-dim rounded-lg overflow-hidden mb-3">
+<img class="w-full h-full object-cover" data-alt="Expanded inspection view of family heirloom artifact" id="modal-image" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0sc94okPaToeWMXHnN34ozOUvhPIT_nYai2pXQEAcivQ73-rVUgCpOWTEuZD0KDkwGY5F4c_eQFPmzAhUqhFdiQkNDBFyWvePnvEtaq2tr8ga924zGex8TwWp7q11MBgWpiAdXPGuSnAct-fWscOxlwUXvNLmxTJMX9njvpaCYkgKdA7RnHFsEJa6HUSydvWJbLD0NE72tzG2wwEXAD4PZbLUAJ1X-X0Arf9quj05"/>
+</div>
+<p class="font-handwriting text-xl text-on-surface text-center py-1" id="modal-handwriting">
+            Caption inscription here...
+          </p>
+</div>
+<div class="mt-4 flex items-center gap-2 text-xs font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm" data-icon="photo_camera">photo_camera</span>
+<span>Archival Film Print · 35mm Grain</span>
+</div>
+</div>
+<!-- Right: Detailed Curatorial Ledger & Actions -->
+<div class="md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
+<div class="space-y-4">
+<!-- Top Category & Close Button -->
+<div class="flex items-center justify-between">
+<span class="px-2.5 py-1 bg-secondary-fixed/50 text-on-secondary-container rounded-full text-xs font-label-md" id="modal-category">
+              Artifact Category
+            </span>
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors" id="modal-close-btn">
+<span class="material-symbols-outlined text-xl" data-icon="close">close</span>
+</button>
+</div>
+<!-- Title -->
+<h2 class="font-headline-sm text-headline-sm text-on-surface leading-snug" id="modal-title">
+            Memento Title
+          </h2>
+<!-- Meta Table -->
+<div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant/60 space-y-2 text-xs font-label-sm">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">House Origin:</span>
+<span class="font-semibold text-primary" id="modal-origin">Nghe An Hearth</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Timestamp:</span>
+<span class="font-medium text-on-surface" id="modal-date">Yesterday at 4:15 PM</span>
+</div>
+<div class="flex justify-between border-t border-outline-variant/40 pt-1.5">
+<span class="text-on-surface-variant">Co-Witness Seal:</span>
+<span class="font-semibold text-secondary flex items-center gap-1" id="modal-witnesses">
+<span class="material-symbols-outlined text-sm fill-1" data-icon="verified_user">verified_user</span>
+                Permanent · Co-witnessed
+              </span>
+</div>
+</div>
+<!-- Extended Transcribed Note -->
+<div class="pt-2">
+<p class="font-label-sm text-xs text-on-surface-variant uppercase tracking-wider mb-1">Transcribed Family Note</p>
+<p class="font-body-md text-body-md text-on-surface leading-relaxed italic bg-surface-container-lowest p-3 rounded-lg border border-outline-variant/40" id="modal-note">
+              "Transcribed quote details will be rendered here."
+            </p>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="pt-6 border-t border-outline-variant/60 flex items-center gap-3">
+<button class="flex-1 bg-primary hover:bg-[#85361e] text-on-primary font-label-md text-label-md py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm" id="pin-btn">
+<span class="material-symbols-outlined text-lg" data-icon="push_pin">push_pin</span>
+<span>Pin to House Veranda</span>
+</button>
+<button class="px-3 py-2.5 border border-outline hover:bg-surface-container rounded-lg font-label-md text-label-md text-on-surface transition-colors flex items-center gap-1" id="add-witness-btn">
+<span class="material-symbols-outlined text-lg" data-icon="ink_pen">ink_pen</span>
+<span>Add Inscription</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- FOOTER (Matching Shared Component JSON: Footer) -->
+<footer class="w-full bg-surface-container-lowest border-t border-outline-variant mt-auto">
+<div class="flex flex-col sm:flex-row justify-between items-center w-full px-6 py-6 max-w-7xl mx-auto gap-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="cottage">cottage</span>
+<span class="font-headline-sm text-headline-sm text-primary tracking-tight">The Village</span>
+<span class="text-on-surface-variant text-xs font-body-sm pl-2">· A shared quiet corner for family memories</span>
+</div>
+<nav class="flex flex-wrap items-center justify-center gap-6 font-label-sm text-label-sm">
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Village Map</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Hanoi</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Nghe An</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Canberra</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Meeting House</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">Leave the village</a>
+</nav>
+</div>
+</footer>
+<!-- JAVASCRIPT FOR INTERACTIVE INSPECTION MODAL -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const cards = document.querySelectorAll('.memento-card');
+      const modal = document.getElementById('memento-modal');
+      const modalContainer = document.getElementById('modal-container');
+      const closeBtn = document.getElementById('modal-close-btn');
+
+      const modalTitle = document.getElementById('modal-title');
+      const modalOrigin = document.getElementById('modal-origin');
+      const modalDate = document.getElementById('modal-date');
+      const modalWitnesses = document.getElementById('modal-witnesses');
+      const modalNote = document.getElementById('modal-note');
+      const modalCategory = document.getElementById('modal-category');
+      const modalHandwriting = document.getElementById('modal-handwriting');
+      const modalImage = document.getElementById('modal-image');
+      const pinBtn = document.getElementById('pin-btn');
+
+      function openModal(card) {
+        const title = card.getAttribute('data-title');
+        const origin = card.getAttribute('data-origin');
+        const date = card.getAttribute('data-date');
+        const witnesses = card.getAttribute('data-witnesses');
+        const note = card.getAttribute('data-note');
+        const category = card.getAttribute('data-category');
+        const cardImg = card.querySelector('img');
+
+        modalTitle.textContent = title;
+        modalOrigin.textContent = origin;
+        modalDate.textContent = date;
+        modalWitnesses.innerHTML = `<span class="material-symbols-outlined text-sm fill-1">verified_user</span> Co-witnessed by ${witnesses}`;
+        modalNote.textContent = `"${note}"`;
+        modalCategory.textContent = category;
+        modalHandwriting.textContent = card.querySelector('.font-handwriting') 
+          ? card.querySelector('.font-handwriting').textContent.trim()
+          : `Keepsake item archived at ${origin}`;
+
+        if (cardImg) {
+          modalImage.src = cardImg.src;
+          modalImage.setAttribute('data-alt', cardImg.getAttribute('data-alt') || 'Expanded artifact photograph');
+        }
+
+        // Show Modal with Animation
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        modal.classList.add('opacity-100');
+        modalContainer.classList.remove('scale-95');
+        modalContainer.classList.add('scale-100');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal() {
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        modal.classList.remove('opacity-100');
+        modalContainer.classList.add('scale-95');
+        modalContainer.classList.remove('scale-100');
+        document.body.style.overflow = '';
+      }
+
+      cards.forEach(card => {
+        card.addEventListener('click', () => openModal(card));
+      });
+
+      closeBtn.addEventListener('click', closeModal);
+
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeModal();
+        }
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeModal();
+        }
+      });
+
+      // Pin micro-interaction
+      pinBtn.addEventListener('click', () => {
+        const originalText = pinBtn.innerHTML;
+        pinBtn.innerHTML = '<span class="material-symbols-outlined text-lg">check</span><span>Pinned to Veranda!</span>';
+        pinBtn.classList.replace('bg-primary', 'bg-secondary');
+        setTimeout(() => {
+          pinBtn.innerHTML = originalText;
+          pinBtn.classList.replace('bg-secondary', 'bg-primary');
+        }, 2200);
+      });
+    });
+  </script>
+</body></html>

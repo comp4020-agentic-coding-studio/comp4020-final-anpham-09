@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Village · A Shared Quiet Corner</title>
+<!-- Google Fonts: Merriweather + Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Forms and Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration based on Theme Specs -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-on-surface": "#fdeee8",
+            "secondary-container": "#cce3cf",
+            "background": "#fff8f6",
+            "secondary-fixed": "#d1e8d5",
+            "tertiary-container": "#a4670d",
+            "inverse-surface": "#372f2b",
+            "error-container": "#ffdad6",
+            "on-tertiary-fixed-variant": "#673d00",
+            "tertiary-fixed-dim": "#ffb866",
+            "on-tertiary-fixed": "#2b1700",
+            "on-surface": "#211a17",
+            "secondary": "#4f6354",
+            "tertiary-fixed": "#ffddba",
+            "on-background": "#211a17",
+            "surface-container": "#faebe6",
+            "primary-container": "#b9583b",
+            "inverse-primary": "#ffb59f",
+            "on-primary-container": "#fffbff",
+            "on-tertiary-container": "#fffbff",
+            "surface-variant": "#eedfda",
+            "error": "#ba1a1a",
+            "on-error": "#ffffff",
+            "primary-fixed": "#ffdbd1",
+            "on-secondary": "#ffffff",
+            "on-primary-fixed-variant": "#7d2c13",
+            "on-surface-variant": "#56423d",
+            "on-secondary-fixed": "#0c1f13",
+            "secondary-fixed-dim": "#b5ccb9",
+            "tertiary": "#845000",
+            "on-primary": "#ffffff",
+            "surface": "#fff8f6",
+            "on-secondary-container": "#516656",
+            "surface-bright": "#fff8f6",
+            "outline": "#89726c",
+            "surface-container-highest": "#eedfda",
+            "outline-variant": "#dcc1b9",
+            "primary-fixed-dim": "#ffb59f",
+            "surface-container-lowest": "#ffffff",
+            "surface-tint": "#9c4328",
+            "on-primary-fixed": "#3a0a00",
+            "surface-dim": "#e6d7d2",
+            "on-tertiary": "#ffffff",
+            "on-secondary-fixed-variant": "#374b3d",
+            "primary": "#994126",
+            "on-error-container": "#93000a",
+            "surface-container-high": "#f4e5e0",
+            "surface-container-low": "#fff1ec"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "2rem",
+            "space-md": "1rem",
+            "margin-mobile": "1.25rem",
+            "space-xl": "2.5rem",
+            "space-lg": "1.5rem",
+            "space-sm": "0.5rem",
+            "gutter": "1.25rem",
+            "gutter-mobile": "0.875rem",
+            "space-xs": "0.25rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Merriweather"],
+            "label-md": ["Plus Jakarta Sans"],
+            "display-lg-mobile": ["Merriweather"],
+            "display-lg": ["Merriweather"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "headline-md": ["Merriweather"],
+            "headline-lg-mobile": ["Merriweather"],
+            "body-md": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Merriweather"]
+          },
+          "fontSize": {
+            "headline-sm": ["20px", { "lineHeight": "30px", "letterSpacing": "0", "fontWeight": "400" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "display-lg-mobile": ["32px", { "lineHeight": "42px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "display-lg": ["44px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "headline-md": ["24px", { "lineHeight": "34px", "letterSpacing": "0", "fontWeight": "700" }],
+            "headline-lg-mobile": ["26px", { "lineHeight": "36px", "letterSpacing": "0", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400" }],
+            "label-lg": ["15px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0", "fontWeight": "400" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+            "headline-lg": ["32px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    /* Parchment ambient texture emulation & tactile drop shadows */
+    .tactile-parchment {
+      box-shadow: 0px 2px 8px -2px rgba(44, 36, 33, 0.05), 0px 4px 20px -4px rgba(44, 36, 33, 0.08);
+    }
+    
+    .wood-shelf-joinery {
+      border-top: 2px solid #dcc1b9;
+      box-shadow: inset 0 1px 0 #ffffff;
+    }
+
+    .subtle-grain {
+      background-image: radial-gradient(rgba(153, 65, 38, 0.04) 1px, transparent 0);
+      background-size: 24px 24px;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col justify-between selection:bg-secondary-container selection:text-on-secondary-container subtle-grain">
+<!-- Minimal Storybook Header Anchoring Context -->
+<header class="w-full pt-8 pb-4 px-margin-mobile md:px-margin text-center">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high border border-outline-variant/60 text-secondary mb-3">
+<span class="material-symbols-outlined text-[16px]" data-icon="cottage">cottage</span>
+<span class="font-label-sm text-label-sm tracking-widest text-on-surface-variant">THE FAMILY ARCHIVE &amp; HEARTH</span>
+</div>
+</header>
+<!-- Main Canvas Content: The Entrance Sanctuary -->
+<main class="w-full max-w-2xl mx-auto px-margin-mobile md:px-space-md py-space-sm flex-1 flex flex-col justify-center">
+<!-- Hero Header / Emblem Area -->
+<div class="text-center mb- space-lg">
+<!-- Rustic Handcrafted Village Crest -->
+<div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-surface-container-high border-2 border-outline-variant shadow-inner mb-4 relative group">
+<div class="absolute inset-1 rounded-full border border-dashed border-outline-variant/70"></div>
+<span class="material-symbols-outlined text-primary text-[36px] transition-transform duration-300 group-hover:scale-105" data-icon="roofing" data-weight="fill" style="font-variation-settings: 'FILL' 1;">roofing</span>
+</div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary tracking-tight mb-2">
+        The Village
+      </h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-md mx-auto italic font-serif">
+        A quiet place for our family to sit together across distance.
+      </p>
+</div>
+<!-- Entrance Ledger Card (Tier 1 Parchment) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl tactile-parchment p-6 sm:p-8 relative overflow-hidden">
+<!-- Top Wood Shelf Lip Detail -->
+<div class="absolute top-0 left-0 right-0 h-1.5 bg-primary/20"></div>
+<form class="space-y-7" id="entranceForm" onsubmit="event.preventDefault(); walkIn();">
+<!-- Question 1: Name / Calling -->
+<div class="space-y-2">
+<label class="block font-headline-sm text-headline-sm text-on-surface flex items-center gap-2" for="callerName">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="stylus">stylus</span>
+            What should everyone call you?
+          </label>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Use the name, nickname, or kinship title grandparents and nieces know you by.
+          </p>
+<div class="relative pt-1">
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-4 py-3 font-body-lg text-body-lg text-on-surface placeholder:text-outline focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all shadow-sm" id="callerName" name="callerName" placeholder="e.g. An, Cô Ba, Uncle Peter" required="" type="text" value="An"/>
+</div>
+</div>
+<!-- Question 2: House Selection -->
+<div class="space-y-3 pt-2">
+<div class="flex items-center justify-between">
+<label class="block font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="cottage">cottage</span>
+              Which house is yours?
+            </label>
+<span class="font-label-sm text-label-sm text-secondary bg-secondary-fixed/40 px-2 py-0.5 rounded">
+              Choose hearth
+            </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            Your home veranda defines where your letters land and where you lay down quiet memories.
+          </p>
+<!-- Tactile House Tiles Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1" id="houseGrid">
+<!-- House 1: Nghe An -->
+<label class="house-tile relative flex items-start p-4 rounded-lg border-2 border-outline-variant bg-surface-container-low hover:bg-surface-container cursor-pointer transition-all duration-200 select-none group">
+<input checked="" class="sr-only" name="selectedHouse" onchange="handleSelection(this)" type="radio" value="Nghe An"/>
+<div class="tile-icon-box w-10 h-10 rounded-lg bg-surface-container-lowest border border-outline-variant flex items-center justify-center text-primary mr-3.5 flex-shrink-0 group-hover:border-primary/40 transition-colors">
+<span class="material-symbols-outlined text-[22px]" data-icon="roofing">roofing</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg text-on-surface block font-bold">Nghe An</span>
+<span class="active-dot w-2 h-2 rounded-full bg-primary ring-4 ring-primary/20"></span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1 block mt-0.5">
+                  Ancestral tiled eaves &amp; morning tea
+                </span>
+</div>
+</label>
+<!-- House 2: Hanoi -->
+<label class="house-tile relative flex items-start p-4 rounded-lg border border-outline-variant bg-surface-container-low hover:bg-surface-container cursor-pointer transition-all duration-200 select-none group">
+<input class="sr-only" name="selectedHouse" onchange="handleSelection(this)" type="radio" value="Hanoi"/>
+<div class="tile-icon-box w-10 h-10 rounded-lg bg-surface-container-lowest border border-outline-variant flex items-center justify-center text-outline mr-3.5 flex-shrink-0 group-hover:border-primary/40 transition-colors">
+<span class="material-symbols-outlined text-[22px]" data-icon="home_pin">home_pin</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg text-on-surface block">Hanoi</span>
+<span class="active-dot hidden w-2 h-2 rounded-full bg-primary ring-4 ring-primary/20"></span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1 block mt-0.5">
+                  Colonial shuttered townhouse balcony
+                </span>
+</div>
+</label>
+<!-- House 3: Canberra -->
+<label class="house-tile relative flex items-start p-4 rounded-lg border border-outline-variant bg-surface-container-low hover:bg-surface-container cursor-pointer transition-all duration-200 select-none group">
+<input class="sr-only" name="selectedHouse" onchange="handleSelection(this)" type="radio" value="Canberra"/>
+<div class="tile-icon-box w-10 h-10 rounded-lg bg-surface-container-lowest border border-outline-variant flex items-center justify-center text-outline mr-3.5 flex-shrink-0 group-hover:border-primary/40 transition-colors">
+<span class="material-symbols-outlined text-[22px]" data-icon="cottage">cottage</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg text-on-surface block">Canberra</span>
+<span class="active-dot hidden w-2 h-2 rounded-full bg-primary ring-4 ring-primary/20"></span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1 block mt-0.5">
+                  Eucalypt veranda &amp; quiet backyard lawn
+                </span>
+</div>
+</label>
+<!-- House 4: The Meeting House -->
+<label class="house-tile relative flex items-start p-4 rounded-lg border border-outline-variant bg-surface-container-low hover:bg-surface-container cursor-pointer transition-all duration-200 select-none group">
+<input class="sr-only" name="selectedHouse" onchange="handleSelection(this)" type="radio" value="Meeting House"/>
+<div class="tile-icon-box w-10 h-10 rounded-lg bg-surface-container-lowest border border-outline-variant flex items-center justify-center text-outline mr-3.5 flex-shrink-0 group-hover:border-primary/40 transition-colors">
+<span class="material-symbols-outlined text-[22px]" data-icon="deck">deck</span>
+</div>
+<div class="flex-1 min-w-0">
+<div class="flex items-center justify-between">
+<span class="font-label-lg text-label-lg text-on-surface block">The Meeting House</span>
+<span class="active-dot hidden w-2 h-2 rounded-full bg-primary ring-4 ring-primary/20"></span>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant line-clamp-1 block mt-0.5">
+                  Lantern courtyard, long table &amp; bench
+                </span>
+</div>
+</label>
+</div>
+</div>
+<!-- Honest Village Rule Callout (Parchment Paper Motif) -->
+<div class="bg-secondary-container/30 border border-secondary/20 rounded-lg p-4 flex items-start gap-3.5">
+<span class="material-symbols-outlined text-secondary text-[22px] flex-shrink-0 mt-0.5" data-icon="info">info</span>
+<div class="space-y-0.5">
+<h4 class="font-label-md text-label-md text-secondary font-bold">An honest village rule</h4>
+<p class="font-body-sm text-body-sm text-on-surface">
+              One browser is one person. If you want to be two people, you will need two browsers.
+            </p>
+</div>
+</div>
+<!-- Action Area: Primary Warm Terracotta Button -->
+<div class="pt-2">
+<button class="w-full bg-primary hover:bg-[#86371f] text-on-primary font-label-lg text-label-lg py-3.5 px-6 rounded-lg shadow-sm hover:shadow active:scale-[0.99] transition-all duration-150 flex items-center justify-center gap-2 tracking-wide border-b-2 border-black/20" type="submit">
+<span>Walk into the village</span>
+<span class="material-symbols-outlined text-[20px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</form>
+</div>
+<!-- Hand-drawn Village Pathway Motif -->
+<div class="flex items-center justify-center gap-2 my-6 text-outline-variant">
+<div class="h-px w-12 bg-outline-variant/60"></div>
+<span class="material-symbols-outlined text-[16px] text-primary/60" data-icon="spa">spa</span>
+<div class="h-px w-12 bg-outline-variant/60"></div>
+</div>
+<!-- Quiet Philosophy Note -->
+<div class="text-center max-w-lg mx-auto pb-4">
+<blockquote class="font-body-md text-body-md text-on-surface-variant font-serif italic leading-relaxed">
+        “No passwords, no notifications, no unread counts. To know what happened, simply walk in.”
+      </blockquote>
+<div class="mt-2 text-label-sm font-label-sm text-outline tracking-wider uppercase">
+        Preserving the slow warmth of a family living room
+      </div>
+</div>
+</main>
+<!-- Grounded Storybook Footer Anchor -->
+<footer class="w-full border-t border-outline-variant/50 bg-surface-container-low/70 py-6 px-margin-mobile md:px-margin mt-auto">
+<div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="auto_stories">auto_stories</span>
+<span class="font-body-sm text-body-sm">
+          The Village · A shared quiet corner for family memories
+        </span>
+</div>
+<nav class="flex items-center gap-4 text-label-sm font-label-sm text-outline">
+<span class="hover:text-primary transition-colors cursor-pointer">Hearth Tradition</span>
+<span>·</span>
+<span class="hover:text-primary transition-colors cursor-pointer">Three Roofs</span>
+<span>·</span>
+<span class="hover:text-primary transition-colors cursor-pointer">Open Registry</span>
+</nav>
+</div>
+</footer>
+<!-- Light micro-interaction logic for tactile radio tiles -->
+<script>
+    function handleSelection(radioInput) {
+      const tiles = document.querySelectorAll('.house-tile');
+      tiles.forEach(tile => {
+        const isSelected = tile.contains(radioInput);
+        const iconBox = tile.querySelector('.tile-icon-box');
+        const dot = tile.querySelector('.active-dot');
+        const title = tile.querySelector('.font-label-lg');
+
+        if (isSelected) {
+          tile.classList.add('border-primary', 'bg-surface-container-lowest', 'border-2');
+          tile.classList.remove('border-outline-variant', 'bg-surface-container-low', 'border');
+          if (iconBox) {
+            iconBox.classList.add('text-primary', 'border-primary/50');
+            iconBox.classList.remove('text-outline');
+          }
+          if (dot) dot.classList.remove('hidden');
+          if (title) title.classList.add('font-bold');
+        } else {
+          tile.classList.remove('border-primary', 'bg-surface-container-lowest', 'border-2');
+          tile.classList.add('border-outline-variant', 'bg-surface-container-low', 'border');
+          if (iconBox) {
+            iconBox.classList.remove('text-primary', 'border-primary/50');
+            iconBox.classList.add('text-outline');
+          }
+          if (dot) dot.classList.add('hidden');
+          if (title) title.classList.remove('font-bold');
+        }
+      });
+    }
+
+    function walkIn() {
+      const name = document.getElementById('callerName').value.trim() || 'Family Member';
+      const selectedHouse = document.querySelector('input[name="selectedHouse"]:checked').value;
+      
+      const button = document.querySelector('button[type="submit"]');
+      button.innerHTML = `
+        <span class="material-symbols-outlined animate-spin text-[20px]" data-icon="sync">sync</span>
+        <span>Walking into ${selectedHouse}...</span>
+      `;
+      button.classList.add('opacity-90', 'cursor-not-allowed');
+
+      setTimeout(() => {
+        alert(`Welcome home, ${name}. Stepping onto the veranda of ${selectedHouse}.`);
+        button.innerHTML = `
+          <span>Walk into the village</span>
+          <span class="material-symbols-outlined text-[20px]" data-icon="arrow_forward">arrow_forward</span>
+        `;
+        button.classList.remove('opacity-90', 'cursor-not-allowed');
+      }, 700);
+    }
+  </script>
+</body></html>

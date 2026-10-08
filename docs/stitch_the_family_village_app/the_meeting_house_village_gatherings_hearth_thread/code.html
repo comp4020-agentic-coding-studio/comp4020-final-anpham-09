@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>The Meeting House - Village Gatherings &amp; Hearth Thread</title>
+<!-- Google Fonts: Merriweather & Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&amp;family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-error": "#ffffff",
+            "tertiary-fixed-dim": "#ffb866",
+            "secondary": "#4f6354",
+            "on-tertiary": "#ffffff",
+            "surface-dim": "#e6d7d2",
+            "on-primary-container": "#fffbff",
+            "surface-tint": "#9c4328",
+            "tertiary-container": "#a4670d",
+            "surface-container": "#faebe6",
+            "primary-container": "#b9583b",
+            "inverse-on-surface": "#fdeee8",
+            "on-primary-fixed-variant": "#7d2c13",
+            "on-tertiary-fixed": "#2b1700",
+            "surface-bright": "#fff8f6",
+            "secondary-container": "#cce3cf",
+            "on-primary": "#ffffff",
+            "on-primary-fixed": "#3a0a00",
+            "on-secondary": "#ffffff",
+            "error": "#ba1a1a",
+            "on-tertiary-container": "#fffbff",
+            "outline-variant": "#dcc1b9",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-highest": "#eedfda",
+            "on-background": "#211a17",
+            "error-container": "#ffdad6",
+            "on-tertiary-fixed-variant": "#673d00",
+            "surface-container-high": "#f4e5e0",
+            "on-surface-variant": "#56423d",
+            "on-secondary-fixed": "#0c1f13",
+            "surface": "#fff8f6",
+            "primary-fixed": "#ffdbd1",
+            "on-surface": "#211a17",
+            "on-secondary-fixed-variant": "#374b3d",
+            "primary-fixed-dim": "#ffb59f",
+            "inverse-surface": "#372f2b",
+            "secondary-fixed": "#d1e8d5",
+            "on-secondary-container": "#516656",
+            "tertiary": "#845000",
+            "surface-container-low": "#fff1ec",
+            "surface-variant": "#eedfda",
+            "on-error-container": "#93000a",
+            "tertiary-fixed": "#ffddba",
+            "primary": "#994126",
+            "outline": "#89726c",
+            "background": "#fff8f6",
+            "inverse-primary": "#ffb59f",
+            "secondary-fixed-dim": "#b5ccb9"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "space-lg": "1.5rem",
+            "gutter-mobile": "0.875rem",
+            "space-xs": "0.25rem",
+            "gutter": "1.25rem",
+            "margin-mobile": "1.25rem",
+            "margin": "2rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem"
+          },
+          "fontFamily": {
+            "headline-lg": ["Merriweather", "serif"],
+            "headline-md": ["Merriweather", "serif"],
+            "headline-sm": ["Merriweather", "serif"],
+            "display-lg": ["Merriweather", "serif"],
+            "label-lg": ["Plus Jakarta Sans", "sans-serif"],
+            "label-md": ["Plus Jakarta Sans", "sans-serif"],
+            "label-sm": ["Plus Jakarta Sans", "sans-serif"],
+            "body-lg": ["Plus Jakarta Sans", "sans-serif"],
+            "body-md": ["Plus Jakarta Sans", "sans-serif"],
+            "body-sm": ["Plus Jakarta Sans", "sans-serif"]
+          },
+          "fontSize": {
+            "headline-lg": ["32px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-md": ["24px", { "lineHeight": "34px", "letterSpacing": "0", "fontWeight": "700" }],
+            "headline-sm": ["20px", { "lineHeight": "30px", "letterSpacing": "0", "fontWeight": "400" }],
+            "display-lg": ["44px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "label-lg": ["15px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "label-md": ["13px", { "lineHeight": "18px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "label-sm": ["11px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0", "fontWeight": "400" }],
+            "body-md": ["16px", { "lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Subtle Tactile Paper Grain Effect */
+    body {
+      background-color: #fff8f6;
+      color: #211a17;
+      background-image: radial-gradient(#dcc1b933 0.75px, transparent 0.75px);
+      background-size: 16px 16px;
+    }
+
+    /* Handcrafted Avatar Organic Border */
+    .avatar-clay {
+      border-radius: 60% 40% 55% 45% / 45% 60% 40% 55%;
+      border: 2px solid #b9583b;
+      box-shadow: 0 1px 3px rgba(153, 65, 38, 0.15);
+      transition: all 0.3s ease;
+    }
+    .avatar-clay:hover {
+      border-radius: 50%;
+    }
+
+    /* Wood Shelf Divider Dual-Tone Rule */
+    .wood-shelf-rule {
+      position: relative;
+      height: 3px;
+      background-color: #dcc1b9;
+      box-shadow: 0 1px 0 0 #ffffff;
+    }
+
+    /* Custom Scrollbar for Message Log */
+    .village-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .village-scroll::-webkit-scrollbar-track {
+      background: #faebe6;
+    }
+    .village-scroll::-webkit-scrollbar-thumb {
+      background: #dcc1b9;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-body-md text-on-surface antialiased selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- ================= TOP APP BAR (Shared Component JSON Conformance) ================= -->
+<header class="bg-surface-container-low border-b border-outline-variant shadow-sm sticky top-0 z-50">
+<div class="flex justify-between items-center w-full px-6 py-3 max-w-7xl mx-auto">
+<!-- Brand & Traveler Indicator -->
+<div class="flex items-center gap-4">
+<a class="flex items-center gap-2 group" href="#">
+<span class="material-symbols-outlined text-primary text-2xl group-hover:rotate-6 transition-transform" data-icon="cottage">cottage</span>
+<span class="text-headline-md font-headline-md text-primary tracking-tight">The Village</span>
+</a>
+<span class="hidden md:inline-block w-px h-5 bg-outline-variant"></span>
+<div class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+<span>Traveler: An (Canberra House)</span>
+</div>
+</div>
+<!-- Centered Navigation Links with Active 'Meeting House' State -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-on-surface-variant hover:text-on-surface pb-1 font-medium transition-colors font-label-md text-label-md" href="#">Village Map</a>
+<a class="text-on-surface-variant hover:text-on-surface pb-1 font-medium transition-colors font-label-md text-label-md" href="#">Memory Shelf</a>
+<a class="text-primary border-b-2 border-primary pb-1 font-semibold font-label-md text-label-md flex items-center gap-1.5" href="#">
+<span>Meeting House</span>
+<span class="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
+</a>
+</nav>
+<!-- Trailing Action -->
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors font-label-md text-label-md active:scale-[0.98]">
+<span class="material-symbols-outlined text-lg" data-icon="logout">logout</span>
+<span class="hidden sm:inline">Leave the village</span>
+</button>
+</div>
+</div>
+<!-- Quiet Presence Ribbon: Warm Hearth Atmosphere -->
+<div class="bg-surface-container border-t border-outline-variant/40 px-6 py-2 text-center text-on-surface-variant font-body-sm text-body-sm flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-primary text-base animate-pulse" data-icon="local_cafe">local_cafe</span>
+<span>The kettle on the communal hearth is bubbling · <strong>Uncle Binh</strong>, <strong>Mum</strong>, and <strong>An</strong> are seated at the long table right now</span>
+</div>
+</header>
+<!-- ================= MAIN CANVAS ================= -->
+<main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+<!-- Hero / Communal Roof Intro -->
+<section class="bg-surface-container-low rounded-xl p-6 sm:p-8 border border-outline-variant relative overflow-hidden">
+<!-- Decorative background accent -->
+<div class="absolute -right-8 -top-8 w-48 h-48 rounded-full bg-primary-fixed/20 pointer-events-none blur-2xl"></div>
+<div class="max-w-3xl space-y-3 relative z-10">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-base" data-icon="roofing">roofing</span>
+<span>Communal Cedar Eaves</span>
+</div>
+<h1 class="text-headline-lg font-headline-lg text-on-surface">The Meeting House: Village Gatherings &amp; Hearth Table</h1>
+<p class="text-body-md font-body-md text-on-surface-variant italic">
+          "The central roof where Hanoi, Nghe An, and Canberra gather under the cedar beams. Here we plan seasonal feasts, listen to the rain, and speak freely into the open room."
+        </p>
+</div>
+<!-- Multi-location Weather Across the Roofs -->
+<div class="mt-6 pt-5 border-t border-outline-variant/60 flex flex-wrap items-center gap-4 sm:gap-6 text-body-sm font-body-sm text-on-surface-variant">
+<div class="flex items-center gap-1.5 font-label-md text-label-md text-primary">
+<span class="material-symbols-outlined text-base" data-icon="thermostat">thermostat</span>
+<span>Weather across the roofs:</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-secondary" data-icon="air">air</span>
+<span>Hanoi Autumn Breeze <strong>24°C</strong></span>
+</div>
+<span class="text-outline-variant hidden sm:inline">·</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-tertiary" data-icon="wb_twilight">wb_twilight</span>
+<span>Nghe An Warm Dusk <strong>27°C</strong></span>
+</div>
+<span class="text-outline-variant hidden sm:inline">·</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base text-secondary" data-icon="nightlight_round">nightlight_round</span>
+<span>Canberra Crisp Evening <strong>14°C</strong></span>
+</div>
+</div>
+</section>
+<!-- Two-Column Communal Worktable Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<!-- ================= LEFT COLUMN: Village Gatherings (Calendar & Feasts) ================= -->
+<section class="lg:col-span-5 space-y-6">
+<!-- Section Header -->
+<div class="flex items-center justify-between pb-2 border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="calendar_month">calendar_month</span>
+<h2 class="text-headline-md font-headline-md text-on-surface">Village Gatherings</h2>
+</div>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container border border-outline-variant text-on-surface-variant hover:text-primary hover:border-primary transition-all font-label-sm text-label-sm active:scale-95 shadow-sm" id="inscribeBtn">
+<span class="material-symbols-outlined text-sm" data-icon="edit_note">edit_note</span>
+<span>Inscribe gathering</span>
+</button>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+          Parchment entries marked by lunar cycles and long visits. Every member is welcome to pull up a low stool.
+        </p>
+<!-- Events Container -->
+<div class="space-y-4">
+<!-- Card 1: Mid-Autumn Moon Feast -->
+<article class="bg-surface-container-low border border-outline-variant rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow relative group">
+<div class="flex items-start justify-between gap-4">
+<span class="px-2.5 py-1 rounded bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="brightness_6">brightness_6</span>
+                This Saturday · 7:00 PM
+              </span>
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="table_restaurant">table_restaurant</span>
+                At the Long Table
+              </span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface mt-3 group-hover:text-primary transition-colors">
+              Mid-Autumn Moon Feast &amp; Cassette Listening
+            </h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-2 leading-relaxed">
+              Listening to grandfather's 1978 accordion tapes. Bring fresh pomelo peels and warm lotus tea.
+            </p>
+<div class="mt-4 pt-3 border-t border-outline-variant/40 flex items-center justify-between">
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="groups">groups</span>
+<span>3 residents attending · 2 bringing tea</span>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-primary text-on-primary font-label-sm text-label-sm hover:bg-primary-container transition-colors shadow-sm flex items-center gap-1 active:scale-95" onclick="toggleAttendance(this)">
+<span class="material-symbols-outlined text-xs" data-icon="chair">chair</span>
+<span>Pull up a stool</span>
+</button>
+</div>
+</article>
+<!-- Card 2: Winter Persimmon Drying -->
+<article class="bg-surface-container-low border border-outline-variant rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow relative group">
+<div class="flex items-start justify-between gap-4">
+<span class="px-2.5 py-1 rounded bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="nature">nature</span>
+                Next Full Moon · Nov 15
+              </span>
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="deck">deck</span>
+                Veranda Eaves
+              </span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface mt-3 group-hover:text-primary transition-colors">
+              Winter Persimmon Drying &amp; Seed Sorting
+            </h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-2 leading-relaxed">
+              Sorting sweet dried persimmons sent from Canberra and Nghe An orchard harvests. Preparing hemp strings for hanging.
+            </p>
+<div class="mt-4 pt-3 border-t border-outline-variant/40 flex items-center justify-between">
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="groups">groups</span>
+<span>Mum &amp; Uncle Binh preparing racks</span>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container text-primary border border-outline-variant font-label-sm text-label-sm hover:border-primary transition-colors flex items-center gap-1 active:scale-95" onclick="toggleAttendance(this)">
+<span class="material-symbols-outlined text-xs" data-icon="favorite">favorite</span>
+<span>I will be at the hearth</span>
+</button>
+</div>
+</article>
+<!-- Card 3: Ancestral Storytelling -->
+<article class="bg-surface-container-low border border-outline-variant rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow relative group">
+<div class="flex items-start justify-between gap-4">
+<span class="px-2.5 py-1 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-xs" data-icon="hourglass_top">hourglass_top</span>
+                Dec 02 · Evening Hearth
+              </span>
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="fireplace">fireplace</span>
+                Clay Stove Corner
+              </span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface mt-3 group-hover:text-primary transition-colors">
+              Ancestral Storytelling by the Clay Stove
+            </h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-2 leading-relaxed">
+              Uncle Binh recounting the rebuilding of the village courtyard well in 1984 during the heavy monsoon season.
+            </p>
+<div class="mt-4 pt-3 border-t border-outline-variant/40 flex items-center justify-between">
+<div class="flex items-center gap-2 text-label-sm font-label-sm text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="groups">groups</span>
+<span>Open for all houses</span>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container text-primary border border-outline-variant font-label-sm text-label-sm hover:border-primary transition-colors flex items-center gap-1 active:scale-95" onclick="toggleAttendance(this)">
+<span class="material-symbols-outlined text-xs" data-icon="chair">chair</span>
+<span>Pull up a stool</span>
+</button>
+</div>
+</article>
+</div>
+<!-- Philosophical Postscript Card -->
+<div class="p-4 rounded-xl bg-surface-container-highest/60 border border-outline-variant text-center space-y-2">
+<span class="material-symbols-outlined text-primary text-xl" data-icon="nest_eco_leaf">nest_eco_leaf</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+            No deadlines or cancellations required. Simply come if your hearth is quiet and your heart longs for family.
+          </p>
+</div>
+</section>
+<!-- ================= RIGHT COLUMN: Real-time Communal Message Thread ("Spoken into the Room") ================= -->
+<section class="lg:col-span-7 bg-surface-container-low border border-outline-variant rounded-xl p-6 shadow-sm space-y-6 flex flex-col h-full">
+<!-- Philosophy Header -->
+<div class="border-b border-outline-variant pb-4 space-y-1">
+<div class="flex items-center justify-between">
+<h2 class="text-headline-md font-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="record_voice_over">record_voice_over</span>
+<span>Spoken into the Room</span>
+</h2>
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+              Live Hearth
+            </span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant italic">
+            "Words spoken at the long table — heard by everyone resting in the meeting house right now."
+          </p>
+</div>
+<!-- Active Participants in the Meeting House -->
+<div class="bg-surface-container rounded-lg p-3.5 border border-outline-variant/60">
+<span class="font-label-sm text-label-sm text-on-surface-variant block mb-2.5">
+            Gathered quietly around the low tea tray:
+          </span>
+<div class="flex flex-wrap items-center gap-4">
+<!-- Person: Uncle Binh -->
+<div class="flex items-center gap-2 group cursor-pointer" title="Seated with a bowl of tea">
+<img class="w-9 h-9 object-cover avatar-clay" data-alt="Close up tender portrait of a gentle Vietnamese elder uncle in his late sixties wearing a simple linen collar shirt, soft warm afternoon hearth light falling across his face, warm terracotta and cream tones, peaceful and unhurried expressions." src="https://lh3.googleusercontent.com/aida-public/AB6AXuADVM1c0-4omj41O-j6cTzsiYtxHKiykUy_Z7IhyL58gpu0nZ_W3X3rWnvWy3XTwogE6qJT-pAYw012syy6husEvc2ZBHuoF5EYq5OCkSD707-F8ISNagJv-1R1ac9fTsJ5cuPXnThGCgEmuKKpxSjhOI-HadiD2nCGqYA7R5bXfMTC7MYUTGych_0FRmR0pucwElvy1S3zKfwnQ-EQzxMXs_PmoBvXNHTtWU1O2cvq"/>
+<div>
+<div class="font-label-sm text-label-sm font-bold text-on-surface leading-tight">Uncle Binh</div>
+<div class="font-label-sm text-[10px] text-secondary leading-tight">Drinking lotus tea</div>
+</div>
+</div>
+<!-- Person: Mum -->
+<div class="flex items-center gap-2 group cursor-pointer" title="Mending linen by the window">
+<img class="w-9 h-9 object-cover avatar-clay" data-alt="Portrait of a warm Vietnamese mother in her fifties with hair gently tied back, natural gentle smile, soft natural window light with warm earthen textures in the background, traditional cozy home feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcbH82tCQ1BL5MdnGzoqzI1h08et-mxz8UNrZS6rZUycrEBA3fG_1Ja0XOH9UybPylGtv6SiZ0ySgV6up5bCu947F4JUA0KT3jev4fOArwx-nd7Rpb81BU89Z6abPRPOktDX0McDIjYc_nu7UHnqMqz_uyc-6sfGw8AINFDTvXiG4i1XB24nxkXCJOwLTDIsitzP7rqCkaNgB-fLjVzZUo3rJEacC7_bW7-PPS75C5"/>
+<div>
+<div class="font-label-sm text-label-sm font-bold text-on-surface leading-tight">Mum</div>
+<div class="font-label-sm text-[10px] text-secondary leading-tight">Listening from porch</div>
+</div>
+</div>
+<!-- Person: Aunt Mai -->
+<div class="flex items-center gap-2 group cursor-pointer" title="Visiting from Hanoi">
+<img class="w-9 h-9 object-cover avatar-clay" data-alt="Tender portrait of an aunt in her early fifties wearing a hand-loomed terracotta scarf, soft bokeh of ceramic tea pots and cedar wooden columns behind her, quiet contemplative storybook mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNHstbzwfJQtYvRGr_EvVQfdmfVij2tl5gEIrRYWosNmdcS_tjVdnmMZwxjP1m8ux-YtuTYiBg2-x5ITAyA9rsxN0rBro6Dggs9bkmOmx6xivm6GEK_tqkfycyP6gkbHwDYiKjUGWneTt6GFUMmYxn_CbxLmD3sULeUVyzPddT0uX_ZtkSOxz3nKlEMk6OsZCLoGksW2goOIGuqXH7YWdT-UM113-_SjsigSHOvvjC"/>
+<div>
+<div class="font-label-sm text-label-sm font-bold text-on-surface leading-tight">Aunt Mai</div>
+<div class="font-label-sm text-[10px] text-secondary leading-tight">Arranging flowers</div>
+</div>
+</div>
+<!-- Person: An (You) -->
+<div class="flex items-center gap-2 group cursor-pointer" title="Seated at the cedar table">
+<img class="w-9 h-9 object-cover avatar-clay border-primary ring-2 ring-primary/20" data-alt="Natural candid portrait of a young Vietnamese woman traveler with a cozy knitted sweater, soft lighting, serene smile, warm neutral earth background, cinematic domestic realism." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBebuJbM-QVguoHRVkLLWguK0rZ4t_k523FYVWbIa2jwsPj9L_AuWQ_EGlx2Of4wXU25BQLYz_XEbEglFtw6Xt3_wufdQQTbGJbA5xm9HF8FyDzYCec5vyqLzXhqNlDephtFU3sTVVxNFmMypwwzYw4QYtNWa1EMH2doMXpohv_jSsacSd0jdccOXAsB7ddKn4x4L0ASb9R9bM1g9gI1NFpY2U5BZZ4BnjkSc1Lwag6"/>
+<div>
+<div class="font-label-sm text-label-sm font-bold text-primary leading-tight">An (You)</div>
+<div class="font-label-sm text-[10px] text-primary leading-tight">At the long table</div>
+</div>
+</div>
+<!-- Person: Dad -->
+<div class="flex items-center gap-2 group cursor-pointer opacity-75" title="Reading by the courtyard">
+<img class="w-9 h-9 object-cover avatar-clay" data-alt="Portrait of a dignified Vietnamese father reading an heirloom notebook beside a tranquil courtyard garden, gentle evening warmth, organic tones of wood and stone." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9aSXpTzXfRKR6mVIUNPNTc9MFnJ2VJyJuwqNfRe_bejVslmS7iPo3qdVd8ZzytNug2JVOyJw65EyMkrkduTO0VbHU_iT1kmhZUT6y3sGjRHrG_lfnvLZo-l-ypC9n9JjopTMcfRL-hzqLzWAsgxgeVY6_hNlT7hqi5__8DmazmVxjyD2EWWSFOx7FhltH8qkNzz0hABjHDl8-QK2eiVSrBYniUem2z5QcKqWadEx8"/>
+<div>
+<div class="font-label-sm text-label-sm font-bold text-on-surface leading-tight">Dad</div>
+<div class="font-label-sm text-[10px] text-on-surface-variant leading-tight">On the veranda</div>
+</div>
+</div>
+</div>
+</div>
+<!-- The Communal Hearth Dialogue Feed -->
+<div class="village-scroll space-y-4 max-h-[380px] overflow-y-auto pr-1" id="threadContainer">
+<!-- Message 1: Mum -->
+<div class="flex items-start gap-3 bg-surface-container-lowest border border-outline-variant/70 rounded-xl p-4 shadow-sm">
+<img class="w-10 h-10 object-cover avatar-clay shrink-0" data-alt="Portrait of a warm Vietnamese mother in her fifties with hair gently tied back, natural gentle smile, soft natural window light with warm earthen textures in the background, traditional cozy home feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJCZnF9p8gdsQ3B5OYUwUWj8iAdO2_FP7VcIMTRjG7yBVO5Y_a2b0B8kusFT6daZpjifm0bK6u0QpN_mxdrMjZAVn2Smvvgqy_m0XjInCR4wmoK4ByWGA4tr0LGpRi3eN_pQguTJbuKMnI9-_T0mCYUG3tYlHTUMq0y1kB3_5pQA9jvPeeSHdOJFuoWmFon6FvcxD_Sbg8wdtDHBJHkIFN1TEIvFKc_YLRiwq3UErZ"/>
+<div class="space-y-1 flex-grow">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md font-bold text-on-surface">Mum</span>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">Hanoi House</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">12m ago</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface leading-relaxed pt-1">
+                "I brought three bundles of fresh lemongrass from the market for Saturday. Has anyone seen the old brass mortar?"
+              </p>
+</div>
+</div>
+<!-- Message 2: Uncle Binh -->
+<div class="flex items-start gap-3 bg-surface-container-lowest border border-outline-variant/70 rounded-xl p-4 shadow-sm">
+<img class="w-10 h-10 object-cover avatar-clay shrink-0" data-alt="Close up tender portrait of a gentle Vietnamese elder uncle in his late sixties wearing a simple linen collar shirt, soft warm afternoon hearth light falling across his face, warm terracotta and cream tones, peaceful and unhurried expressions." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTt7q7XskYK3gOl9SUa5NWoikGupdPayPASP678CQ6ez__zKf5oe08fEnWHRRxyZE9uhBb6TsSzLVm7J_gRameYvBGDCgyF5vsu9OkuGjnckfr62j-nC-_T4IKX9EXXCekZGLEB2vvsMkIJOL_ke-LyDhAm4OBwypoMvUqREz99SgolF5FconSEuKLzMJzuEtshbq1ySa80NAvNNJo6Nn-SR51UBgnTWACqvNpmOCW"/>
+<div class="space-y-1 flex-grow">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md font-bold text-on-surface">Uncle Binh</span>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded bg-surface-container text-on-surface-variant">Nghe An House</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">8m ago</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface leading-relaxed pt-1">
+                "It's resting on the lower shelf in Nghe An's veranda pantry, safe and oiled with camellia seed oil."
+              </p>
+</div>
+</div>
+<!-- Message 3: An (You) -->
+<div class="flex items-start gap-3 bg-surface-container-low border border-primary/40 rounded-xl p-4 shadow-sm bg-primary-fixed/10">
+<img class="w-10 h-10 object-cover avatar-clay shrink-0 border-primary" data-alt="Natural candid portrait of a young Vietnamese woman traveler with a cozy knitted sweater, soft lighting, serene smile, warm neutral earth background, cinematic domestic realism." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAieNZkxWkPoI18hG7XqmujTjrV5b5ygrETlZF2UD1lJmeE4YL-SlMT7cQbJaciW-fnq-03sjhQDAteIx5tGJI4p3eQ1kTYXjbKrrDgV7apbALeIlodHBQ0xDIGaWRzBuvqfQ8VeXtBMfR1VdRVZzR_MIo70elsiQ1WqJ_mqiZ9wpE_oxwOJcBKZ6RzuSvnwirhiEA-iVJVlw2O6zSUdKPW-WkPepNZR-2r0e94ABXx"/>
+<div class="space-y-1 flex-grow">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="font-label-md text-label-md font-bold text-primary">An (You)</span>
+<span class="text-label-sm font-label-sm px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed-variant">Canberra House</span>
+</div>
+<span class="font-label-sm text-label-sm text-primary font-semibold">Just now</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface leading-relaxed pt-1">
+                "I will brew the roasted rice tea from Canberra when the lamps are lit. The leaves arrived crisp and dry."
+              </p>
+</div>
+</div>
+</div>
+<!-- "Speak into the Meeting House" Entry Area -->
+<form class="pt-2 border-t border-outline-variant space-y-3" id="speakForm">
+<div class="relative">
+<textarea class="w-full rounded-xl bg-surface-container-lowest border-2 border-outline-variant p-3.5 text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all font-body-md resize-none shadow-inner" id="messageInput" placeholder="Speak a word or leave a note on the table..." rows="3"></textarea>
+</div>
+<div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+<div class="flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm text-center sm:text-left">
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="energy_savings_leaf">energy_savings_leaf</span>
+<span>Whatever is spoken here carries to all four roofs without alerts or unread marks.</span>
+</div>
+<button class="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-all active:scale-95 shadow-sm flex items-center justify-center gap-2" type="submit">
+<span class="material-symbols-outlined text-base" data-icon="edit_square">edit_square</span>
+<span>Place words on the table</span>
+</button>
+</div>
+</form>
+</section>
+</div>
+<!-- Quiet Community Principle Banner -->
+<section class="bg-surface-container border border-outline-variant rounded-xl p-6 text-center max-w-4xl mx-auto space-y-2">
+<div class="inline-flex items-center gap-2 text-primary font-headline-sm text-headline-sm">
+<span class="material-symbols-outlined text-2xl" data-icon="spa">spa</span>
+<span>The Village Philosophy of Living</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant max-w-2xl mx-auto leading-relaxed">
+        "No notifications, no likes, no unread counts. Just real quiet presence, honesty, and shared warmth across distance."
+      </p>
+</section>
+</main>
+<!-- ================= INSCRIBE GATHERING MODAL (Interactive Flow) ================= -->
+<div class="fixed inset-0 bg-on-background/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4" id="modalOverlay">
+<div class="bg-surface-container-low border border-outline-variant rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in duration-200">
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="history_edu">history_edu</span>
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Inscribe a Gathering</h3>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-1 rounded-md" id="closeModalBtn">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface mb-1">Occasion / Feast Name</label>
+<input class="w-full rounded-lg bg-surface-container-lowest border border-outline-variant p-2.5 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" placeholder="e.g. Early Spring Plum Blossom Tea" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface mb-1">Time &amp; Phase</label>
+<input class="w-full rounded-lg bg-surface-container-lowest border border-outline-variant p-2.5 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" placeholder="e.g. Next Saturday, 6 PM" type="text"/>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface mb-1">Corner / House</label>
+<input class="w-full rounded-lg bg-surface-container-lowest border border-outline-variant p-2.5 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none" placeholder="e.g. Hearth Stool / Nghe An" type="text"/>
+</div>
+</div>
+<div>
+<label class="block font-label-sm text-label-sm text-on-surface mb-1">Words of Invitation</label>
+<textarea class="w-full rounded-lg bg-surface-container-lowest border border-outline-variant p-2.5 text-body-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none" placeholder="What shall we listen to, drink, or share together?" rows="3"></textarea>
+</div>
+</div>
+<div class="flex justify-end gap-3 pt-2">
+<button class="px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant font-label-md text-label-md hover:bg-surface-container" id="cancelModalBtn">
+          Set aside
+        </button>
+<button class="px-5 py-2 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container shadow-sm" id="saveModalBtn">
+          Place on calendar table
+        </button>
+</div>
+</div>
+</div>
+<!-- ================= FOOTER (Shared Component JSON Conformance) ================= -->
+<footer class="bg-surface-container-lowest border-t border-outline-variant/30 mt-auto">
+<div class="flex flex-col sm:flex-row justify-between items-center w-full px-6 py-6 max-w-7xl mx-auto gap-4">
+<!-- Brand & Quiet Statement -->
+<div class="flex items-center gap-3">
+<span class="text-headline-sm font-headline-sm text-primary tracking-tight">The Village</span>
+<span class="text-outline-variant">·</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">A shared quiet corner for family memories</span>
+</div>
+<!-- Links matching JSON -->
+<div class="flex flex-wrap items-center justify-center gap-6 font-label-sm text-label-sm">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Village Map</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Hanoi</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Nghe An</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Canberra</a>
+<a class="text-primary font-medium hover:text-primary transition-colors" href="#">Meeting House</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Leave the village</a>
+</div>
+</div>
+</footer>
+<!-- ================= MICRO-INTERACTIONS SCRIPT ================= -->
+<script>
+    // RSVP Button Toggle Interaction
+    function toggleAttendance(btn) {
+      const isAttending = btn.getAttribute('data-attending') === 'true';
+      if (!isAttending) {
+        btn.setAttribute('data-attending', 'true');
+        btn.className = 'px-3 py-1.5 rounded-lg bg-secondary text-on-secondary font-label-sm text-label-sm transition-all shadow-sm flex items-center gap-1 active:scale-95';
+        btn.innerHTML = `<span class="material-symbols-outlined text-xs" data-icon="check">check</span><span>Stool Reserved</span>`;
+      } else {
+        btn.setAttribute('data-attending', 'false');
+        btn.className = 'px-3 py-1.5 rounded-lg bg-surface-container text-primary border border-outline-variant font-label-sm text-label-sm hover:border-primary transition-colors flex items-center gap-1 active:scale-95';
+        btn.innerHTML = `<span class="material-symbols-outlined text-xs" data-icon="chair">chair</span><span>Pull up a stool</span>`;
+      }
+    }
+
+    // Modal Interaction
+    const modal = document.getElementById('modalOverlay');
+    const inscribeBtn = document.getElementById('inscribeBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const saveModalBtn = document.getElementById('saveModalBtn');
+
+    inscribeBtn.addEventListener('click', () => modal.classList.remove('hidden'));
+    closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    cancelModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    saveModalBtn.addEventListener('click', () => {
+      modal.classList.add('hidden');
+      alert('The gathering has been inscribed gently into the village ledger.');
+    });
+
+    // Real-time Chat Simulation: Add Words into Meeting House
+    const speakForm = document.getElementById('speakForm');
+    const messageInput = document.getElementById('messageInput');
+    const threadContainer = document.getElementById('threadContainer');
+
+    speakForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = messageInput.value.trim();
+      if (!text) return;
+
+      const newMsg = document.createElement('div');
+      newMsg.className = 'flex items-start gap-3 bg-surface-container-low border border-primary/40 rounded-xl p-4 shadow-sm bg-primary-fixed/10 animate-in fade-in slide-in-from-bottom-2 duration-300';
+      newMsg.innerHTML = `
+        <img src="placeholder" 
+             data-alt="Natural candid portrait of a young Vietnamese woman traveler with a cozy knitted sweater, soft lighting, serene smile, warm neutral earth background, cinematic domestic realism." 
+             class="w-10 h-10 object-cover avatar-clay shrink-0 border-primary" />
+        <div class="space-y-1 flex-grow">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="font-label-md text-label-md font-bold text-primary">An (You)</span>
+              <span class="text-label-sm font-label-sm px-2 py-0.5 rounded bg-primary-fixed text-on-primary-fixed-variant">Canberra House</span>
+            </div>
+            <span class="font-label-sm text-label-sm text-primary font-semibold">Just now</span>
+          </div>
+          <p class="text-body-md font-body-md text-on-surface leading-relaxed pt-1">
+            "${text.replace(/"/g, '&quot;')}"
+          </p>
+        </div>
+      `;
+
+      threadContainer.appendChild(newMsg);
+      messageInput.value = '';
+      threadContainer.scrollTop = threadContainer.scrollHeight;
+    });
+  </script>
+</body></html>
