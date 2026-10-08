@@ -1,5 +1,5 @@
-import { hasPicture, type House } from "./houses.ts";
-import type { Person } from "./people.ts";
+import { hasPicture, houseBySlug, type House } from "./houses.ts";
+import { getPerson, type Person } from "./people.ts";
 import type { ThingView } from "./things.ts";
 
 export const esc = (s: string): string =>
@@ -107,14 +107,40 @@ pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-si
   border-radius: .5rem; font-size: .8125rem; font-weight: 600; }
 .chip-home { background: color-mix(in srgb, var(--sage) 16%, var(--card)); color: var(--sage-deep); }
 
-/* The village map. */
-ul.village { list-style: none; padding: 0; margin: 1.25rem 0; display: grid; gap: 1.25rem;
+/* The village map: a parchment panel holding the grid, with a very faint
+   dot texture (an existing-token radial-gradient, tiled) standing in for the
+   reference's stippled paper. Decorative, so it lives on ::before and never
+   competes with the text for contrast. */
+.village-panel { position: relative; background: var(--card); border: 1px solid var(--rule);
+  border-radius: 1.25rem; padding: 1.5rem; box-shadow: var(--shadow-1); overflow: hidden; }
+.village-panel::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 35%, transparent) 1px, transparent 1px);
+  background-size: 16px 16px; opacity: .05; }
+.village-panel > * { position: relative; }
+.village-panel-foot { margin: 1.25rem 0 0; text-align: center; }
+ul.village { list-style: none; padding: 0; margin: 0; display: grid; gap: 1.25rem;
   grid-template-columns: repeat(2, 1fr); }
 @media (max-width: 640px) { ul.village { grid-template-columns: 1fr; } }
-li.house { list-style: none; }
-a.house-card { display: block; min-height: 44px; text-decoration: none; color: inherit; }
-a.house-card:hover .card { box-shadow: var(--shadow-2); }
+li.house { list-style: none; display: flex; }
+a.house-card { display: flex; min-height: 44px; width: 100%; text-decoration: none; color: inherit;
+  border-radius: 1rem; }
+a.house-card .card { display: flex; flex-direction: column; width: 100%;
+  transition: box-shadow .15s ease, border-color .15s ease; }
+a.house-card:hover .card, a.house-card:focus-visible .card {
+  box-shadow: var(--shadow-2); border-color: color-mix(in srgb, var(--hearth) 45%, var(--rule)); }
+a.house-card:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--hearth) 25%, transparent); }
 a.house-card h2 { font-size: 1.5rem; line-height: 2rem; margin: 0 0 .75rem; }
+/* The dashed rule sits right above the presence row; giving IT the auto
+   margin (rather than the row) is what keeps the gap between them small
+   while still pushing both down to a shared baseline across cards of
+   different caption length. */
+li.house hr.dashed-rule { margin-top: auto; }
+.presence-row { display: flex; align-items: center; gap: .55rem; }
+.presence-dot { width: .55rem; height: .55rem; min-width: .55rem; border-radius: 50%;
+  background: var(--rule); }
+.presence-dot[data-here="true"] { background: var(--sage); }
+.presence-row .here { flex: 1; margin: 0; }
+.enter-cta { font-weight: 600; font-size: .875rem; color: var(--hearth-deep); white-space: nowrap; }
 
 /* The CSS-drawn placeholder panel — decorative, never a photograph. */
 .placeholder { --tint: var(--hearth); aspect-ratio: 16 / 10; border-radius: 1rem; position: relative;
@@ -128,8 +154,12 @@ a.house-card h2 { font-size: 1.5rem; line-height: 2rem; margin: 0 0 .75rem; }
 /* A real photograph, standing in the placeholder's place: same rounding and
    inset hairline, cropped to the same aspect ratio so the four different
    source ratios don't make four differently-shaped cards. */
-.photo { display: block; width: 100%; aspect-ratio: 16 / 10; border-radius: 1rem;
+.photo { display: block; width: 100%; height: 100%; aspect-ratio: 16 / 10; border-radius: 1rem;
   box-shadow: inset 0 0 0 1px var(--rule); object-fit: cover; }
+/* The house page's own banner: wider and shallower than a map card, so a
+   1000px-tall portrait source never turns into a column of photo pushing
+   the room's actual content below the fold. */
+.photo-banner, .placeholder.placeholder-banner { aspect-ratio: 21 / 9; }
 
 /* Memory slips, alternately tilted as handwritten note slips. */
 li.thing { list-style: none; background: var(--card); border: 1px solid var(--rule); border-radius: .75rem;
@@ -141,12 +171,37 @@ li.thing:has(.state[data-state="in-the-room"]) { border-left: 3px solid var(--am
 .body { font-size: 1.0625rem; margin: 0 0 .35rem; }
 .meta { color: var(--ink-soft); font-size: .8125rem; margin: 0 0 .5rem; }
 
-/* The house page's two-column layout. */
+/* The house page's two-column layout: room content left, the putting-down
+   panel right. On desktop the right panel travels with you; on mobile
+   (below the same 768px break the grid itself collapses at) it simply
+   stacks, unchanged. */
 .layout-house { display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem; align-items: start; }
 @media (max-width: 768px) { .layout-house { grid-template-columns: 1fr; } }
 .panel-stack { display: grid; gap: 1.25rem; }
+@media (min-width: 769px) { .panel-stack { position: sticky; top: 1.5rem; } }
 .rule-title { margin: 0 0 .5rem; font-size: 1.125rem; }
 .consequence { font-size: .9375rem; }
+
+/* The meeting house's thread: a monogram (we have no photographs of
+   people), the speaker's name, their home house as a chip, and a relative
+   time, above the body and the unchanged two-state label. */
+.monogram { display: inline-flex; align-items: center; justify-content: center;
+  width: 2.25rem; height: 2.25rem; min-width: 2.25rem; border-radius: 50%;
+  background: color-mix(in srgb, var(--sage) 22%, var(--card)); color: var(--sage-deep);
+  font-family: var(--display); font-weight: 700; font-size: 1.0625rem; }
+li.thread-msg { display: flex; gap: .75rem; align-items: flex-start; }
+li.thread-msg .thread-body { flex: 1; min-width: 0; }
+.thread-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+  margin: 0 0 .3rem; font-size: .9375rem; }
+.thread-time { color: var(--ink-soft); font-size: .8125rem; }
+/* Oldest at the top, newest at the bottom — a conversation reads downward,
+   the opposite of the other rooms' most-recent-first list — and the thread
+   scrolls on its own so the presence strip above it stays put. */
+ol.thread { max-height: 32rem; overflow-y: auto; padding-right: .25rem; }
+@media (prefers-reduced-motion: no-preference) { ol.thread { scroll-behavior: smooth; } }
+/* A conversation's rows don't tilt like a loose memory slip — same source
+   order as the tilt rules above, same specificity, so this simply wins. */
+li.thread-msg:nth-of-type(odd), li.thread-msg:nth-of-type(even) { transform: none; }
 
 blockquote { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--rule); color: var(--ink-soft); }
 blockquote p { margin: .4rem 0; }
@@ -225,13 +280,104 @@ function thingItem(t: ThingView, houseSlug: string): string {
  *  outside it, the first thing two side-by-side sessions test (does the
  *  other person appear?) would show nothing until a full reload. Rendered
  *  by the same function either way, JavaScript on or off. */
-export function roomFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
+function regularRoomFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
   const who = `<p class="lede" id="who">${otherNames.length ? names(otherNames) + (otherNames.length === 1 ? " was here in the last minute." : " were here in the last minute.") : "Nobody else has been here in the last minute."}</p>`;
   if (!things.length) {
-    return `${who}<p class="empty">Nothing in this room yet. Put something down — it stays
-      here either way, and goes on the shelf when somebody else is here for it.</p>`;
+    return `${who}<div class="card"><p class="empty">Nothing in this room yet. Put something down — it stays
+      here either way, and goes on the shelf when somebody else is here for it.</p></div>`;
   }
   return `${who}<ol>${things.map((t) => thingItem(t, houseSlug)).join("")}</ol>`;
+}
+
+/** How long ago a thing was placed, in the register the rest of the app
+ *  uses ("was here", never "saw"): a plain word for anything inside the
+ *  last minute, minutes then hours, "yesterday" for exactly a day, days up
+ *  to a week, and the absolute timestamp beyond that — never a guess dressed
+ *  up as a fact. `created_at` is SQLite's `datetime('now')`: UTC with no
+ *  timezone suffix, so it is parsed as UTC explicitly here, or every one of
+ *  these would read hours off depending on the machine running the app. */
+export function timeAgo(iso: string): string {
+  const asUtc = /[zZ]|[+-]\d\d:\d\d$/.test(iso) ? iso : `${iso.replace(" ", "T")}Z`;
+  const then = new Date(asUtc).getTime();
+  const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d ago`;
+  return `${iso} UTC`;
+}
+
+/** A monogram standing in for an avatar — we have no photographs of the
+ *  people in this village, so the first letter of their name is the whole
+ *  of it, never a guessed picture. */
+function monogram(name: string): string {
+  const letter = name.trim().charAt(0).toUpperCase() || "?";
+  return `<span class="monogram" aria-hidden="true">${esc(letter)}</span>`;
+}
+
+/** The speaker's own house, as a chip — looked up from the real person
+ *  record behind their placing token, never invented. A token with no
+ *  person behind it (should not happen; placing requires joining first)
+ *  simply carries no chip rather than a guessed one. */
+function homeChip(placedByToken: string): string {
+  const person = getPerson(placedByToken);
+  const home = person ? houseBySlug(person.homeSlug) : undefined;
+  return home ? `<span class="chip chip-home">${esc(home.name)}</span>` : "";
+}
+
+function threadMessage(t: ThingView, houseSlug: string): string {
+  let action: string;
+  if (t.isOwn) {
+    action = `<p class="note">You put this down, so you can't be the one who was here for it.</p>`;
+  } else if (t.viewerHasKept) {
+    action = `<p class="note">You were here for this.</p>`;
+  } else {
+    action = `<form method="post" action="/take">
+      <input type="hidden" name="thing" value="${t.id}">
+      <input type="hidden" name="house" value="${esc(houseSlug)}">
+      <button>I was here for this</button></form>`;
+  }
+  return `<li class="thing thread-msg">
+    ${monogram(t.placedByName)}
+    <div class="thread-body">
+      <p class="thread-meta"><strong>${esc(t.placedByName)}</strong> ${homeChip(t.placedBy)}
+        <span class="thread-time">${esc(timeAgo(t.createdAt))}</span></p>
+      <p class="body">${esc(t.body)}</p>
+      <p>${stateLine(t)}</p>
+      ${action}
+    </div>
+  </li>`;
+}
+
+/** The meeting house alone renders as a conversation: oldest at the top,
+ *  newest at the bottom (a conversation reads downward — the opposite of
+ *  the other rooms' most-recent-first list), each row carrying a monogram,
+ *  the speaker's own house, a relative time, and the same unchanged
+ *  two-state label every other room shows. A presence strip about who else
+ *  is actually around replaces the other rooms' who-line, in the same
+ *  register ("nobody else", never "nobody" — the viewer is always here
+ *  reading it). */
+function threadFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
+  const strip = `<p class="lede" id="who">${otherNames.length ? "Around the table right now: " + names(otherNames) + "." : "Nobody is at the table right now."}</p>`;
+  if (!things.length) {
+    return `${strip}<div class="card"><p class="empty">Nothing has been said at the table yet. Whatever you
+      place there stays in the room either way, and goes on the shelf once somebody else is here for it.</p></div>`;
+  }
+  const oldestFirst = [...things].reverse();
+  return `${strip}<ol class="thread">${oldestFirst.map((t) => threadMessage(t, houseSlug)).join("")}</ol>`;
+}
+
+/** The village's one room-list renderer, with the meeting house's single
+ *  exception: it alone reads as a conversation (see `threadFragment`).
+ *  Every other house keeps the plain room list this always rendered. */
+export function roomFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
+  return houseSlug === "meeting"
+    ? threadFragment(otherNames, things, houseSlug)
+    : regularRoomFragment(otherNames, things, houseSlug);
 }
 
 export function joinPage(houses: House[], message: string | null): string {
@@ -272,8 +418,21 @@ function tintFor(slug: string): string {
   }
 }
 
-function placeholderPanel(slug: string): string {
-  return `<div class="placeholder" style="--tint:${tintFor(slug)}" aria-hidden="true"></div>
+/** A true eyebrow for each house — who it actually belongs to, not a
+ *  repeated "A FAMILY HOUSE" that tells a visitor nothing the house name
+ *  didn't already say. Kept in one place so the map is the only caller. */
+function eyebrowFor(slug: string): string {
+  switch (slug) {
+    case "nghe-an": return "My parents' house";
+    case "hanoi": return "My brother's family";
+    case "canberra": return "My house";
+    default: return "Shared by everyone";
+  }
+}
+
+function placeholderPanel(slug: string, variant: "card" | "banner" = "card"): string {
+  const cls = variant === "banner" ? "placeholder placeholder-banner" : "placeholder";
+  return `<div class="${cls}" style="--tint:${tintFor(slug)}" aria-hidden="true"></div>
     <p class="placeholder-caption">A photograph of the real place belongs here.</p>`;
 }
 
@@ -311,10 +470,11 @@ const STAND_IN_CAPTION = "A stand-in picture, until we take our own.";
 /** The photograph if the house has one, falling back to the CSS-drawn
  *  placeholder when it does not — a house without a file still has to look
  *  deliberate, not broken. */
-function photoPanel(slug: string): string {
+function photoPanel(slug: string, variant: "card" | "banner" = "card"): string {
   const pic = PICTURES[slug];
-  if (!pic || !hasPicture(slug)) return placeholderPanel(slug);
-  return `<img class="photo" src="/img/${slug}.jpg" width="${pic.width}" height="${pic.height}"
+  if (!pic || !hasPicture(slug)) return placeholderPanel(slug, variant);
+  const cls = variant === "banner" ? "photo photo-banner" : "photo";
+  return `<img class="${cls}" src="/img/${slug}.jpg" width="${pic.width}" height="${pic.height}"
     loading="lazy" decoding="async" alt="${esc(pic.alt)}">
     <p class="placeholder-caption">${STAND_IN_CAPTION}</p>`;
 }
@@ -326,18 +486,24 @@ export function mapPage(
 ): string {
   const cards = houses
     .map((h) => {
-      const presence = h.hereNames.length
+      const isHere = h.hereNames.length > 0;
+      const presence = isHere
         ? names(h.hereNames) + (h.hereNames.length === 1 ? " is here" : " are here")
         : "Nobody is here";
+      const cta = isHere ? "Come on in →" : "Step inside →";
       const home = h.slug === me.homeSlug ? `<span class="chip chip-home">Your house</span>` : "";
       return `<li class="house">
         <a class="house-card" href="/house/${esc(h.slug)}">
           <div class="card">
-            <span class="eyebrow">${esc(h.kind === "meeting" ? "Shared common room" : "A family house")}</span>
+            <span class="eyebrow">${esc(eyebrowFor(h.slug))}</span>
             <h2>${esc(h.name)} ${home}</h2>
             ${photoPanel(h.slug)}
             <hr class="dashed-rule">
-            <p class="here">${esc(presence)}</p>
+            <p class="presence-row">
+              <span class="presence-dot" data-here="${isHere}"></span>
+              <span class="here">${esc(presence)}</span>
+              <span class="enter-cta">${cta}</span>
+            </p>
           </div>
         </a>
       </li>`;
@@ -351,8 +517,10 @@ export function mapPage(
         It goes on that house's shelf when somebody else was there for it —
         a memory is something two of you were there for.</p>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
-      <ul class="village">${cards}</ul>
-      <p class="quiet">The map updates on its own as people arrive and leave.</p>
+      <div class="village-panel">
+        <ul class="village">${cards}</ul>
+        <p class="quiet village-panel-foot">The map updates on its own as people arrive and leave.</p>
+      </div>
     </main>`,
     me,
   );
@@ -378,6 +546,26 @@ export function housePage(
   things: ThingView[],
   message: string | null,
 ): string {
+  const isMeeting = house.slug === "meeting";
+  const composeLabel = isMeeting ? "What do you want to say at the table?" : "What do you want to put down here?";
+  const composeButton = isMeeting ? "Place words on the table" : "Put this down";
+  const quietLine = isMeeting
+    ? "Whatever is said here reaches everyone in the room. No alerts, no unread marks."
+    : "No notifications, no alerts. You find out by visiting.";
+  // The meeting house alone reads newest-at-the-bottom, so after every swap
+  // of the room fragment — the initial render and every live resync — the
+  // thread is scrolled to its newest message, the way a chat window would be.
+  // Reduced motion is respected by the CSS (`scroll-behavior` is only set
+  // under `prefers-reduced-motion: no-preference`), so this jumps rather
+  // than animates for anyone who asked for that.
+  const scrollScript = isMeeting
+    ? `const scrollThreadToBottom = () => {
+          const thread = room.querySelector("ol.thread");
+          if (thread) thread.scrollTop = thread.scrollHeight;
+        };
+        scrollThreadToBottom();`
+    : "";
+  const resyncExtra = isMeeting ? "\n          scrollThreadToBottom();" : "";
   return page(
     house.name,
     `<main>
@@ -385,7 +573,7 @@ export function housePage(
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
       <div class="layout-house">
         <div>
-          ${photoPanel(house.slug)}
+          ${photoPanel(house.slug, "banner")}
           <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
         </div>
         <div class="panel-stack">
@@ -399,21 +587,22 @@ export function housePage(
           </div>
           <form method="post" action="/place">
             <input type="hidden" name="house" value="${esc(house.slug)}">
-            <label for="body">What do you want to put down here?</label>
+            <label for="body">${esc(composeLabel)}</label>
             <input id="body" name="body" required maxlength="280" placeholder="He stood up on his own today">
-            <button class="primary">Put this down</button>
+            <button class="primary">${esc(composeButton)}</button>
           </form>
-          <p class="quiet">No notifications, no alerts. You find out by visiting.</p>
+          <p class="quiet">${esc(quietLine)}</p>
         </div>
       </div>
       <script type="module">
         // Live updating is the only thing JavaScript adds. Without it the page
         // still renders, and every action is still a form POST.
         const room = document.getElementById("room");
+        ${scrollScript}
         const stream = new EventSource("/stream?house=" + encodeURIComponent(${JSON.stringify(house.slug)}));
         const resync = async () => {
           const res = await fetch("/house/" + encodeURIComponent(${JSON.stringify(house.slug)}) + "/room", { headers: { accept: "text/html" } });
-          if (res.ok) room.innerHTML = await res.text();
+          if (res.ok) room.innerHTML = await res.text();${resyncExtra}
         };
         stream.onmessage = resync;
         // EventSource reconnects on its own after the machine stops and
