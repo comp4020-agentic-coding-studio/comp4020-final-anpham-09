@@ -63,11 +63,14 @@ refuses to fail, the reason is often not the test. Chasing one such refusal in
 my own project surfaced a defect three layers away from what the test was
 nominally checking.
 
-The empirical picture is thinner than either camp admits. METR's 2025 randomised
-trial found sixteen experienced open-source developers 19% slower with AI tools
-while estimating they had been 20% faster — a striking result, and one that must
-be cited carefully: sixteen participants, early-2025 tooling, and METR now marks
-it historical. GitHub's Copilot study found large speed-ups on defined tasks.
+The empirical picture is thinner than either camp admits. Becker et al.'s 2025 randomised
+trial for METR found sixteen experienced open-source developers 19% slower with
+AI tools across 246 real tasks on their own repositories, while estimating they
+had been faster — a striking result, and one that must be cited carefully:
+sixteen participants, early-2025 tooling, and METR's own page now states that
+"these historical results no longer reflect the current impact of AI models on
+open-source developer productivity."
+ GitHub's Copilot study found large speed-ups on defined tasks.
 The reconcilable claim is narrow but sufficient: self-report is unreliable about
 verification cost. Developers do not notice how much checking they are doing, or
 failing to do.
@@ -79,8 +82,10 @@ trusting that it happened.
 
 - Bainbridge, L. (1983). Ironies of Automation. *Automatica* 19(6), 775–779.
 - Parasuraman, R., & Manzey, D. (2010). Complacency and Bias in Human Use of
-  Automation: An Attentional Integration. *Human Factors* 52(3), 381–410.
-- METR (2025). Measuring the Impact of Early-2025 AI on Experienced Open-Source
-  Developer Productivity.
+  Automation: An Attentional Integration. *Human Factors: The Journal of the
+  Human Factors and Ergonomics Society* 52, 381–410. doi:10.1177/0018720810376055
+- Becker, J., Rush, N., Barnes, E., & Rein, D. (2025). [Measuring the Impact of
+  Early-2025 AI on Experienced Open-Source Developer
+  Productivity](https://arxiv.org/abs/2507.09089). arXiv:2507.09089. METR.
 - Willison, S. (2025). [Designing agentic loops](https://simonwillison.net/2025/Sep/30/designing-agentic-loops/), 30 September.
 - Willison, S. (2025). [Your job is to deliver code you have proven to work](https://simonwillison.net/2025/Dec/18/code-proven-to-work/), 18 December.
