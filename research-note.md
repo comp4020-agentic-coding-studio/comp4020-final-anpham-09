@@ -1,10 +1,9 @@
 # The cheap check problem
 
 Coding agents have made writing a test as cheap as writing the code it guards.
-The practitioner literature treats this as straightforwardly good, and the
-economics look obvious: if verification is what makes generated code safe, then
-cheaper verification should mean safer code. I want to argue the opposite is as
-likely. A test that cannot fail is indistinguishable, at a glance, from one
+The practitioner literature treats this as straightforwardly good: if
+verification is what makes generated code safe, cheaper verification should mean
+safer code. I want to argue the opposite is as likely. A test that cannot fail is indistinguishable, at a glance, from one
 that can — and agentic workflows produce both at the same rate, in the same
 idiom, under the same green tick. The field's current advice is sound about
 building verification loops and nearly silent about auditing them, and that
@@ -21,21 +20,20 @@ job is to deliver code you have proven to work* (18 December 2025), he states
 the standard directly: "get the system into an initial known state, exercise
 the change, assert that it worked correctly."
 
-That is good practice, and I have followed it. But notice what it assumes. The
-loop closes only if the assertion is real. Willison writes as a practitioner
-with decades of judgement about what proof looks like, working mostly alone on
-his own projects, publishing as he goes; his standard is doing load-bearing
-work that his advice does not describe how to acquire. "Assert that it worked
-correctly" presumes a developer who can tell a vacuous assertion from a
-substantive one. That skill is exactly what the older literature says erodes.
+That is good practice, and I have followed it. But the loop closes only if the
+assertion is real. Willison writes as a practitioner with decades of judgement
+about what proof looks like, working mostly alone and publishing as he goes;
+that judgement is doing load-bearing work his advice does not describe how to
+acquire. "Assert that it worked correctly" presumes a developer who can tell a
+vacuous assertion from a substantive one — exactly the skill the older
+literature says erodes.
 
 Bainbridge's *Ironies of Automation* (1983) made the structural case: automate
-the routine part of a task and you leave the human with the part that cannot be
-automated — monitoring — which is the task humans perform worst, and which they
-now perform without the continuous practice that kept them competent at it. Her
-irony transfers cleanly. The agent writes the code and the test; the developer
-is left to judge whether the test means anything, a judgement built from years
-of writing tests by hand, now exercised less often.
+the routine part and you leave the human the part that cannot be automated —
+monitoring — which humans perform worst, and now without the practice that kept
+them competent at it. The irony transfers. The agent writes the code and the
+test; the developer judges whether the test means anything, using judgement
+built from years of writing tests by hand and now exercised less often.
 
 Parasuraman and Manzey (2010) close the obvious escape route. Reviewing
 automation bias across aviation, medicine and process control, they distinguish
