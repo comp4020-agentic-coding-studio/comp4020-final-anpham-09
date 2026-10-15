@@ -71,7 +71,7 @@ describe("what a browser gets", () => {
       // in canberra (e.g. a previous run's, on a warm database), so the assertions
       // below are bound to the specific <li> for the thing just placed.
       const body = `a form post works ${Date.now()}`;
-      const placed = await s.post("/place", { house: "canberra", body });
+      const placed = await s.post("/place", { house: "canberra", title: "A form post", body });
       expect(placed.status).toBe(303);
       const room = await (await s.get("/house/canberra/room")).text();
       const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
@@ -95,7 +95,7 @@ describe("what a browser gets", () => {
 
     try {
       await alice.get("/house/hanoi");
-      await alice.post("/place", { house: "hanoi", body: "alice put this down herself" });
+      await alice.post("/place", { house: "hanoi", title: "A refusal test", body: "alice put this down herself" });
 
       // Only a non-placer is offered the take-it-in form, so Bob's view is where
       // the thing's id is visible at all.
@@ -109,7 +109,7 @@ describe("what a browser gets", () => {
       expect(refused.status).toBe(303);
       const location = refused.headers.get("location") ?? "";
       const said = new URL(location, "http://x").searchParams.get("said") ?? "";
-      expect(said).toContain("two of you were there for");
+      expect(said).toContain("something two of you add to");
     } finally {
       // Leave on the way out: see the comment on the form-POST test above —
       // this must run even when an assertion has already thrown.

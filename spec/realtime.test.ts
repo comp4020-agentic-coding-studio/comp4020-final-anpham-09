@@ -72,7 +72,7 @@ describe("real-time, by the brief's definition", () => {
       await fetch(new URL("/place", baseUrl), {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded", cookie: alice },
-        body: new URLSearchParams({ house: "meeting", body: "within a second" }).toString(),
+        body: new URLSearchParams({ house: "meeting", title: "Within a second", body: "within a second" }).toString(),
         redirect: "manual",
       });
 
@@ -87,7 +87,11 @@ describe("real-time, by the brief's definition", () => {
     }
   });
 
-  it("puts the thing on the shelf because the other person was in the room", async () => {
+  it("does not put a thing on the shelf merely because the other person was in the room", async () => {
+    // Post-crit-9: presence has no write-side effect at all any more. This
+    // replaces the old auto-keep-from-presence assertion this test used to
+    // make — confirmed red against the unmodified `src/things.ts` before this
+    // rewrite, since that code used to insert a keeping for every witness.
     const alice = await join("Alice", "canberra");
     // Brief said `canberra` for this test's house; `canberra` is spec/routes.test.ts's
     // form-POST house, and running in parallel the two would fight over the
@@ -107,15 +111,15 @@ describe("real-time, by the brief's definition", () => {
       await fetch(new URL("/place", baseUrl), {
         method: "POST",
         headers: { "content-type": "application/x-www-form-urlencoded", cookie: alice },
-        body: new URLSearchParams({ house: "nghe-an", body }).toString(),
+        body: new URLSearchParams({ house: "nghe-an", title: "Bob was here", body }).toString(),
         redirect: "manual",
       });
 
       const room = await (await fetch(new URL("/house/nghe-an/room", baseUrl), { headers: { cookie: alice } })).text();
       const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
       expect(item, "the thing just placed is not in the room").not.toBeNull();
-      expect(item![0]).toContain("On the shelf");
-      expect(item![0]).toContain("Bob");
+      expect(item![0]).toContain("In the room");
+      expect(item![0]).not.toContain("On the shelf");
     } finally {
       // Leave on the way out: see the comment on the first test. Only Alice
       // and Bob entered a house here, so only they need to leave.

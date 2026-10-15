@@ -8,7 +8,16 @@ import { newToken, readCookie } from "./identity.ts";
 import { ensurePerson, getPerson, nameOf, type Person, type PersonRefusal } from "./people.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
 import { housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage } from "./render.ts";
-import { inRoom, onShelf, place, takeIn, type KeepRefusal, type PlaceRefusal } from "./things.ts";
+import {
+  addPerspective,
+  inRoom,
+  keepTogether,
+  onShelf,
+  place,
+  type KeepRefusal,
+  type PerspectiveRefusal,
+  type PlaceRefusal,
+} from "./things.ts";
 
 const PORT = Number(process.env.PORT ?? 8080);
 const COOKIE = "who";
@@ -66,13 +75,18 @@ const isJoinablePath = (p: string): boolean =>
 
 /** Every refusal gets words. A button that appears to do nothing teaches the
  *  user the system is broken; being told the rule teaches them the rule. */
-const REFUSALS: Record<PersonRefusal | PlaceRefusal | NonNullable<KeepRefusal>, string> = {
+const REFUSALS: Record<
+  PersonRefusal | PlaceRefusal | PerspectiveRefusal | NonNullable<KeepRefusal>,
+  string
+> = {
   "unknown-house": "There's no such house in this village.",
   "blank-name": "The app needs something to call you.",
+  "blank-title": "This needs something to call it.",
   "blank-body": "There's nothing there to put down.",
   "unknown-thing": "That isn't here any more, so nothing was recorded.",
-  "own-thing": "You put this down, so you can't be the one who was here for it. A memory is something two of you were there for.",
-  already: "You'd already said you were here for this. One person is one keeper, however many times they click.",
+  "own-thing": "You put this down, so you can't be the one who keeps it together too. A memory is something two of you add to.",
+  already: "You'd already kept this together. One person is one keeper, however many times they click.",
+  "no-perspective": "Write a few words about this first — keeping something together starts with your own perspective on it.",
 };
 
 const server = createServer((req, res) => {
@@ -264,13 +278,31 @@ const server = createServer((req, res) => {
     if (req.method === "POST" && path === "/place") {
       const form = await formData(req);
       const slug = (form.get("house") ?? "").trim();
-      const result = place(slug, token, form.get("body") ?? "");
+      const result = place(slug, token, form.get("title") ?? "", form.get("body") ?? "", form.get("event_date") ?? undefined);
       if (typeof result === "string") {
         seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
         return;
       }
       publish(slug, "placed");
       seeOther(res, backTo(slug), setCookie);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/perspectives") {
+      const form = await formData(req);
+      const thingId = Number(form.get("thing"));
+      const back = (form.get("house") ?? "").trim();
+      if (!Number.isInteger(thingId)) {
+        seeOther(res, said(backTo(back), REFUSALS["unknown-thing"]), setCookie);
+        return;
+      }
+      const refusal = addPerspective(thingId, token, form.get("body") ?? "");
+      if (typeof refusal === "string") {
+        seeOther(res, said(backTo(back), REFUSALS[refusal]), setCookie);
+        return;
+      }
+      if (houseBySlug(back)) publish(back, "perspective");
+      seeOther(res, backTo(back), setCookie);
       return;
     }
 
@@ -282,7 +314,7 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(back), REFUSALS["unknown-thing"]), setCookie);
         return;
       }
-      const refusal = takeIn(thingId, token);
+      const refusal = keepTogether(thingId, token);
       if (refusal) { seeOther(res, said(backTo(back), REFUSALS[refusal]), setCookie); return; }
       // Only nudge the room that actually changed. A guessed destination
       // would publish to the wrong house's event stream.

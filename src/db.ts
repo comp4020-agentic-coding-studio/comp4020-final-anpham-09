@@ -64,6 +64,37 @@ db.exec(`
     SELECT RAISE(ABORT, 'a thing cannot be kept by whoever placed it');
   END;
 
+  -- Append-only: one person's perspective on a thing never overwrites
+  -- another's, and never overwrites the original body in "things" either.
+  CREATE TABLE IF NOT EXISTS perspectives (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    thing_id   INTEGER NOT NULL REFERENCES things(id),
+    author     TEXT    NOT NULL,
+    body       TEXT    NOT NULL,
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+  );
+
+  -- Keeping is no longer a side effect of presence: it requires the keeper
+  -- to have written a perspective first. Enforced here, not just in code, for
+  -- the same reason keepings_not_own is a trigger and not just a check.
+  -- The second WHEN clause only applies this check to an attempt that would
+  -- otherwise succeed (a real thing, not the placer's own): SQLite does not
+  -- guarantee which of several BEFORE triggers on one table fires first, so
+  -- without this guard an own-thing or unknown-thing attempt could surface
+  -- this trigger's message instead of the more fundamental one underneath it.
+  CREATE TRIGGER IF NOT EXISTS keepings_require_perspective
+  BEFORE INSERT ON keepings
+  FOR EACH ROW
+  WHEN NOT EXISTS (
+    SELECT 1 FROM perspectives WHERE thing_id = NEW.thing_id AND author = NEW.person
+  )
+  AND EXISTS (
+    SELECT 1 FROM things WHERE id = NEW.thing_id AND placed_by != NEW.person
+  )
+  BEGIN
+    SELECT RAISE(ABORT, 'a keeper must have written a perspective on this thing first');
+  END;
+
   -- The only mutable table in the app. Presence is live state, not something
   -- anyone put down, so it is overwritten rather than appended.
   CREATE TABLE IF NOT EXISTS presence (
@@ -72,6 +103,20 @@ db.exec(`
     last_seen INTEGER NOT NULL
   );
 `);
+
+// Additive migration, post-crit-9: two nullable/defaulted columns on an
+// existing table. CREATE TABLE IF NOT EXISTS is naturally idempotent across
+// restarts; ALTER TABLE is not, so each column is only added if missing —
+// checked against a fresh read of the table's own columns every boot.
+const thingsColumns = new Set(
+  (db.prepare("PRAGMA table_info(things)").all() as Array<{ name: string }>).map((c) => c.name),
+);
+if (!thingsColumns.has("title")) {
+  db.exec("ALTER TABLE things ADD COLUMN title TEXT NOT NULL DEFAULT ''");
+}
+if (!thingsColumns.has("event_date")) {
+  db.exec("ALTER TABLE things ADD COLUMN event_date TEXT");
+}
 
 // Houses are fixed furniture, not user-created content: the village is this
 // family's three homes and the place they meet, and nothing in the app adds

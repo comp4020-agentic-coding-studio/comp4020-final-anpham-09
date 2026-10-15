@@ -51,6 +51,10 @@ describe("the rules that live in the schema", () => {
       .prepare("INSERT INTO things (house_id, placed_by, body) VALUES (?, ?, ?)")
       .run(house.id, "alice", "his first steps");
     const id = Number(thing.lastInsertRowid);
+    // A perspective row isolates this test to the UNIQUE constraint alone —
+    // without it, the first insert would fail on keepings_require_perspective
+    // instead, which is a different invariant with its own test above.
+    db.prepare("INSERT INTO perspectives (thing_id, author, body) VALUES (?, ?, ?)").run(id, "bob", "a perspective");
     db.prepare("INSERT INTO keepings (thing_id, person) VALUES (?, ?)").run(id, "bob");
     expect(() =>
       db.prepare("INSERT INTO keepings (thing_id, person) VALUES (?, ?)").run(id, "bob"),
@@ -62,5 +66,22 @@ describe("the rules that live in the schema", () => {
     expect(() =>
       db.prepare("INSERT INTO keepings (thing_id, person) VALUES (?, ?)").run(9999, "bob"),
     ).toThrow(/FOREIGN KEY/);
+  });
+
+  it("refuses a keeping by someone who has not written a perspective on the thing", async () => {
+    const { db } = await boot();
+    const house = db.prepare("SELECT id FROM houses WHERE slug = 'meeting'").get() as { id: number };
+    const thing = db
+      .prepare("INSERT INTO things (house_id, placed_by, body) VALUES (?, ?, ?)")
+      .run(house.id, "alice", "his first steps");
+    const id = Number(thing.lastInsertRowid);
+    expect(() =>
+      db.prepare("INSERT INTO keepings (thing_id, person) VALUES (?, ?)").run(id, "bob"),
+    ).toThrow(/must have written a perspective/);
+    // The same insert succeeds once a perspective row exists for that person.
+    db.prepare("INSERT INTO perspectives (thing_id, author, body) VALUES (?, ?, ?)").run(id, "bob", "I remember this too");
+    expect(() =>
+      db.prepare("INSERT INTO keepings (thing_id, person) VALUES (?, ?)").run(id, "bob"),
+    ).not.toThrow();
   });
 });
