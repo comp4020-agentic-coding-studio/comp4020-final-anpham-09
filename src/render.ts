@@ -53,11 +53,18 @@ header.chrome { display: flex; flex-wrap: wrap; align-items: baseline; justify-c
 .brand { font-family: var(--display); font-weight: 700; font-size: 1.375rem; color: var(--hearth); margin: 0; }
 .whoami { margin: 0; font-size: .875rem; color: var(--ink-soft); }
 .whoami strong { color: var(--ink); }
-nav.site { display: flex; flex-wrap: wrap; gap: .25rem 1.25rem; padding: 0 1.25rem .9rem; border-bottom: 1px solid var(--rule); }
+nav.site { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.25rem; padding: 0 1.25rem .9rem; border-bottom: 1px solid var(--rule); }
 @media (min-width: 768px) { nav.site { padding: 0 2rem .9rem; } }
 nav.site a { display: inline-flex; align-items: center; min-height: 44px; padding: .2rem 0;
   font-weight: 600; font-size: .9375rem; color: var(--ink-soft); text-decoration: none; }
 nav.site a:hover { color: var(--hearth-deep); }
+/* Leaving changes state (it clears presence and the cookie), so it is a form
+   POST like every other action in the app, not a link — but it still has to
+   sit in the nav row looking like the links beside it. */
+nav.site form.leave { display: contents; }
+nav.site form.leave button { all: unset; display: inline-flex; align-items: center; min-height: 44px;
+  padding: .2rem 0; font-weight: 600; font-size: .9375rem; color: var(--ink-soft); cursor: pointer; }
+nav.site form.leave button:hover { color: var(--hearth-deep); }
 
 h1 { font-family: var(--display); font-weight: 700; font-size: 2.75rem; line-height: 3.5rem;
   letter-spacing: -0.02em; margin: 1.5rem 0 .5rem; color: var(--ink); }
@@ -269,7 +276,7 @@ ${FONTS_HEAD}
   <a href="/">Village map</a>
   <a href="/shelf">Memory shelf</a>
   <a href="/house/meeting">The meeting house</a>
-  <a href="/leave">Leave the village</a>
+  <form class="leave" method="post" action="/leave"><button type="submit">Leave the village</button></form>
 </nav>
 ${inner}
 </body></html>`;

@@ -225,7 +225,7 @@ const server = createServer((req, res) => {
       return;
     }
 
-    if (method === "GET" && path === "/leave") {
+    if (req.method === "POST" && path === "/leave") {
       leave(token);
       // Clearing presence but not the cookie would still resolve this token
       // to a person on the next request — the app would say "you've left"
@@ -253,13 +253,24 @@ const server = createServer((req, res) => {
     if (stream) {
       const house = houseBySlug(stream);
       if (!house) { res.writeHead(404).end(); return; }
+      const unsubscribe = subscribe(house.slug, (payload) => res.write(`data: ${payload}\n\n`));
+      if (!unsubscribe) {
+        // The 256MB machine has one open socket, one listener and one
+        // setInterval per connected stream, for as long as it stays open —
+        // joining is free and unlimited, so without a cap a single visitor
+        // scripting enough `/stream` requests exhausts the instance. A 503
+        // here is a page that stops updating live, which is this app's own
+        // documented degraded mode when SSE is unavailable at all.
+        res.writeHead(503, { "content-type": "text/plain", "retry-after": "30" });
+        res.end("Too many open connections right now.");
+        return;
+      }
       res.writeHead(200, {
         "content-type": "text/event-stream",
         "cache-control": "no-cache",
         connection: "keep-alive",
       });
       res.write(": open\n\n");
-      const unsubscribe = subscribe(house.slug, (payload) => res.write(`data: ${payload}\n\n`));
       // An open stream is what keeps someone present: the heartbeat refreshes
       // their 45 seconds and keeps intermediaries from closing the socket.
       const ping = setInterval(() => {

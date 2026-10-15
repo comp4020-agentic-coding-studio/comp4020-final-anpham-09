@@ -29,7 +29,7 @@ describe("the event hub", () => {
     const seen: string[] = [];
     const stop = e.subscribe("meeting", (p) => seen.push(p));
     e.publish("meeting", "one");
-    stop();
+    stop!();
     e.publish("meeting", "two");
     expect(seen).toEqual(["one"]);
     expect(e.listenerCount("meeting")).toBe(0);
@@ -39,9 +39,9 @@ describe("the event hub", () => {
     const e = await boot();
     const seen: string[] = [];
     const stopFirst = e.subscribe("meeting", () => {});
-    stopFirst();
+    stopFirst!();
     e.subscribe("meeting", (p) => seen.push(p));
-    stopFirst(); // a second cleanup for a connection that already went away
+    stopFirst!(); // a second cleanup for a connection that already went away
     e.publish("meeting", "placed");
     expect(seen).toEqual(["placed"]);
   });
@@ -66,5 +66,27 @@ describe("the event hub", () => {
     const e = await boot();
     expect(() => e.publish("canberra", "placed")).not.toThrow();
     expect(e.listenerCount("canberra")).toBe(0);
+  });
+
+  it("refuses a new subscriber once the global listener cap is reached, across houses", async () => {
+    // Gate 5 security audit finding: joining the village is free and
+    // unlimited, so a per-identity or per-house cap would not stop one
+    // visitor opening unbounded /stream connections — src/server.ts holds a
+    // socket, a listener and a setInterval per connection for as long as it
+    // stays open, on a 256MB machine. The cap has to be global.
+    const e = await boot();
+    const stops: Array<() => void> = [];
+    for (let i = 0; i < e.MAX_LISTENERS; i++) {
+      const stop = e.subscribe(i % 2 === 0 ? "meeting" : "canberra", () => {});
+      expect(stop, `subscription ${i} should have been accepted`).not.toBeNull();
+      stops.push(stop!);
+    }
+    expect(e.totalListenerCount()).toBe(e.MAX_LISTENERS);
+    expect(e.subscribe("hanoi", () => {})).toBeNull();
+
+    // Freeing one slot (as a closed connection's unsubscribe would) admits
+    // exactly one more — the cap is a live count, not a one-time gate.
+    stops[0]();
+    expect(e.subscribe("hanoi", () => {})).not.toBeNull();
   });
 });

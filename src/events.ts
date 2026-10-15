@@ -9,7 +9,23 @@ export type Listener = (payload: string) => void;
 
 const rooms = new Map<string, Set<Listener>>();
 
-export function subscribe(houseSlug: string, listener: Listener): () => void {
+/** Joining the village costs nothing, so a cap keyed to identity would not
+ *  stop one visitor minting cookies and opening a stream per one — this cap
+ *  is global, on the one thing every stream actually holds open: a socket,
+ *  a listener, and a server.ts ping interval, for as long as it's connected. */
+export const MAX_LISTENERS = 500;
+
+export function totalListenerCount(): number {
+  let total = 0;
+  for (const set of rooms.values()) total += set.size;
+  return total;
+}
+
+/** Returns null, not a no-op unsubscribe, once the cap is reached — a caller
+ *  that ignored the null and used it anyway would throw immediately, rather
+ *  than silently believing it has a working subscription it doesn't. */
+export function subscribe(houseSlug: string, listener: Listener): (() => void) | null {
+  if (totalListenerCount() >= MAX_LISTENERS) return null;
   const set = rooms.get(houseSlug) ?? new Set<Listener>();
   set.add(listener);
   rooms.set(houseSlug, set);

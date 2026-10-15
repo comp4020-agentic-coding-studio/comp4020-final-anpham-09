@@ -152,4 +152,83 @@ describe("what the app will and won't call a memory", () => {
     expect(things.inRoom("meeting", "cat")[0].viewerHasPerspective).toBe(false);
     expect(things.inRoom("meeting", "cat")[0].viewerHasKept).toBe(false);
   });
+
+  it("never double-counts a keeper under concurrent keepTogether calls for the same person", async () => {
+    // Two "tabs" racing to submit the same keep action. better-sqlite3 is
+    // synchronous, so there is no real interleaving inside a single process —
+    // but this still exercises the exact code path two real concurrent HTTP
+    // requests would hit: the UNIQUE(thing_id, person) constraint and the
+    // "already" catch in keepTogether, not just the sequential case the
+    // "counts one person once" test above covers with calls one at a time.
+    const { things } = await boot();
+    const id = things.place("meeting", "alice", "First steps", "his first steps") as number;
+    things.addPerspective(id, "bob", "a perspective");
+    const results = await Promise.all([
+      Promise.resolve(things.keepTogether(id, "bob")),
+      Promise.resolve(things.keepTogether(id, "bob")),
+      Promise.resolve(things.keepTogether(id, "bob")),
+    ]);
+    expect(results.filter((r) => r === null)).toHaveLength(1);
+    expect(results.filter((r) => r === "already")).toHaveLength(2);
+    expect(things.onShelf("meeting", "alice")[0].keeperNames).toEqual(["Bob"]);
+  });
+});
+
+describe("the shelf's filters", () => {
+  it("narrows by the year something was first kept, offering only years that actually have a kept thing", async () => {
+    const { things } = await boot();
+    const first = things.place("meeting", "alice", "First steps", "his first steps") as number;
+    things.addPerspective(first, "bob", "a perspective");
+    things.keepTogether(first, "bob");
+
+    expect(things.shelfYears()).toEqual([new Date().getFullYear().toString()]);
+
+    const matching = things.shelfFor("meeting", "alice", { year: new Date().getFullYear().toString() });
+    expect(matching.map((t) => t.id)).toEqual([first]);
+
+    const nonMatching = things.shelfFor("meeting", "alice", { year: "1999" });
+    expect(nonMatching).toEqual([]);
+  });
+
+  it("does not offer a year for a thing that is only in the room, never kept", async () => {
+    const { things } = await boot();
+    things.place("meeting", "alice", "Unkept", "nobody has kept this yet");
+    expect(things.shelfYears()).toEqual([]);
+  });
+
+  it("searches title, story and perspective text, case-insensitively", async () => {
+    const { things } = await boot();
+    const id = things.place("meeting", "alice", "The big dinner", "everyone came home for it") as number;
+    things.addPerspective(id, "bob", "I remember the noodles especially");
+    things.keepTogether(id, "bob");
+
+    const other = things.place("meeting", "alice", "A quiet evening", "nothing much happened") as number;
+    things.addPerspective(other, "cat", "just a normal night");
+    things.keepTogether(other, "cat");
+
+    expect(things.shelfFor("meeting", "alice", { q: "DINNER" }).map((t) => t.id)).toEqual([id]);
+    expect(things.shelfFor("meeting", "alice", { q: "noodles" }).map((t) => t.id)).toEqual([id]);
+    expect(things.shelfFor("meeting", "alice", { q: "quiet" }).map((t) => t.id)).toEqual([other]);
+    expect(things.shelfFor("meeting", "alice", { q: "nonexistent-word" })).toEqual([]);
+  });
+
+  it("combines year and keyword filters, and returns everything kept when no filter is given", async () => {
+    const { things } = await boot();
+    const id = things.place("meeting", "alice", "The big dinner", "everyone came home for it") as number;
+    things.addPerspective(id, "bob", "a perspective");
+    things.keepTogether(id, "bob");
+
+    const thisYear = new Date().getFullYear().toString();
+    expect(things.shelfFor("meeting", "alice", {}).map((t) => t.id)).toEqual([id]);
+    expect(things.shelfFor("meeting", "alice", { year: thisYear, q: "dinner" }).map((t) => t.id)).toEqual([id]);
+    expect(things.shelfFor("meeting", "alice", { year: thisYear, q: "nonexistent" })).toEqual([]);
+    expect(things.shelfFor("meeting", "alice", { year: "1999", q: "dinner" })).toEqual([]);
+  });
+
+  it("never surfaces a thing that is still only in the room, whatever the filters", async () => {
+    const { things } = await boot();
+    things.place("meeting", "alice", "Unkept thing", "still just in the room");
+    expect(things.shelfFor("meeting", "alice", {})).toEqual([]);
+    expect(things.shelfFor("meeting", "alice", { q: "unkept" })).toEqual([]);
+  });
 });

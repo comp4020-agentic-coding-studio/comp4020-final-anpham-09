@@ -81,7 +81,7 @@ describe("what a browser gets", () => {
       // Leave on the way out: presence outlives the test by the 45s TTL, and a
       // leftover witness would silently shelf the next run's placement — so
       // leave even when an assertion above has already thrown.
-      await s.get("/leave");
+      await s.post("/leave", {});
     }
   });
 
@@ -113,8 +113,8 @@ describe("what a browser gets", () => {
     } finally {
       // Leave on the way out: see the comment on the form-POST test above —
       // this must run even when an assertion has already thrown.
-      await alice.get("/leave");
-      await bob.get("/leave");
+      await alice.post("/leave", {});
+      await bob.post("/leave", {});
     }
   });
 
@@ -177,5 +177,139 @@ describe("what a browser gets", () => {
     expect(res.headers.get("content-type")).toBe("image/jpeg");
     const body = await res.arrayBuffer();
     expect(body.byteLength).toBe(0);
+  });
+
+  it("escapes a script tag submitted as a thing's title and body, through the real place route", async () => {
+    // Every ThingView field is escaped by render.ts's esc() helper, but that
+    // has never been exercised through the real HTTP path a browser actually
+    // uses — only markdown.test.ts's internal check of README.md fenced code
+    // blocks. This posts actual markup through /place and reads it back off
+    // the rendered room, the same as a visitor's browser would.
+    const s = session();
+    await s.get("/");
+    await s.post("/join", { name: "Alice", home: "canberra" });
+    try {
+      const marker = `xss-${Date.now()}`;
+      const payload = `<script>window.${marker}=1</script>`;
+      const placed = await s.post("/place", { house: "canberra", title: payload, body: `body ${payload} ${marker}` });
+      expect(placed.status).toBe(303);
+      const room = await (await s.get("/house/canberra/room")).text();
+      const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?</li>`).exec(room);
+      expect(item, "the thing just placed is not in the room").not.toBeNull();
+      expect(item![0]).not.toContain("<script>");
+      expect(item![0]).toContain("&lt;script&gt;");
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("keeps a thing together exactly once when the same person's two tabs both submit the keep action at once", async () => {
+    // Two tabs sharing one cookie are two concurrent HTTP connections to the
+    // same identity — not two different `session()` jars. A double-click on
+    // "Keep this together", or a tab left open that replays the same POST,
+    // must still land as one keeper, not a corrupted or duplicated row.
+    const alice = session();
+    await alice.get("/");
+    await alice.post("/join", { name: "Alice", home: "canberra" });
+    const bob = session();
+    await bob.get("/");
+    await bob.post("/join", { name: "Bob", home: "canberra" });
+
+    try {
+      await alice.get("/house/canberra");
+      const marker = `multitab-${Date.now()}`;
+      await alice.post("/place", { house: "canberra", title: "A multi-tab test", body: `thing to keep ${marker}` });
+
+      const asBob = await (await bob.get("/house/canberra/room")).text();
+      const match = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?name="thing" value="(\\d+)"`).exec(asBob);
+      expect(match, "no take-it-in form found near the thing just placed").not.toBeNull();
+      const thingId = match![1];
+
+      await bob.post("/perspectives", { thing: thingId, house: "canberra", body: "I remember this too" });
+
+      // Two "tabs" — same cookie jar, same person — racing to submit the same
+      // keep action concurrently, not one after another.
+      const [first, second] = await Promise.all([
+        bob.post("/take", { thing: thingId, house: "canberra" }),
+        bob.post("/take", { thing: thingId, house: "canberra" }),
+      ]);
+      expect(first.status).toBe(303);
+      expect(second.status).toBe(303);
+
+      const room = await (await alice.get("/house/canberra/room")).text();
+      const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?</li>`).exec(room);
+      expect(item, "the thing is not in the room view").not.toBeNull();
+      expect(item![0]).toContain("On the shelf");
+      // Bob's name appears exactly once in the "kept together by" note — not
+      // duplicated by the race. (It also appears once more as the perspective
+      // author, which is expected and not what this assertion is about.)
+      const keptLine = /Kept together by[^<]*/.exec(item![0]);
+      expect(keptLine, "no kept-together note found").not.toBeNull();
+      expect(keptLine![0].match(/Bob/g) ?? []).toHaveLength(1);
+    } finally {
+      await alice.post("/leave", {});
+      await bob.post("/leave", {});
+    }
+  });
+
+  it("escapes a script tag submitted as a perspective, through the real HTTP round trip to the shelf", async () => {
+    const alice = session();
+    await alice.get("/");
+    await alice.post("/join", { name: "Alice", home: "canberra" });
+    const bob = session();
+    await bob.get("/");
+    await bob.post("/join", { name: "Bob", home: "nghe-an" });
+
+    try {
+      await alice.get("/house/canberra");
+      const marker = `xss-perspective-${Date.now()}`;
+      const body = `a thing to perspective on ${marker}`;
+      await alice.post("/place", { house: "canberra", title: "An XSS perspective test", body });
+
+      const asBob = await (await bob.get("/house/canberra/room")).text();
+      const match = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?name="thing" value="(\\d+)"`).exec(asBob);
+      expect(match, "no take-it-in form found near the thing just placed").not.toBeNull();
+      const thingId = match![1];
+
+      const payload = `<script>window.${marker}=1</script>`;
+      await bob.post("/perspectives", { thing: thingId, house: "canberra", body: payload });
+      await bob.post("/take", { thing: thingId, house: "canberra" });
+
+      const shelf = await (await alice.get("/shelf")).text();
+      const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?</li>`).exec(shelf);
+      expect(item, "the kept thing is not on the shelf").not.toBeNull();
+      expect(item![0]).not.toContain("<script>");
+      expect(item![0]).toContain("&lt;script&gt;");
+    } finally {
+      await alice.post("/leave", {});
+      await bob.post("/leave", {});
+    }
+  });
+
+  it("does not let a cross-site GET leave the village, only a same-site POST", async () => {
+    // Gate 5 security audit finding: /leave used to be a GET, and a
+    // SameSite=Lax cookie is still attached to a GET reached via a plain
+    // cross-site link or image load — so a link on any other page could log a
+    // member out (clear presence and the cookie) just by being clicked, with
+    // no form, no confirmation, and no site-of-origin check. A GET must now
+    // 404 and change nothing; only the real form's POST works.
+    const s = session();
+    await s.get("/");
+    await s.post("/join", { name: "Alice", home: "canberra" });
+    try {
+      const viaGet = await s.get("/leave");
+      expect(viaGet.status).toBe(404);
+      // Still joined: the map still greets Alice by name rather than showing
+      // the join page, proving the GET above changed nothing.
+      const stillHome = await (await s.get("/")).text();
+      expect(stillHome).toContain("Alice");
+
+      const viaPost = await s.post("/leave", {});
+      expect(viaPost.status).toBe(303);
+      const afterLeaving = await (await s.get("/")).text();
+      expect(afterLeaving).toContain("What should everyone call you?");
+    } finally {
+      await s.post("/leave", {});
+    }
   });
 });

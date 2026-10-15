@@ -82,8 +82,8 @@ describe("real-time, by the brief's definition", () => {
       // Presence outlives the test by the 45s TTL, and a leftover witness in
       // `meeting` would silently shelve the next run's placement there — so
       // leave even when an assertion above has already thrown.
-      await fetch(new URL("/leave", baseUrl), { headers: { cookie: alice } });
-      await fetch(new URL("/leave", baseUrl), { headers: { cookie: bob } });
+      await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: alice } });
+      await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: bob } });
     }
   });
 
@@ -123,8 +123,8 @@ describe("real-time, by the brief's definition", () => {
     } finally {
       // Leave on the way out: see the comment on the first test. Only Alice
       // and Bob entered a house here, so only they need to leave.
-      await fetch(new URL("/leave", baseUrl), { headers: { cookie: alice } });
-      await fetch(new URL("/leave", baseUrl), { headers: { cookie: bob } });
+      await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: alice } });
+      await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: bob } });
     }
   });
 });
