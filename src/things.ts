@@ -23,6 +23,10 @@ export interface ThingView {
    *  whole product. */
   keeperNames: string[];
   onShelf: boolean;
+  /** When this thing first reached the shelf — the earliest keeping, not
+   *  when it was placed. Null while still IN_ROOM: there is no kept date
+   *  until someone has actually kept it. */
+  keptAt: string | null;
   isOwn: boolean;
   viewerHasKept: boolean;
   viewerHasPerspective: boolean;
@@ -134,13 +138,15 @@ function viewsFor(houseSlug: string, viewer: string, shelfOnly: boolean): ThingV
     createdAt: string;
   }>;
 
-  const keepers = db.prepare("SELECT person FROM keepings WHERE thing_id = ? ORDER BY id");
+  const keepers = db.prepare(
+    "SELECT person, created_at AS keptAt FROM keepings WHERE thing_id = ? ORDER BY id",
+  );
   const perspectivesFor = db.prepare(
     "SELECT author, body, created_at AS createdAt FROM perspectives WHERE thing_id = ? ORDER BY id",
   );
 
   const views = rows.map((r) => {
-    const people = keepers.all(r.id).map((k) => (k as { person: string }).person);
+    const people = keepers.all(r.id) as Array<{ person: string; keptAt: string }>;
     const perspectives = (
       perspectivesFor.all(r.id) as Array<{ author: string; body: string; createdAt: string }>
     ).map((p) => ({ ...p, authorName: nameOf(p.author) }));
@@ -153,12 +159,15 @@ function viewsFor(houseSlug: string, viewer: string, shelfOnly: boolean): ThingV
       placedByName: nameOf(r.placedBy),
       createdAt: r.createdAt,
       perspectives,
-      keeperNames: people.map(nameOf),
+      keeperNames: people.map((p) => nameOf(p.person)),
       // Derived, never stored: a thing is kept iff somebody else's name is
       // on it, so the label cannot drift from the fact underneath it.
       onShelf: people.length > 0,
+      // The first keeping is when a thing reached the shelf — later keepers
+      // (a third, fourth member) don't move that date.
+      keptAt: people.length > 0 ? people[0].keptAt : null,
       isOwn: r.placedBy === viewer,
-      viewerHasKept: people.includes(viewer),
+      viewerHasKept: people.some((p) => p.person === viewer),
       viewerHasPerspective: perspectives.some((p) => p.author === viewer),
     };
   });
@@ -171,4 +180,67 @@ export function inRoom(houseSlug: string, viewer: string): ThingView[] {
 
 export function onShelf(houseSlug: string, viewer: string): ThingView[] {
   return viewsFor(houseSlug, viewer, true);
+}
+
+export interface ShelfFilters {
+  year?: string;
+  q?: string;
+}
+
+/** Shelf filtering happens over already-loaded ThingView rows rather than a
+ *  second SQL query: the shelf per house is already bounded (LIMIT 200 in
+ *  viewsFor), so there's no scale concern, and reusing ThingView keeps the
+ *  kept date and perspective text as the single source of truth for what
+ *  "matches" means — a filter can never disagree with what the card shows. */
+export function shelfFor(houseSlug: string, viewer: string, filters: ShelfFilters): ThingView[] {
+  const shelved = onShelf(houseSlug, viewer);
+  const year = filters.year?.trim();
+  const q = filters.q?.trim().toLowerCase();
+  return shelved.filter((t) => {
+    if (year && t.keptAt?.slice(0, 4) !== year) return false;
+    if (q) {
+      const haystack = [t.title, t.body, ...t.perspectives.map((p) => p.body)]
+        .join(" \n ")
+        .toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/** The years a filter dropdown can offer — only years something has actually
+ *  been kept in, so there's never an option that silently returns nothing. */
+export function shelfYears(): string[] {
+  const rows = db
+    .prepare(
+      `SELECT DISTINCT substr(first_kept, 1, 4) AS year FROM (
+         SELECT thing_id, MIN(created_at) AS first_kept FROM keepings GROUP BY thing_id
+       )
+       ORDER BY year DESC`,
+    )
+    .all() as Array<{ year: string }>;
+  return rows.map((r) => r.year);
+}
+
+export interface HouseCounts {
+  inRoom: number;
+  onShelf: number;
+}
+
+/** The real counts behind the map's presence row — how many things are still
+ *  only in the room versus how many reached the shelf, per house. Counted
+ *  directly in SQL rather than through `viewsFor`, since the map needs
+ *  numbers for every house at once, not full thing views for one. */
+export function countsFor(houseSlug: string): HouseCounts {
+  const house = houseBySlug(houseSlug);
+  if (!house) return { inRoom: 0, onShelf: 0 };
+  const row = db
+    .prepare(
+      `SELECT
+         COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM keepings k WHERE k.thing_id = t.id)) AS onShelf,
+         COUNT(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM keepings k WHERE k.thing_id = t.id)) AS inRoom
+       FROM things t WHERE t.house_id = ?`,
+    )
+    .get(house.id) as { onShelf: number; inRoom: number };
+  return { inRoom: row.inRoom, onShelf: row.onShelf };
 }

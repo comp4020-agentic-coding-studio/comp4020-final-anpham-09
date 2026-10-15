@@ -10,10 +10,12 @@ import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
 import { housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage } from "./render.ts";
 import {
   addPerspective,
+  countsFor,
   inRoom,
   keepTogether,
-  onShelf,
   place,
+  shelfFor,
+  shelfYears,
   type KeepRefusal,
   type PerspectiveRefusal,
   type PlaceRefusal,
@@ -203,14 +205,23 @@ const server = createServer((req, res) => {
       const houses = listHouses().map((h) => ({
         ...h,
         hereNames: (everywhere[h.slug] ?? []).map(nameOf),
+        counts: countsFor(h.slug),
       }));
       html(res, 200, mapPage(houses, me, message), setCookie);
       return;
     }
 
     if (method === "GET" && path === "/shelf") {
-      const houses = listHouses().map((h) => ({ ...h, shelved: onShelf(h.slug, token) }));
-      html(res, 200, shelfPage(houses, me, message), setCookie);
+      const filters = {
+        house: (url.searchParams.get("house") ?? "").trim(),
+        year: (url.searchParams.get("year") ?? "").trim(),
+        q: (url.searchParams.get("q") ?? "").trim().slice(0, 120),
+      };
+      const houses = listHouses().map((h) => ({
+        ...h,
+        shelved: shelfFor(h.slug, token, { year: filters.year, q: filters.q }),
+      }));
+      html(res, 200, shelfPage(houses, me, message, filters, shelfYears()), setCookie);
       return;
     }
 

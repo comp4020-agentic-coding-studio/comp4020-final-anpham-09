@@ -106,3 +106,29 @@ because a mistake taught them: houses are allocated per test because vitest runs
 spec files in parallel and presence is shared state; tests leave on their way out
 because presence outlives them by 45 seconds; `README.md` must be written inside
 the markdown subset the app can actually render.
+
+## 2026-10-15 — presence stopped being enough
+
+The decision two sections up — "everyone present when you place something
+becomes a keeper, automatically" — is no longer what the app does. It was a
+cheaper rule than the brief asked for: being in the same room at the same
+moment, measured by a 45-second presence window, is not the same claim as
+having read what was put down and chosen to keep it. A tab left open in the
+background counted as a keeper under the old rule. It shouldn't have.
+
+The replacement ([`028bd5e`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/028bd5e)):
+a thing reaches the shelf only when a distinct second member has written
+their own perspective on it *and* explicitly clicked "Keep this together."
+Presence now has no write-side effect at all — it's purely what the Living
+Village Map and a house's who's-here line show, never what moves something
+onto the shelf. The `keepings` table and its `keepings_not_own` trigger are
+unchanged; a new `perspectives` table and `keepings_require_perspective`
+trigger enforce the added precondition at the schema layer, not just in the
+route — the same "enforced twice" pattern the placer-exclusion rule already
+used, for the same reason: a rule only one layer knows is a rule that can be
+forgotten.
+
+This is not a correction to the crit 9 write-up above — that entry describes
+what was true and shipped at the time, and stands as written. It's a later
+decision, made against the original brief's §3 rather than against anything
+that went wrong in testing.

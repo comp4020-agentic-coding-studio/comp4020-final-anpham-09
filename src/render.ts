@@ -168,6 +168,7 @@ li.thing:nth-of-type(odd) { transform: rotate(-0.4deg); }
 li.thing:nth-of-type(even) { transform: rotate(0.4deg); }
 li.thing:has(.state[data-state="on-the-shelf"]) { border-left: 3px solid var(--sage); }
 li.thing:has(.state[data-state="in-the-room"]) { border-left: 3px solid var(--amber); }
+.thing-title { font-family: var(--display); font-weight: 700; font-size: 1.0625rem; margin: 0 0 .25rem; color: var(--ink); }
 .body { font-size: 1.0625rem; margin: 0 0 .35rem; }
 .meta { color: var(--ink-soft); font-size: .8125rem; margin: 0 0 .5rem; }
 
@@ -211,8 +212,37 @@ li.thread-msg:nth-of-type(odd), li.thread-msg:nth-of-type(even) { transform: non
 .state-row { display: flex; align-items: center; justify-content: space-between;
   flex-wrap: wrap; gap: .3rem .75rem; margin: 0 0 .5rem; }
 .state-row .state-text { margin: 0; flex: 1 1 auto; min-width: 0; }
-form.inline-take { display: inline-flex; margin: 0; flex: 0 0 auto; }
+form.inline-take { display: inline-flex; margin: .5rem 0 0; flex: 0 0 auto; }
 form.inline-take button { min-height: 44px; padding: .4rem .85rem; font-size: .8125rem; }
+
+/* A thing's perspectives: each person's own words on it, appended below the
+   original body — never replacing it. */
+ol.perspectives { display: grid; gap: .5rem; margin: .5rem 0; padding-left: .75rem;
+  border-left: 2px solid var(--rule); }
+li.perspective { list-style: none; }
+li.perspective .body { font-size: .9375rem; margin: 0 0 .15rem; }
+li.perspective .meta { margin: 0; }
+
+/* The one small action still open on a thing — adding a perspective, or
+   (once the viewer has one) keeping it together — as a compact inline form
+   rather than a full-width one, same register as the rest of a memory slip. */
+form.inline-perspective { display: flex; flex-wrap: wrap; align-items: center;
+  gap: .4rem; margin: .5rem 0 0; }
+form.inline-perspective label { position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+form.inline-perspective input { flex: 1 1 12rem; min-height: 40px; padding: .45rem .7rem;
+  font-size: .875rem; }
+form.inline-perspective button { min-height: 40px; padding: .4rem .85rem; font-size: .8125rem; flex: 0 0 auto; }
+
+/* The Shelf's house/year/keyword filters, as one GET form so every result is
+   a plain bookmarkable/shareable URL — no client-side state to get out of
+   sync with what the database actually holds. */
+form.shelf-filters { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
+form.shelf-filters label { font-size: .8125rem; }
+form.shelf-filters > div, form.shelf-filters label { display: block; }
+form.shelf-filters select, form.shelf-filters input { min-height: 40px; padding: .45rem .7rem; font-size: .875rem; }
+form.shelf-filters button { min-height: 40px; padding: .4rem .9rem; font-size: .8125rem; }
+form.shelf-filters a { align-self: center; font-size: .875rem; }
 
 blockquote { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--rule); color: var(--ink-soft); }
 blockquote p { margin: .4rem 0; }
@@ -254,50 +284,80 @@ const names = (list: string[]): string =>
 
 /** Two states, and the app says which one it is in. "In the room" is one
  *  person's record of something. "On the shelf" is a thing more than one
- *  person was there for. The app never collapses them. */
+ *  person was there for, kept together on purpose. The app never collapses
+ *  them, and never implies presence alone is what moved it — see
+ *  `consequenceLine` for the same rule applied to what happens next. */
 function stateLine(t: ThingView): string {
   if (!t.onShelf) {
     return `<span class="state" data-state="in-the-room">In the room</span>
-      <span class="note">— nobody else was here when this was put down</span>`;
+      <span class="note">— nobody has kept this together yet</span>`;
   }
-  const n = t.keeperNames.length;
   return `<span class="state" data-state="on-the-shelf">On the shelf</span>
-    <span class="note">— ${names(t.keeperNames)} ${n === 1 ? "was" : "were"} here too</span>`;
+    <span class="note">— Kept together by ${esc(t.placedByName)} &amp; ${names(t.keeperNames)}</span>`;
 }
 
-/** The one small action a thing can offer — taking it in — as an inline
- *  control rather than a full-width button. Empty when there's nothing to
- *  do (the viewer put it down themself, or has already kept it): those two
- *  cases get a plain note instead, via `postNote`. */
-function takeForm(t: ThingView, houseSlug: string): string {
-  if (t.isOwn || t.viewerHasKept) return "";
+/** A thing's own perspectives, oldest first — append-only, so this is the
+ *  only place any of them are read back. Empty when nobody but the placer
+ *  has written one yet; the placer's own body already carries their side. */
+function perspectivesList(t: ThingView): string {
+  if (!t.perspectives.length) return "";
+  const items = t.perspectives
+    .map((p) => `<li class="perspective"><p class="body">${esc(p.body)}</p>
+      <p class="meta">${esc(p.authorName)} · ${esc(timeAgo(p.createdAt))}</p></li>`)
+    .join("");
+  return `<ol class="perspectives">${items}</ol>`;
+}
+
+/** The two actions a thing can still offer, each gated on what the viewer has
+ *  already done — never both at once, and never the placer's own thing.
+ *  Writing a perspective is the precondition prompt.md requires for keeping
+ *  something together, so the form that matters is the one the viewer is
+ *  actually eligible for right now. */
+function perspectiveForm(t: ThingView, houseSlug: string): string {
+  return `<form method="post" action="/perspectives" class="inline-perspective">
+    <input type="hidden" name="thing" value="${t.id}">
+    <input type="hidden" name="house" value="${esc(houseSlug)}">
+    <label for="perspective-${t.id}">Add your perspective</label>
+    <input id="perspective-${t.id}" name="body" required maxlength="280" placeholder="What I remember about this">
+    <button>Add your perspective</button></form>`;
+}
+
+function keepForm(t: ThingView, houseSlug: string): string {
   return `<form method="post" action="/take" class="inline-take">
     <input type="hidden" name="thing" value="${t.id}">
     <input type="hidden" name="house" value="${esc(houseSlug)}">
-    <button>I was here for this</button></form>`;
+    <button>Keep this together</button></form>`;
 }
 
-/** The state label and its one action, sharing a line — see `.state-row`.
- *  Shared by the ordinary room list and the meeting house's thread, since
- *  both show the same two-state rule on the same kind of row. */
-function stateRow(t: ThingView, houseSlug: string): string {
-  return `<div class="state-row"><p class="state-text">${stateLine(t)}</p>${takeForm(t, houseSlug)}</div>`;
+function actionArea(t: ThingView, houseSlug: string): string {
+  if (t.isOwn) return `<p class="note">You put this down, so you can't be the one who keeps it together too.</p>`;
+  if (t.viewerHasKept) return `<p class="note">You kept this together.</p>`;
+  if (t.viewerHasPerspective) return keepForm(t, houseSlug);
+  return perspectiveForm(t, houseSlug);
 }
 
-/** The quiet text for the two cases `takeForm` has nothing to offer for —
- *  never a button, since there's no action left to take. */
-function postNote(t: ThingView): string {
-  if (t.isOwn) return `<p class="note">You put this down, so you can't be the one who was here for it.</p>`;
-  if (t.viewerHasKept) return `<p class="note">You were here for this.</p>`;
-  return "";
+/** The state label alone, on its own line — see `.state-row`. Shared by the
+ *  ordinary room list and the meeting house's thread, since both show the
+ *  same two-state rule on the same kind of row. */
+function stateRow(t: ThingView): string {
+  return `<div class="state-row"><p class="state-text">${stateLine(t)}</p></div>`;
+}
+
+function dateMeta(t: ThingView): string {
+  const bits = [`${esc(t.placedByName)} · ${esc(timeAgo(t.createdAt))}`];
+  if (t.eventDate) bits.push(`about ${esc(t.eventDate)}`);
+  if (t.onShelf && t.keptAt) bits.push(`kept ${esc(timeAgo(t.keptAt))}`);
+  return `<p class="meta">${bits.join(" · ")}</p>`;
 }
 
 function thingItem(t: ThingView, houseSlug: string): string {
   return `<li class="thing">
+    <p class="thing-title">${esc(t.title)}</p>
     <p class="body">${esc(t.body)}</p>
-    <p class="meta">${esc(t.placedByName)} · ${esc(t.createdAt)} UTC</p>
-    ${stateRow(t, houseSlug)}
-    ${postNote(t)}
+    ${dateMeta(t)}
+    ${stateRow(t)}
+    ${perspectivesList(t)}
+    ${actionArea(t, houseSlug)}
   </li>`;
 }
 
@@ -356,15 +416,28 @@ function homeChip(placedByToken: string): string {
   return home ? `<span class="chip chip-home">${esc(home.name)}</span>` : "";
 }
 
+/** The event date and (once shelved) kept date alone — the thread already
+ *  shows who and when-posted in `.thread-meta`, so this only adds what that
+ *  line doesn't carry. */
+function eventAndKeptMeta(t: ThingView): string {
+  const bits: string[] = [];
+  if (t.eventDate) bits.push(`about ${esc(t.eventDate)}`);
+  if (t.onShelf && t.keptAt) bits.push(`kept ${esc(timeAgo(t.keptAt))}`);
+  return bits.length ? `<p class="meta">${bits.join(" · ")}</p>` : "";
+}
+
 function threadMessage(t: ThingView, houseSlug: string): string {
   return `<li class="thing thread-msg">
     ${monogram(t.placedByName)}
     <div class="thread-body">
       <p class="thread-meta"><strong>${esc(t.placedByName)}</strong> ${homeChip(t.placedBy)}
         <span class="thread-time">${esc(timeAgo(t.createdAt))}</span></p>
+      <p class="thing-title">${esc(t.title)}</p>
       <p class="body">${esc(t.body)}</p>
-      ${stateRow(t, houseSlug)}
-      ${postNote(t)}
+      ${eventAndKeptMeta(t)}
+      ${stateRow(t)}
+      ${perspectivesList(t)}
+      ${actionArea(t, houseSlug)}
     </div>
   </li>`;
 }
@@ -496,7 +569,7 @@ function photoPanel(slug: string, variant: "card" | "banner" = "card"): string {
 }
 
 export function mapPage(
-  houses: Array<House & { hereNames: string[] }>,
+  houses: Array<House & { hereNames: string[]; counts: { inRoom: number; onShelf: number } }>,
   me: Person,
   message: string | null,
 ): string {
@@ -508,12 +581,14 @@ export function mapPage(
         : "Nobody is here";
       const cta = isHere ? "Come on in →" : "Step inside →";
       const home = h.slug === me.homeSlug ? `<span class="chip chip-home">Your house</span>` : "";
+      const countsLine = `<p class="note">${h.counts.inRoom} in the room · ${h.counts.onShelf} on the shelf</p>`;
       return `<li class="house">
         <a class="house-card" href="/house/${esc(h.slug)}">
           <div class="card">
             <span class="eyebrow">${esc(eyebrowFor(h.slug))}</span>
             <h2>${esc(h.name)} ${home}</h2>
             ${photoPanel(h.slug)}
+            ${countsLine}
             <hr class="dashed-rule">
             <p class="presence-row">
               <span class="presence-dot" data-here="${isHere}"></span>
@@ -542,15 +617,15 @@ export function mapPage(
   );
 }
 
-/** The real consequence of putting something down right now, built only from
- *  the presence names the route already computed — never invented. */
+/** What actually moves a thing to the shelf: never presence alone, always a
+ *  distinct second member writing their own perspective and choosing to
+ *  keep it together. Presence names are still shown, since who is around is
+ *  still useful to know — just not framed as the cause. */
 function consequenceLine(otherNames: string[]): string {
-  if (!otherNames.length) {
-    return "Nobody else is here. What you put down will stay in the room until someone comes.";
-  }
-  const verb = otherNames.length === 1 ? "is" : "are";
-  const whose = otherNames.length === 1 ? "their name" : "their names";
-  return `${names(otherNames)} ${verb} here right now. If ${otherNames.length === 1 ? "they are" : "they are"} still here, this goes on the shelf with ${whose}.`;
+  const whoIsHere = otherNames.length
+    ? `${names(otherNames)} ${otherNames.length === 1 ? "is" : "are"} here right now. `
+    : "";
+  return `${whoIsHere}What you put down stays in the room on its own. It only reaches the shelf once someone else writes their own perspective on it and chooses to keep it together — being in the room at the same time isn't enough by itself.`;
 }
 
 export function housePage(
@@ -604,16 +679,20 @@ export function housePage(
         <div class="panel-stack">
           <div class="card">
             <h3 class="rule-title">The two-state rule</h3>
-            <p class="body-sm"><strong>In the room</strong> — nobody else was here yet.</p>
-            <p class="body-sm"><strong>On the shelf</strong> — someone was here with you, and it stays.</p>
+            <p class="body-sm"><strong>In the room</strong> — nobody has kept this together yet.</p>
+            <p class="body-sm"><strong>On the shelf</strong> — someone wrote their own perspective and chose to keep it together, and it stays.</p>
           </div>
           <div class="card-raised">
             <p class="consequence">${esc(consequenceLine(otherNames))}</p>
           </div>
           <form method="post" action="/place">
             <input type="hidden" name="house" value="${esc(house.slug)}">
+            <label for="title">Give it a title</label>
+            <input id="title" name="title" required maxlength="120" placeholder="His first steps">
             <label for="body">${esc(composeLabel)}</label>
             <input id="body" name="body" required maxlength="280" placeholder="He stood up on his own today">
+            <label for="event_date">When did this happen? <span class="note">(optional)</span></label>
+            <input id="event_date" name="event_date" maxlength="40" placeholder="March 2019, or any time you like">
             <button class="primary">${esc(composeButton)}</button>
           </form>
           <p class="quiet">${esc(quietLine)}</p>
@@ -648,16 +727,31 @@ export function shelfPage(
   houses: Array<House & { shelved: ThingView[] }>,
   me: Person,
   message: string | null,
+  filters: { year: string; q: string; house: string },
+  years: string[],
 ): string {
-  const sections = houses
+  const visibleHouses = filters.house
+    ? houses.filter((h) => h.slug === filters.house)
+    : houses;
+  const totalShown = visibleHouses.reduce((n, h) => n + h.shelved.length, 0);
+  const sections = visibleHouses
     .map((h) => {
       const body = h.shelved.length
         ? `<ol>${h.shelved.map((t) => thingItem(t, h.slug)).join("")}</ol>`
-        : `<p class="empty">Nothing from ${esc(h.name)} is on the shelf yet. Something
-            gets here when two of you are in the room together.</p>`;
+        : `<p class="empty">Nothing from ${esc(h.name)} matches, or is on the shelf yet.</p>`;
       return `<section><h2>${esc(h.name)}</h2>${body}</section>`;
     })
     .join("");
+  const houseOptions = houses
+    .map(
+      (h) =>
+        `<option value="${esc(h.slug)}"${filters.house === h.slug ? " selected" : ""}>${esc(h.name)}</option>`,
+    )
+    .join("");
+  const yearOptions = years
+    .map((y) => `<option value="${esc(y)}"${filters.year === y ? " selected" : ""}>${esc(y)}</option>`)
+    .join("");
+  const isFiltered = filters.house || filters.year || filters.q;
   return page(
     "The memory shelf",
     `<main>
@@ -665,6 +759,29 @@ export function shelfPage(
       <p class="lede">Only the things more than one of you were there for. No
         compose box here — the shelf is for looking at.</p>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
+      <form method="get" action="/shelf" class="shelf-filters">
+        <div>
+          <label for="shelf-house">House</label>
+          <select id="shelf-house" name="house">
+            <option value="">Every house</option>
+            ${houseOptions}
+          </select>
+        </div>
+        <div>
+          <label for="shelf-year">Kept in</label>
+          <select id="shelf-year" name="year">
+            <option value="">Any year</option>
+            ${yearOptions}
+          </select>
+        </div>
+        <div>
+          <label for="shelf-q">Search</label>
+          <input id="shelf-q" name="q" value="${esc(filters.q)}" placeholder="a word from the story">
+        </div>
+        <button class="primary">Filter</button>
+        ${isFiltered ? `<a href="/shelf">Clear</a>` : ""}
+      </form>
+      <p class="note">${totalShown} ${totalShown === 1 ? "memory" : "memories"} shown${isFiltered ? " for these filters" : ""}.</p>
       ${sections}
     </main>`,
     me,
