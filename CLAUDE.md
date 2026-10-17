@@ -36,13 +36,48 @@ should ever read.
 
 **"On the shelf" is derived, never stored.** A thing is kept if and only if a
 `keepings` row exists for it. There is no boolean to drift away from the fact
-underneath it. Do not add one.
+underneath it. Do not add one. The same reasoning governs whether a game has
+been written down: that is a `things` row with a `game_id`, not a flag on the
+game.
+
+The game adds four more, for the same reason: `one_live_game_per_house` is a
+partial unique index, because two live games would give the room two boards
+and no way to say which one "the table" means; `CHECK (top != bottom)` is the
+game's own placer-exclusion rule, since a game needs two of you; and
+`moves_never_change` and `moves_never_vanish` make a played move permanent,
+which is "never delete anything anyone placed" applied to a move.
+
+**`moves.board_after` is the one piece of derived state that IS stored**, and
+it is an argued exception rather than a lapse. The shelf's `onShelf` is
+derived because there is a fact underneath it that a cached boolean could
+drift from. A board has no such fact: the move list is its only source, and
+replaying every move on every render costs CPU on a 256MB box for no
+integrity gain. What makes it honest is that it has exactly one writer — the
+engine, in the same `INSERT` as the move that produced it — no `UPDATE` path
+at all, and a test in `spec/games.test.ts` that replays the moves through the
+pure engine and asserts it reproduces every stored board and every stored
+score. Remove that test and the exception stops being defensible.
 
 ## Checks
 
 - **A test that has never been seen to fail is not evidence.** Break the
-  behaviour it guards, confirm it goes red, restore. Four tests in this repo
-  did not go red and were rewritten: they were asserting nothing.
+  behaviour it guards, confirm it goes red, restore. Several tests in this
+  repo did not go red and were rewritten: they were asserting nothing.
+- **The HTTP tests run against a server that is already running.** `pnpm dev`
+  is plain `node src/server.ts` with no watcher, so breaking a source file
+  proves nothing until the server is restarted. Three "breaks" were recorded
+  as isolating before this was noticed; the process under test still held the
+  unbroken source.
+- **Never assert on a page without stripping the stylesheet first.** Every
+  page inlines the whole of it, and it names the same classes the markup uses
+  — so `toContain("pit-pick")` can never fail and `not.toContain` can never
+  pass. The first is the dangerous direction: it stays green while the feature
+  is broken. `spec/routes.test.ts` has a `markup()` helper; use it.
+- **A test that asserts on the CONTENT of an event must wait for ITS event.**
+  Houses are shared across spec files running in parallel, so the first event
+  on a stream may belong to another test. `firstEvent` is right for proving
+  delivery; `firstEventMatching` is right for anything that reads the payload.
+  This was found as a suite that failed half the time and passed alone.
 - **A break only counts if it isolates.** A break that reddens tests it has
   nothing to do with has not proved what it claims. If a break reddens more or
   fewer tests than expected, that is a finding about the tests — report it
@@ -98,6 +133,20 @@ it before calling a visual change done.
   Known, documented in the README, not silently worked around.
 - **`src/events.ts` has no `node:http` import.** That is what makes real-time
   testable without starting a server. Keep it that way.
+- **`src/oanquan.ts` has no imports at all.** The rules are pure functions
+  over a board value, which is what lets the conservation property test play
+  thousands of games with no database and no server. An import of `./db.ts`
+  would fail no test — it would quietly make the engine untestable in
+  isolation. `spec/sources.test.ts` guards both this and the rule above.
+- **Points are conserved: board + both scores is always 70.** That property,
+  run over hundreds of randomised games, found a real engine bug that no
+  hand-written case had. Keep the property test.
+- **A game has three endings, not two.** `finished` (both quan captured) and
+  conceding when a side cannot afford to refill both produce a real score and
+  can be kept. `stopped` — somebody walked away — produces no score, no
+  winner, and nothing to put in a room. The interface must not offer to keep
+  one, and absence is the right way to do that: a button that refuses teaches
+  people the app is broken.
 
 ## The page
 
@@ -106,8 +155,27 @@ it before calling a visual change done.
 - Interactive targets are at least 44×44px, including nav links.
 - State is carried in text, never by colour alone. "In the room" and "On the
   shelf" are words before they are a left border.
-- One `h1` per page, and **the app must work with JavaScript off**. Every action
-  is a form POST; the only script is the event stream that swaps the room.
+- One `h1` per page, and **the app must work with JavaScript off**. Every
+  action is a form POST — including a game move, which is a GET to pick a pit
+  and a POST to sow it. The script swaps the room and the table when the
+  stream says something changed.
+- **The typing indicator is the one exception, and it is a whole feature
+  rather than a degraded one.** With a script blocked, nothing is sent and the
+  line never appears; everything else on the page behaves identically. Any
+  further exception needs the same shape: the feature is absent, not broken,
+  and it is written down here before it is built.
+- **A typing event must never trigger a resync.** The SSE contract is "any
+  event means refetch", and the payload has always been an opaque string the
+  client ignores. The client branches on the `typing:` prefix and returns;
+  everything else falls through unchanged. Resyncing here would be a request
+  per keystroke from everyone in the room, and would wipe a half-written
+  message out of the box.
+- **A payload is one SSE `data:` line, so it may not contain a newline.** A
+  newline does not escape — it ends the line, and what follows is parsed as a
+  further event under the control of whoever wrote it. Every payload was a
+  literal in this codebase until typing started carrying a person's name.
+  `publish()` sanitises, which is the one place every payload passes through;
+  do not sanitise at call sites instead.
 - **`/readme/` renders through `src/render.ts`'s own markdown**, which supports
   headings, paragraphs, lists, blockquotes, fenced code and inline
   bold/italic/code/links — and nothing else. Write `README.md` inside that

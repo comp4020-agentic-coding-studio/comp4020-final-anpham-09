@@ -2,72 +2,78 @@
 
 My parents live in Nghe An, my brother's family in Hanoi, and I live in
 Canberra. This is an app for the six of us. My nephew An Duy is eleven months
-old: the reason it exists, and the only one of us who cannot use it.
+old: the reason it exists, and the only one who cannot use it.
 
 ## What good means here
 
 We already have a group chat, so reaching each other was never the problem.
 Nothing survives it. An Duy's first year is somewhere in that scroll and none
-of us will ever go back far enough to find it.
+of us will go back far enough to find it.
 
-Photo services fail from the other end: they keep everything, which is the same
-as keeping nothing. Forty thousand files sorted by date by a machine with no
-idea which ones mattered.
+Photo services fail from the other end: they keep everything, which is the
+same as keeping nothing — forty thousand files sorted by date by a machine
+with no idea which mattered.
 
 Sharing is solved. Keeping is not. This app is only about keeping.
 
 > A memory is something two of you were there for.
 
 Putting something down is not keeping it. What you place stays in the room you
-put it in. It reaches that house's shelf only when somebody else was in the
-room with you, and then it carries both your names and the day. Nothing is
-withheld and nothing expires — being together is what makes a thing permanent.
+put it in, and reaches that house's shelf only when somebody else writes their
+own side of it and chooses to keep it together. Then it carries both names and
+the day. Nothing is withheld and nothing expires.
 
-Houses, then, and not a feed. A feed has one direction and nowhere to stand.
+Houses, then, not a feed. A feed has one direction and nowhere to stand.
 
 ## What I read
 
 **Robin Sloan, [An app can be a home-cooked meal](https://www.robinsloan.com/notes/home-cooked-app/) (2020).**
-His app has "four daily active users, with zero churn". Six related people is a
-decision, not a shortfall.
+His app has "four daily active users, with zero churn". Six related people is
+a decision, not a shortfall.
 
 **Maggie Appleton, [Home-Cooked Software and Barefoot Developers](https://maggieappleton.com/home-cooked-software) (2024).**
-Builds on Sloan: software made by people who understand the community rather
-than the stack, and the glue between an idea and something that actually works.
+Software made by people who understand the community, not the stack.
 
 **Frances Yates, *The Art of Memory* (1966).** Quintilian has you remember by
-walking a building, forecourt to bedrooms. Rooms were a memory technology long
-before they were an interface metaphor.
+walking a building. Rooms were a memory technology long before they were an
+interface.
 
 ## What the checks enforce, and what they don't
 
-`spec/` enforces: nothing reaches a shelf with one name on it; nobody can keep
+`spec/` enforces: nothing reaches a shelf with one name on it; nobody keeps
 their own thing, by any path; one person counts once; a thing placed alone
-stays visible; placing works with JavaScript off; and a change reaches another
-open session in under a second, measured at five milliseconds. Every test was
-checked by breaking what it guards and confirming it went red. Three did not.
-They were asserting nothing, and were rewritten.
+stays visible; placing and playing work with JavaScript off; points are
+conserved across every move of a game; and a change reaches another session in
+under a second, measured at five milliseconds. All 150 tests were checked by
+breaking what they guard and confirming red. Several didn't, so they were
+asserting nothing, and were rewritten.
 
 Not enforced:
 
-- The schema guarantees two different names on a shelved thing. That the second
-  person was **in the room** is enforced by the interface, not the server.
-- One browser is one person.
+- One browser is one person. Nothing proves who holds it.
 - A room shows its two hundred newest things; nothing reaches the older ones.
-- A body over 280 characters is trimmed rather than refused — the one place the
-  app acts without words.
+- A body over 280 characters is trimmed, not refused — the one place the app
+  acts without words.
 - Times show in UTC. Hanoi and Nghe An run three or four hours behind
-  Canberra, depending on daylight saving.
+  Canberra.
 
-Judged, not tested: whether the village reads as a place, and whether the shelf
-is worth coming back to.
+Judged, not tested: whether the village reads as a place, and whether the
+shelf is worth coming back to.
 
-## What I chose not to build
+## What I built, and what I didn't
 
-No accounts, no notifications, no direct messages. What is said in a house is
-said to the house; privacy comes from where you are, not from a recipient
-field. Nothing can be deleted or edited. Photos are week ten.
+This file used to call a game the thing I most wanted and cut. It was a
+sequence, not a cut: presence worked first, then the table got a board. **Ô ăn
+quan** is the game my parents played as children — two rows of five, a quan at
+each end. A finished game is a score, not a memory, so it reaches the shelf
+the same way everything else does. A game somebody walks away from has no
+score, and the app doesn't offer to keep it.
 
-What I most wanted and cut was doing something together — a game, or something
-made in turns. It is the obvious answer to a family in three places, and it is
-a second app. Presence had to work first.
+No accounts, no notifications, no *private* messages — the meeting house is a
+group conversation and always was. Privacy comes from where you are, not a
+recipient field. Nothing can be deleted or edited. Still cut: photo uploads,
+likes, tags, the other games the mockups drew.
+
+One concession to JavaScript: the line saying somebody is typing. With a
+script blocked it never appears and nothing else changes — every action here
+is a form POST, including a move.
