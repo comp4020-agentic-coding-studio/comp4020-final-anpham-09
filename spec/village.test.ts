@@ -119,11 +119,39 @@ describe("what the app will and won't call a memory", () => {
 
   it("refuses an unknown house and a blank title or body, with a reason", async () => {
     const { things } = await boot();
-    expect(things.place("meeting", "alice", "", "hello")).toBe("blank-title");
     expect(things.place("meeting", "alice", "Title", "   ")).toBe("blank-body");
     expect(things.place("treehouse", "alice", "Title", "hello")).toBe("unknown-house");
     expect(things.keepTogether(9999, "bob")).toBe("unknown-thing");
     expect(things.addPerspective(9999, "bob", "hello")).toBe("unknown-thing");
+  });
+
+  // Replaces a line in the test above that asserted
+  // place("meeting", …, "", "hello") returned "blank-title". That rule
+  // changed: the meeting house is a conversation, and a remark at the table
+  // has no title. Both halves are asserted here on purpose — the first is
+  // the one that matters, because without it this change quietly becomes
+  // "titles are optional everywhere" and the shelf fills with kept memories
+  // that have nothing to call them.
+  it("asks for a title in a house, and not at the table", async () => {
+    const { things } = await boot();
+    expect(things.place("canberra", "alice", "", "a thing in a house")).toBe("blank-title");
+    expect(typeof things.place("meeting", "alice", "", "a line at the table")).toBe("number");
+  });
+
+  // A body is still required at the table: the whole content of a remark is
+  // its body, so a blank one is nothing at all.
+  //
+  // The second assertion is the one with teeth, and it is here because the
+  // first one has none. `place()` now looks the house up before judging the
+  // title, so the two checks have an order, and the meeting-house case
+  // cannot detect it — the title check never fires there, so a blank body
+  // answers "blank-body" whichever way round the checks go. Only a
+  // household house, where both checks are live, pins the order down.
+  // Found by breaking the order and watching this test stay green.
+  it("asks about the body before the title, when both are blank", async () => {
+    const { things } = await boot();
+    expect(things.place("meeting", "alice", "", "   ")).toBe("blank-body");
+    expect(things.place("canberra", "alice", "", "   ")).toBe("blank-body");
   });
 
   it("keeps a house's things, perspectives and shelf across a restart", async () => {

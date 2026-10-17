@@ -50,10 +50,18 @@ export function place(
 ): number | PlaceRefusal {
   const trimmedTitle = title.trim().slice(0, 120);
   const trimmedBody = body.trim().slice(0, 280);
-  if (!trimmedTitle) return "blank-title";
   if (!trimmedBody) return "blank-body";
+  // The house is looked up before the title is judged, because whether a
+  // title is required depends on which house this is. That is a reordering:
+  // a blank title in a house that doesn't exist now answers "unknown-house"
+  // rather than "blank-title", which is the more fundamental fact anyway.
   const house = houseBySlug(houseSlug);
   if (!house) return "unknown-house";
+  // A thing in a household house needs a name: it can reach that house's
+  // shelf, and a kept memory with nothing to call it is hard to come back
+  // to. The meeting house is a conversation — a remark at the table is not
+  // an artefact and titling it would be a small lie about what it is.
+  if (!trimmedTitle && house.kind !== "meeting") return "blank-title";
 
   const trimmedDate = eventDate?.trim().slice(0, 40) || null;
   const info = db

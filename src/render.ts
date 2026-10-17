@@ -273,7 +273,10 @@ li.perspective .meta { margin: 0; }
    rather than a full-width one, same register as the rest of a memory slip. */
 form.inline-perspective { display: flex; flex-wrap: wrap; align-items: center;
   gap: .4rem; margin: .5rem 0 0; }
-form.inline-perspective label { position: absolute; width: 1px; height: 1px;
+/* A label that a screen reader reads and the eye doesn't: used where the
+   placeholder and the surrounding context already say what the field is,
+   but the field still needs a real label to be announced at all. */
+.visually-hidden, form.inline-perspective label { position: absolute; width: 1px; height: 1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 form.inline-perspective input { flex: 1 1 12rem; min-height: 40px; padding: .45rem .7rem;
   font-size: .875rem; }
@@ -459,6 +462,13 @@ main :is(h2,h3) { margin-top: 2rem; }
    is speaking. */
 .hand { font-family: var(--hand); font-size: 1.5rem; line-height: 1.35; color: var(--ink); }
 .scene .hand { color: #FFF4E6; }
+
+/* The meeting house's composer: one row, because it is one field. The
+   household houses keep the stacked title/body/date form, which is a
+   different kind of writing and deserves the room. */
+form.say { display: flex; align-items: center; gap: .5rem; margin: 1.25rem 0; }
+form.say input { flex: 1 1 auto; min-width: 0; }
+form.say button { flex: 0 0 auto; }
 
 /* ---- The shelf ------------------------------------------------------- */
 .shelf-head { display: flex; flex-wrap: wrap; align-items: flex-start;
@@ -647,7 +657,7 @@ function dateMeta(t: ThingView): string {
 
 function thingItem(t: ThingView, houseSlug: string): string {
   return `<li class="thing">
-    <p class="thing-title">${esc(t.title)}</p>
+    ${titleLine(t)}
     <p class="body">${esc(t.body)}</p>
     ${dateMeta(t)}
     ${stateRow(t)}
@@ -711,6 +721,17 @@ function homeChip(placedByToken: string): string {
   return home ? `<span class="chip chip-home">${esc(home.name)}</span>` : "";
 }
 
+/** A thing's title, or nothing at all when it hasn't got one. Two kinds of
+ *  thing have no title: a line said at the table, which never had one, and
+ *  anything placed before the app asked for titles. Rendering an empty
+ *  element for either leaves a gap on the page and announces a heading with
+ *  no words in it. */
+function titleLine(t: ThingView, tag: "p" | "h3" = "p"): string {
+  return t.title.trim()
+    ? `<${tag} class="thing-title">${esc(t.title)}</${tag}>`
+    : "";
+}
+
 /** The event date and (once shelved) kept date alone — the thread already
  *  shows who and when-posted in `.thread-meta`, so this only adds what that
  *  line doesn't carry. */
@@ -727,7 +748,7 @@ function threadMessage(t: ThingView, houseSlug: string): string {
     <div class="thread-body">
       <p class="thread-meta"><strong>${esc(t.placedByName)}</strong> ${homeChip(t.placedBy)}
         <span class="thread-time">${esc(timeAgo(t.createdAt))}</span></p>
-      <p class="thing-title">${esc(t.title)}</p>
+      ${titleLine(t)}
       <p class="body">${esc(t.body)}</p>
       ${eventAndKeptMeta(t)}
       ${stateRow(t)}
@@ -1014,7 +1035,10 @@ export function housePage(
 ): string {
   const isMeeting = house.slug === "meeting";
   const composeLabel = isMeeting ? "What do you want to say at the table?" : "What do you want to put down here?";
-  const composeButton = isMeeting ? "Place words on the table" : "Put this down";
+  // "Send" at the table, because that is the word for saying something to a
+  // room. "Put this down" stays in the houses, where the verb really is
+  // placing an object somewhere it will stay.
+  const composeButton = isMeeting ? "Send" : "Put this down";
   const quietLine = isMeeting
     ? "Whatever is said here reaches everyone in the room. No alerts, no unread marks."
     : "No notifications, no alerts. You find out by visiting.";
@@ -1074,14 +1098,28 @@ export function housePage(
           <div class="card-raised">
             <p class="consequence">${esc(consequenceLine(otherNames))}</p>
           </div>
-          <form method="post" action="/place">
+          <!-- At the table this is one box, because a remark is not an
+               artefact: it has no title and no "when did this happen",
+               and asking for either would be a small lie about what is
+               being written. In a household house, where a thing can reach
+               the shelf under its own name, both still earn their place. -->
+          <form method="post" action="/place"${isMeeting ? ' class="say"' : ""}>
             <input type="hidden" name="house" value="${esc(house.slug)}">
-            <label for="title">Give it a title</label>
-            <input id="title" name="title" required maxlength="120" placeholder="His first steps">
-            <label for="body">${esc(composeLabel)}</label>
-            <input id="body" name="body" required maxlength="280" placeholder="He stood up on his own today">
-            <label for="event_date">When did this happen? <span class="note">(optional)</span></label>
-            <input id="event_date" name="event_date" maxlength="40" placeholder="March 2019, or any time you like">
+            ${
+              isMeeting
+                ? ""
+                : `<label for="title">Give it a title</label>
+            <input id="title" name="title" required maxlength="120" placeholder="His first steps">`
+            }
+            <label for="body"${isMeeting ? ' class="visually-hidden"' : ""}>${esc(composeLabel)}</label>
+            <input id="body" name="body" required maxlength="280"
+              placeholder="${isMeeting ? "Send a message…" : "He stood up on his own today"}">
+            ${
+              isMeeting
+                ? ""
+                : `<label for="event_date">When did this happen? <span class="note">(optional)</span></label>
+            <input id="event_date" name="event_date" maxlength="40" placeholder="March 2019, or any time you like">`
+            }
             <button class="primary">${esc(composeButton)}</button>
           </form>
           <p class="quiet">${esc(quietLine)}</p>
@@ -1126,15 +1164,9 @@ const isFilteredFrom = (f: { year: string; q: string; house: string }): boolean 
  *  line on the card after the title — not a footnote. */
 function shelfCard(t: ThingView, house: House): string {
   const everyone = [t.placedByName, ...t.keeperNames];
-  // Things placed before the app had titles have an empty one. An empty
-  // <h3> is a heading a screen reader announces with nothing in it, so the
-  // card simply goes without rather than rendering a hollow one.
-  const title = t.title.trim()
-    ? `<h3 class="thing-title">${esc(t.title)}</h3>`
-    : "";
   return `<li class="thing card-shelf">
     <div class="card-shelf-body">
-      ${title}
+      ${titleLine(t, "h3")}
       <p class="body">${esc(t.body)}</p>
       ${t.perspectives.length ? perspectivesList(t) : ""}
     </div>

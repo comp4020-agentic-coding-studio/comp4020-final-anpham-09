@@ -83,7 +83,7 @@ const REFUSALS: Record<
 > = {
   "unknown-house": "There's no such house in this village.",
   "blank-name": "The app needs something to call you.",
-  "blank-title": "This needs something to call it.",
+  "blank-title": "A thing in a house needs something to call it. At the table, a line on its own is enough.",
   "blank-body": "There's nothing there to put down.",
   "unknown-thing": "That isn't here any more, so nothing was recorded.",
   "own-thing": "You put this down, so you can't be the one who keeps it together too. A memory is something two of you add to.",
