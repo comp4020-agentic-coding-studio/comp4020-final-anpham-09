@@ -29,3 +29,11 @@ mise.local.toml
 # JetBrains project files: machine-local, and they record absolute paths from
 # this checkout. This repo goes public.
 .idea/
+
+# Design source material from Figma. `assets/village-assets/` is kept: it is
+# what scripts/build-images.sh reads to produce the WebP files in img/, and
+# without it those cannot be regenerated. The rest is a 67MB pile of screen
+# exports and a zip of the same — reference for building the UI, not input to
+# it, and this repo goes public on a 256MB machine.
+exports/
+assets/village-screens*/
