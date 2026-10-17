@@ -54,6 +54,58 @@ async function firstEvent(cookie: string, house: string, withinMs: number): Prom
   }
 }
 
+/** Like `firstEvent`, but waits for an event that MATCHES rather than for
+ *  the first one to arrive.
+ *
+ *  `meeting` is shared with spec/routes.test.ts, which vitest runs in
+ *  parallel with this file, and its game tests publish "sat", "moved" and
+ *  "placed" to the same house. `firstEvent` is still right for the test
+ *  above — any event proves delivery, which is what the brief asks about —
+ *  but a test that asserts on the CONTENT of a payload must not assert on
+ *  somebody else's.
+ *
+ *  Found by the suite failing about half the time it was run as a whole
+ *  while passing every time the file was run alone. The payload it got was
+ *  "sat".
+ */
+async function firstEventMatching(
+  cookie: string,
+  house: string,
+  matches: (payload: string) => boolean,
+  withinMs: number,
+): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), withinMs);
+  const res = await fetch(new URL(`/stream?house=${house}`, baseUrl), {
+    headers: { cookie, accept: "text/event-stream" },
+    signal: controller.signal,
+  });
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffered = "";
+  const seen: string[] = [];
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) throw new Error(`stream closed; saw ${JSON.stringify(seen)}`);
+      buffered += decoder.decode(value, { stream: true });
+      // Consume whole lines, so a payload split across two chunks is not
+      // read twice or half-read.
+      const lines = buffered.split("\n");
+      buffered = lines.pop() ?? "";
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const payload = line.slice(6).trim();
+        seen.push(payload);
+        if (matches(payload)) return payload;
+      }
+    }
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
+  }
+}
+
 describe("real-time, by the brief's definition", () => {
   it("shows one person's change in another open session in under a second", async () => {
     const alice = await join("Alice", "canberra");
@@ -123,6 +175,74 @@ describe("real-time, by the brief's definition", () => {
     } finally {
       // Leave on the way out: see the comment on the first test. Only Alice
       // and Bob entered a house here, so only they need to leave.
+      await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: alice } });
+      await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: bob } });
+    }
+  });
+});
+
+describe("the typing indicator, over the real stream", () => {
+  it("arrives as one frame the client can tell apart from a change", async () => {
+    // The whole design rests on one thing: the client can distinguish a
+    // typing event from every other event by its payload alone, because
+    // typing must NOT trigger a resync. Refetching the room on every
+    // keystroke would be a request per character from everybody watching,
+    // and it would wipe a half-written message out of the box the moment
+    // somebody else started typing.
+    //
+    // So the payload format is a contract, and this is where it is
+    // checked over a real socket rather than in the renderer's string.
+    const alice = await join("Alice", "canberra");
+    const bob = await join("Bob", "nghe-an");
+    try {
+      await fetch(new URL("/house/meeting", baseUrl), { headers: { cookie: bob } });
+      const waiting = firstEventMatching(bob, "meeting", (p) => p.startsWith("typing:"), 2000);
+      await new Promise((r) => setTimeout(r, 100));
+
+      await fetch(new URL("/typing", baseUrl), {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie: alice },
+        body: new URLSearchParams({ house: "meeting" }).toString(),
+      });
+
+      const payload = await waiting;
+      // The prefix the client branches on, and the name after it.
+      expect(payload.startsWith("typing:")).toBe(true);
+      expect(payload.slice(7)).toBe("Alice");
+      // One line. If a name could carry a newline this would be two
+      // events, the second of them forged — see spec/events.test.ts.
+      expect(payload).not.toContain("\n");
+      expect(payload).not.toContain("\r");
+    } finally {
+      await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: alice } });
+      await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: bob } });
+    }
+  });
+
+  it("keeps every other event resyncing, which typing must not break", async () => {
+    // The contract has two halves and this is the other one: nothing that
+    // worked before may start looking like a typing event. If "placed"
+    // ever gained that prefix the room would stop updating entirely, and
+    // the failure would be silent — a page that quietly never changes.
+    const alice = await join("Alice", "canberra");
+    const bob = await join("Bob", "nghe-an");
+    try {
+      await fetch(new URL("/house/meeting", baseUrl), { headers: { cookie: bob } });
+      // "placed" specifically, not just "the next event": another file
+      // may be publishing to this house at the same moment, and the
+      // claim being made here is about what /place sends.
+      const waiting = firstEventMatching(bob, "meeting", (p) => p === "placed", 2000);
+      await new Promise((r) => setTimeout(r, 100));
+
+      await fetch(new URL("/place", baseUrl), {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded", cookie: alice },
+        body: new URLSearchParams({ house: "meeting", body: "not a typing event" }).toString(),
+      });
+
+      const payload = await waiting;
+      expect(payload.startsWith("typing:")).toBe(false);
+    } finally {
       await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: alice } });
       await fetch(new URL("/leave", baseUrl), { method: "POST", headers: { cookie: bob } });
     }

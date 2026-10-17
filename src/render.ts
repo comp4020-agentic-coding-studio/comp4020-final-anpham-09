@@ -121,6 +121,11 @@ p { margin: 0 0 .75rem; }
 .note { color: var(--ink-soft); font-size: .875rem; }
 .empty { color: var(--ink-soft); }
 .quiet { color: var(--ink-soft); font-size: .875rem; font-style: italic; }
+/* The typing line. It reserves its own height whether or not anything is
+   in it, so the compose box and everything under it do not jump a line
+   down the moment somebody starts typing. */
+.typing { min-height: 1.25rem; margin: .4rem 0 0; color: var(--ink-soft);
+  font-size: .875rem; font-style: italic; }
 
 form { display: grid; gap: .6rem; margin: 1.25rem 0; }
 label { font-weight: 600; font-size: .9375rem; }
@@ -1477,6 +1482,15 @@ export function housePage(
             }
             <button class="primary">${esc(composeButton)}</button>
           </form>
+          ${
+            // Where "Alice is typing" appears. Empty and aria-live, so a
+            // screen reader announces it when it fills and says nothing
+            // the rest of the time. With JavaScript off it stays empty
+            // forever, which is exactly right: nothing is sending.
+            isMeeting
+              ? `<p id="typing" class="typing" role="status" aria-live="polite"></p>`
+              : ""
+          }
           <p class="quiet">${esc(quietLine)}</p>
         </div>
       </div>
@@ -1512,7 +1526,65 @@ export function housePage(
           if (await swap(room, "/room")) {${scrollAfterSwap}
           }
         };
-        stream.onmessage = resync;
+        // The one place the payload is read rather than ignored.
+        //
+        // Every other event means "something changed, fetch it again", and
+        // the payload has always been an opaque string the client throws
+        // away. Typing is the exception and must NOT resync: refetching
+        // the room on every keystroke would be a request per character
+        // from every person watching, and it would wipe a half-written
+        // message out of the box the moment somebody else started typing.
+        //
+        // Everything that is not a typing event falls through to resync
+        // unchanged, so the contract holds for every payload that existed
+        // before this one.
+        const typing = document.getElementById("typing");
+        let typingClear;
+        stream.onmessage = (e) => {
+          if (e.data.startsWith("typing:")) {
+            if (!typing) return;
+            const who = e.data.slice(7);
+            typing.textContent = who + " is typing…";
+            clearTimeout(typingClear);
+            // Three seconds, against a two-second minimum between pings,
+            // so a steady typist never flickers and a person who walked
+            // away mid-sentence stops "typing" on their own. Nothing is
+            // stored anywhere, so there is nothing to clean up if the
+            // sender simply vanishes.
+            typingClear = setTimeout(() => { typing.textContent = ""; }, 3000);
+            return;
+          }
+          // Somebody said something, so whatever they were typing has
+          // arrived. Leaving the bubble up over their own message is the
+          // small wrongness every chat app has; this one costs a line.
+          if (typing) { clearTimeout(typingClear); typing.textContent = ""; }
+          resync();
+        };
+
+        ${
+          isMeeting
+            ? `// Tell the room, at most as often as the server will accept.
+        const body = document.getElementById("body");
+        if (body) {
+          let lastSent = 0;
+          body.addEventListener("input", () => {
+            // An empty box is not typing — it is somebody who just
+            // deleted what they wrote.
+            if (!body.value) return;
+            const now = Date.now();
+            if (now - lastSent < 2000) return;
+            lastSent = now;
+            fetch("/typing", {
+              method: "POST",
+              headers: { "content-type": "application/x-www-form-urlencoded" },
+              body: new URLSearchParams({ house: ${JSON.stringify(house.slug)} }).toString(),
+              // Nothing is read from the response and nothing depends on
+              // it arriving, so a failure here is not worth a handler.
+            }).catch(() => {});
+          });
+        }`
+            : ""
+        }
         // EventSource reconnects on its own after the machine stops and
         // starts again (fly.toml lets it go to zero), but it only fires
         // onmessage on the NEXT event — whatever changed while the socket

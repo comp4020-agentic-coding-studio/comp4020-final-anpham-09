@@ -90,3 +90,63 @@ describe("the event hub", () => {
     expect(e.subscribe("hanoi", () => {})).not.toBeNull();
   });
 });
+
+describe("what a payload is allowed to be", () => {
+  // Until the typing indicator, every payload was a literal written in
+  // this codebase — "placed", "kept", "arrived". Typing carries a person's
+  // NAME, and names are typed by people, so for the first time a payload
+  // can contain whatever somebody put in the join box.
+  //
+  // This matters because a payload is one SSE `data:` line and a newline
+  // in it is not an escape sequence: it ends the line. What follows is
+  // parsed by the browser as more SSE. The failure is not a mangled event,
+  // it is an EXTRA event under the control of whoever chose that name.
+
+  it("never lets a payload carry a newline into the stream", async () => {
+    const e = await boot();
+    const seen: string[] = [];
+    e.subscribe("meeting", (p) => seen.push(p));
+
+    // All three line terminators SSE recognises, not just the obvious
+    // one. A lone carriage return ends a line in the EventSource grammar
+    // exactly as a newline does, so a sanitiser that handles only \n is
+    // not a sanitiser — and that version of this test passed.
+    const attempts = [
+      "typing:Al\nice\n\ndata: forged",
+      "typing:Al\rice\r\rdata: forged",
+      "typing:Al\r\nice\r\n\r\ndata: forged",
+    ];
+    for (const attempt of attempts) e.publish("meeting", attempt);
+
+    expect(seen).toHaveLength(attempts.length);
+    for (const payload of seen) {
+      expect(payload).not.toContain("\n");
+      expect(payload).not.toContain("\r");
+      // Still recognisably the event it was, so the indicator keeps
+      // working for somebody with an odd name rather than silently
+      // failing.
+      expect(payload.startsWith("typing:")).toBe(true);
+      // And written as the frame would be, it is one event, not two.
+      expect(`data: ${payload}\n\n`.split(/\r\n\r\n|\r\r|\n\n/).filter(Boolean)).toHaveLength(1);
+    }
+  });
+
+  it("caps a payload, because it is a notification and not a channel", async () => {
+    const e = await boot();
+    const seen: string[] = [];
+    e.subscribe("meeting", (p) => seen.push(p));
+    e.publish("meeting", "typing:" + "x".repeat(5000));
+    expect(seen[0].length).toBeLessThanOrEqual(200);
+  });
+
+  it("leaves an ordinary payload exactly as it was", async () => {
+    // The sanitiser must be invisible to everything that already worked.
+    const e = await boot();
+    const seen: string[] = [];
+    e.subscribe("meeting", (p) => seen.push(p));
+    for (const payload of ["placed", "kept", "arrived", "perspective", "moved", "typing:Mai"]) {
+      e.publish("meeting", payload);
+    }
+    expect(seen).toEqual(["placed", "kept", "arrived", "perspective", "moved", "typing:Mai"]);
+  });
+});

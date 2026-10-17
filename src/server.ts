@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { publish, subscribe } from "./events.ts";
+import { MAX_LISTENERS, publish, subscribe } from "./events.ts";
 import {
   concede,
   endGame,
@@ -36,6 +36,42 @@ import {
 const PORT = Number(process.env.PORT ?? 8080);
 const COOKIE = "who";
 const PING_MS = 15_000;
+
+/** A typing ping is cheap to send and costs every other open stream in the
+ *  room a message, so one keystroke-happy client could spend the whole
+ *  room's bandwidth on "still typing". One per person per two seconds is
+ *  far below the three seconds the bubble lives for, so the indicator
+ *  never flickers, and far above what a person can usefully generate.
+ *
+ *  A Map keyed on token, swept when it grows: in-memory and per-process,
+ *  which is correct for something that is only true for a moment anyway.
+ *  There is one machine, and a restart losing this state means at worst
+ *  one extra ping. */
+const TYPING_EVERY_MS = 2_000;
+const lastTyped = new Map<string, number>();
+function allowTyping(token: string): boolean {
+  const now = Date.now();
+  const previous = lastTyped.get(token);
+  if (previous !== undefined && now - previous < TYPING_EVERY_MS) return false;
+  // Swept here rather than on a timer, so an idle server holds nothing
+  // open. Anything older than the window can never refuse anybody again,
+  // so dropping it loses nothing.
+  //
+  // The sweep only removes entries that are already stale, so in the
+  // worst case — every token pinging in the same instant — it frees
+  // nothing and the map is as large as the number of distinct tokens.
+  // That is bounded anyway: a ping only matters to somebody with a
+  // stream open, and events.ts caps those at MAX_LISTENERS. Simulated at
+  // ten thousand one-shot visitors the map peaks at 201 and settles near
+  // a hundred, so the cap below is the ceiling, not the usual size.
+  if (lastTyped.size > MAX_LISTENERS) {
+    for (const [who, when] of lastTyped) {
+      if (now - when >= TYPING_EVERY_MS) lastTyped.delete(who);
+    }
+  }
+  lastTyped.set(token, now);
+  return true;
+}
 
 /** Past this, the app stops reading rather than buffer the rest: a 64MB POST
  *  on a 256MB machine is how one request takes the whole thing down. No
@@ -437,6 +473,36 @@ const server = createServer((req, res) => {
       }
       publish(slug, "moved");
       seeOther(res, backTo(slug), setCookie);
+      return;
+    }
+
+    // The typing indicator: the one thing in this app that needs
+    // JavaScript, and the only route whose whole job is to say something
+    // that is never written down.
+    //
+    // It publishes and returns 204 rather than redirecting, because it is
+    // not an action a person took — it is a side effect of them typing,
+    // sent by a script. A 303 would be a lie about that, and with
+    // JavaScript off nothing calls this at all, which is why the feature
+    // simply does not exist there rather than half-working.
+    //
+    // Nothing is stored. "Alice is typing" is true for three seconds and
+    // then it is not, and the app has no table for things that stop being
+    // true on their own — see src/presence.ts for the one exception and
+    // the trouble it causes.
+    if (req.method === "POST" && path === "/typing") {
+      const form = await formData(req);
+      const slug = (form.get("house") ?? "").trim();
+      const house = houseBySlug(slug);
+      // Silence rather than a sentence: there is no page to say it on, and
+      // a refusal nobody can read is just a slower 204.
+      if (!house || house.kind !== "meeting") { res.writeHead(204).end(); return; }
+      if (!allowTyping(token)) { res.writeHead(204).end(); return; }
+      // The name is the only user-controlled payload this app publishes.
+      // events.ts sanitises it, which is where that belongs; see the note
+      // on publish().
+      publish(house.slug, `typing:${nameOf(token)}`);
+      res.writeHead(204).end();
       return;
     }
 

@@ -20,6 +20,12 @@ const baseUrl = inject("baseUrl");
 // out (see below), so the suite is safely re-runnable without waiting out
 // the TTL.
 
+/** How many message slips the room is showing. Used to assert that
+ *  something wrote NOTHING, which a length comparison on the whole page
+ *  cannot do — the page carries a timestamp that moves on its own. */
+const countMessages = (html: string): number =>
+  (markup(html).match(/class="thing\b/g) ?? []).length;
+
 /** A page with its inlined stylesheet removed.
  *
  *  Every page carries the whole stylesheet in a `<style>` block, and the
@@ -546,6 +552,71 @@ describe("what a browser gets", () => {
       await one.post("/game/stand", { house: "meeting" });
       await one.post("/leave", {});
       await two.post("/leave", {});
+    }
+  });
+
+  it("takes a typing ping without writing anything down", async () => {
+    // The one route in the app whose whole job is to say something that is
+    // never stored. 204 rather than 303: it is not an action a person
+    // took, it is a side effect of them typing, sent by a script. A
+    // redirect would be a lie about that.
+    const s1 = session();
+    try {
+      await s1.get("/");
+      await s1.post("/join", { name: "Typist", home: "canberra" });
+
+      const before = markup(await (await s1.get("/house/meeting")).text());
+      const ping = await s1.post("/typing", { house: "meeting" });
+      expect(ping.status).toBe(204);
+
+      // Nothing is written: the room is character-for-character what it
+      // was. A typing indicator that left a trace would be a message.
+      const after = markup(await (await s1.get("/house/meeting")).text());
+      expect(countMessages(after)).toBe(countMessages(before));
+
+      // Rate limited, per person. One per two seconds is far below the
+      // three the bubble lives for, so a steady typist never flickers,
+      // and far above what a person can usefully produce — but it stops
+      // one client spending the whole room's bandwidth on keystrokes.
+      // Still 204 when refused: there is no page to say it on.
+      for (let i = 0; i < 5; i += 1) {
+        expect((await s1.post("/typing", { house: "meeting" })).status).toBe(204);
+      }
+
+      // Not a thing you can do in a household house — nobody is talking
+      // there, they are putting things down.
+      expect((await s1.post("/typing", { house: "canberra" })).status).toBe(204);
+      expect((await s1.post("/typing", { house: "nowhere" })).status).toBe(204);
+    } finally {
+      await s1.post("/leave", {});
+    }
+  });
+
+  it("works with JavaScript off by simply not having a typing indicator", async () => {
+    // CLAUDE.md: the app must work with JavaScript off. The honest
+    // degradation for this one feature is that it does not exist — the
+    // box is still there, the form still posts, and nothing is ever sent
+    // or shown. That is a documented exception rather than a surprise,
+    // and this is what pins it.
+    const s1 = session();
+    try {
+      await s1.get("/");
+      await s1.post("/join", { name: "No Script", home: "hanoi" });
+      const page = await (await s1.get("/house/meeting")).text();
+
+      // The place the bubble appears is in the HTML and is EMPTY. Nothing
+      // server-rendered ever fills it, so with no script it stays empty
+      // for good.
+      expect(markup(page)).toContain('id="typing"');
+      expect(markup(page)).toMatch(/<p id="typing"[^>]*><\/p>/);
+
+      // And the thing that actually matters still works without it: the
+      // compose box is a plain form POST, not a scripted one.
+      const said = await s1.post("/place", { house: "meeting", body: "typed with no script" });
+      expect(said.status).toBe(303);
+      expect(markup(await (await s1.get("/house/meeting")).text())).toContain("typed with no script");
+    } finally {
+      await s1.post("/leave", {});
     }
   });
 });

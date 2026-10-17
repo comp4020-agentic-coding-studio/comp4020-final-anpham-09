@@ -42,8 +42,31 @@ export function subscribe(houseSlug: string, listener: Listener): (() => void) |
   };
 }
 
+/** A payload is one SSE `data:` line, and a newline in it is not an escape
+ *  sequence — it ends the line. Everything after it is parsed by the
+ *  browser as further SSE, so a payload carrying a newline does not produce
+ *  a mangled event, it produces an EXTRA one that the writer of that
+ *  newline controls.
+ *
+ *  Until the typing indicator every payload was a literal from this
+ *  codebase ("placed", "kept", "arrived"), so nothing could put a newline
+ *  in one. Typing carries a person's name, and names are typed by people:
+ *  a name of "Al\nice\n\ndata: whatever" splits one frame into two.
+ *
+ *  Collapsing to spaces rather than rejecting, because the caller cannot
+ *  do anything useful with a refusal here and a truncated name is a
+ *  cosmetic problem where a forged event is not. The cap is the same
+ *  reasoning: a payload is a notification, not a channel. */
+const MAX_PAYLOAD = 200;
+export const safePayload = (payload: string): string =>
+  payload.replace(/[\r\n]+/g, " ").slice(0, MAX_PAYLOAD);
+
 /** One dead socket must not stop the rest of the room being told. */
-export function publish(houseSlug: string, payload: string): void {
+export function publish(houseSlug: string, rawPayload: string): void {
+  // Sanitised here, at the one place every payload passes through, rather
+  // than at each call site — a new publisher should not have to know about
+  // the SSE wire format to be safe.
+  const payload = safePayload(rawPayload);
   for (const listener of rooms.get(houseSlug) ?? []) {
     try {
       listener(payload);
