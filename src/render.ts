@@ -10,19 +10,35 @@ export const esc = (s: string): string =>
  *  still lands on a readable page, not a layout-shifted or blank one. */
 const FONTS_HEAD = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600&display=swap" rel="stylesheet">`;
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Caveat:wght@500;600&display=swap" rel="stylesheet">`;
 
 const STYLE = `
+/* Sampled off the Figma exports in assets/village-screens, not invented:
+   the cream, the terracotta and the near-black brown are what the four
+   screens are actually built from. --hand is for the one voice in the app
+   that is a person's handwriting rather than the interface talking. */
 :root {
-  --paper:#FBF8F2; --card:#F4EFE6; --card-raised:#EDE4D6; --rule:#E2D5C3;
-  --ink:#2C2421; --ink-soft:#56423D;
-  --hearth:#C86446; --hearth-deep:#9A3E23; --on-hearth:#FFFFFF;
-  --sage:#5F7464; --sage-deep:#3E5343;
+  --paper:#FBF6ED; --card:#F3EDE4; --card-raised:#EDE4D6; --rule:#E2D5C3;
+  /* The Figma's own secondary grey is #8A7A6E, which is 3.55:1 on a card —
+     under AA for the body sizes it is used at (.note, .meta, every date on
+     the shelf). Darkened to the same hue until it clears 4.5:1. The design
+     is the brief, but an unreadable date is not what the design meant. */
+  --ink:#381B13; --ink-soft:#6E5F54;
+  /* Likewise the terracotta: white on #CB6041 is 3.97:1. Button labels are
+     small and bold, not large text, so the fill darkens rather than the
+     label lightening — there is nothing lighter than white. */
+  --hearth:#CB6041; --hearth-deep:#9A3E23; --on-hearth:#FFFFFF;
+  --hearth-fill:#B04E31;
+  --sage:#647862; --sage-deep:#3E5343;
   --amber:#D9933B; --amber-deep:#8F5B19;
-  --shadow-1:0 2px 8px -2px rgba(44,36,33,.05), 0 4px 16px -4px rgba(44,36,33,.06);
-  --shadow-2:0 4px 12px -2px rgba(44,36,33,.08), 0 8px 24px -4px rgba(44,36,33,.08);
-  --display:"Merriweather",Georgia,"Times New Roman",serif;
-  --body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --shadow-1:0 2px 8px -2px rgba(56,27,19,.05), 0 4px 16px -4px rgba(56,27,19,.06);
+  --shadow-2:0 4px 12px -2px rgba(56,27,19,.08), 0 8px 24px -4px rgba(56,27,19,.08);
+  /* Cards that float over a photograph need a heavier shadow than cards on
+     paper, or they look pasted on rather than lying above the scene. */
+  --shadow-float:0 2px 6px -1px rgba(30,16,10,.18), 0 12px 32px -8px rgba(30,16,10,.28);
+  --display:"Libre Baskerville",Georgia,"Times New Roman",serif;
+  --body:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --hand:"Caveat","Segoe Script","Bradley Hand",cursive;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -30,34 +46,53 @@ const STYLE = `
        reference's own --inverse-primary) rather than darkened, since a
        darkened terracotta on a dark ground reads muddy rather than warm. */
     --paper:#1A1512; --card:#241D19; --card-raised:#2E2520; --rule:#3E322B;
-    --ink:#F2E7DF; --ink-soft:#C3AFA5;
+    --ink:#F2E7DF; --ink-soft:#BCA99E;
     --hearth:#E8927A; --hearth-deep:#FFB59F; --on-hearth:#2C2421;
+    /* On a dark ground the fill is the lifted terracotta, not a darkened
+       one: the label is dark ink, so the button needs to stay bright. */
+    --hearth-fill:#E8927A;
     --sage:#A8C4AE; --sage-deep:#CBDCCF;
     --amber:#E8B877; --amber-deep:#FFD9A8;
     --shadow-1:0 2px 8px -2px rgba(0,0,0,.35), 0 4px 16px -4px rgba(0,0,0,.40);
     --shadow-2:0 4px 12px -2px rgba(0,0,0,.45), 0 8px 24px -4px rgba(0,0,0,.50);
+    --shadow-float:0 2px 6px -1px rgba(0,0,0,.5), 0 12px 32px -8px rgba(0,0,0,.6);
   }
 }
 * { box-sizing: border-box; }
 html { background: var(--paper); }
-body { margin: 0 auto; padding: 0 0 4rem; max-width: 72rem;
+/* The width cap sits on main, not on body, because the village and the
+   rooms are photographs you stand inside and have to reach both edges of
+   the window. A page that wants the old measure asks for it by class;
+   a page that wants the full window simply doesn't. */
+body { margin: 0; padding: 0 0 4rem;
   font: 16px/1.5 var(--body); color: var(--ink); background: var(--paper); }
 a { color: var(--hearth-deep); }
-main { padding: 0 1.25rem; }
-@media (min-width: 768px) { main { padding: 0 2rem; } }
+/* Not scoped to the main element: a page whose hero is full-bleed still
+   wants its content measured, so this has to work on an inner block too. */
+.measured { max-width: 72rem; margin-left: auto; margin-right: auto; padding: 0 1.25rem; }
+@media (min-width: 768px) { .measured { padding: 0 2rem; } }
 
-/* Chrome: a slim header, then the four-link nav, on every page. */
-header.chrome { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
-  gap: .5rem 1rem; padding: 1.25rem 1.25rem .75rem; }
-@media (min-width: 768px) { header.chrome { padding: 1.5rem 2rem .75rem; } }
-.brand { font-family: var(--display); font-weight: 700; font-size: 1.375rem; color: var(--hearth); margin: 0; }
-.whoami { margin: 0; font-size: .875rem; color: var(--ink-soft); }
-.whoami strong { color: var(--ink); }
-nav.site { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1.25rem; padding: 0 1.25rem .9rem; border-bottom: 1px solid var(--rule); }
-@media (min-width: 768px) { nav.site { padding: 0 2rem .9rem; } }
+/* Chrome: brand, links and who-you-are on one cream bar, as in the Figma.
+   It wraps to two rows under about 900px rather than collapsing behind a
+   menu button — four links and a name is not enough to hide, and a disclosure
+   widget would be the one piece of the interface that needs JavaScript. */
+header.chrome { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 2rem;
+  padding: .85rem 1.25rem; background: var(--paper); border-bottom: 1px solid var(--rule); }
+@media (min-width: 768px) { header.chrome { padding: .85rem 2rem; } }
+.brand { font-family: var(--display); font-weight: 700; font-size: 1.375rem; color: var(--hearth);
+  margin: 0; letter-spacing: -.01em; }
+.whoami { display: flex; align-items: center; gap: .6rem; margin: 0 0 0 auto;
+  font-size: .875rem; color: var(--ink-soft); }
+.whoami strong { color: var(--ink); font-weight: 500; }
+nav.site { display: flex; flex-wrap: wrap; align-items: center; gap: 0 1.75rem; }
 nav.site a { display: inline-flex; align-items: center; min-height: 44px; padding: .2rem 0;
-  font-weight: 600; font-size: .9375rem; color: var(--ink-soft); text-decoration: none; }
+  font-weight: 500; font-size: .9375rem; color: var(--ink-soft); text-decoration: none;
+  border-bottom: 2px solid transparent; }
 nav.site a:hover { color: var(--hearth-deep); }
+/* The page you are on is named, not merely tinted: aria-current carries it
+   for a screen reader and the underline carries it for everyone else, so
+   the state never rests on colour alone. */
+nav.site a[aria-current="page"] { color: var(--hearth); border-bottom-color: var(--hearth); }
 /* Leaving changes state (it clears presence and the cookie), so it is a form
    POST like every other action in the app, not a link — but it still has to
    sit in the nav row looking like the links beside it. */
@@ -66,15 +101,18 @@ nav.site form.leave button { all: unset; display: inline-flex; align-items: cent
   padding: .2rem 0; font-weight: 600; font-size: .9375rem; color: var(--ink-soft); cursor: pointer; }
 nav.site form.leave button:hover { color: var(--hearth-deep); }
 
-h1 { font-family: var(--display); font-weight: 700; font-size: 2.75rem; line-height: 3.5rem;
+/* Libre Baskerville runs large for its point size and has a tall x-height,
+   so the display sizes are a step smaller than the previous face wanted and
+   the line heights are tighter. */
+h1 { font-family: var(--display); font-weight: 700; font-size: 2.5rem; line-height: 1.15;
   letter-spacing: -0.02em; margin: 1.5rem 0 .5rem; color: var(--ink); }
-h2 { font-family: var(--display); font-weight: 700; font-size: 2rem; line-height: 2.75rem;
+h2 { font-family: var(--display); font-weight: 700; font-size: 1.75rem; line-height: 1.25;
   letter-spacing: -0.01em; margin: 2rem 0 .5rem; color: var(--ink); }
-h3 { font-family: var(--display); font-weight: 700; font-size: 1.5rem; line-height: 2.125rem;
+h3 { font-family: var(--display); font-weight: 700; font-size: 1.3125rem; line-height: 1.3;
   margin: 1.5rem 0 .5rem; color: var(--ink); }
 @media (max-width: 640px) {
-  h1 { font-size: 2rem; line-height: 2.625rem; letter-spacing: -0.01em; }
-  h2 { font-size: 1.625rem; line-height: 2.25rem; letter-spacing: 0; }
+  h1 { font-size: 1.875rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.4375rem; letter-spacing: 0; }
 }
 p { margin: 0 0 .75rem; }
 .lede { color: var(--ink-soft); font-size: 1.125rem; line-height: 1.75rem; margin-top: 0; }
@@ -87,7 +125,7 @@ label { font-weight: 600; font-size: .9375rem; }
 input, button, select, textarea { font: inherit; padding: .65rem .8rem; min-height: 44px;
   border: 1.5px solid var(--rule); border-radius: .5rem; background: var(--paper); color: var(--ink); }
 button { cursor: pointer; font-weight: 600; }
-button.primary { background: var(--hearth); color: var(--on-hearth); border: none;
+button.primary { background: var(--hearth-fill); color: var(--on-hearth); border: none;
   box-shadow: 0 -2px 0 color-mix(in srgb, var(--ink) 15%, transparent) inset; }
 button.primary:hover { background: var(--hearth-deep); }
 :is(a, button, input, select, textarea):focus-visible {
@@ -255,13 +293,232 @@ blockquote { margin: 1.5rem 0; padding-left: 1rem; border-left: 3px solid var(--
 blockquote p { margin: .4rem 0; }
 main :is(h2,h3) { margin-top: 2rem; }
 
+/* ---- Scenes ----------------------------------------------------------
+   A scene is a photograph you stand inside: the village from the path, or a
+   room from the doorway. The picture is an <img>, not a background-image,
+   so it can carry srcset and be told which width to fetch — a 3MB hero on a
+   phone is the failure the course's own "slow connection" band looks for.
+   Everything else in the scene floats above it.
+
+   The scrim is what makes text on top of a photograph legible. It is darkest
+   where the type sits and clears towards the middle, so the room is still
+   visibly a room. */
+/* Stacking runs forwards, not behind: the photo is z-index 0, the scrim 1,
+   the copy 2. Negative z-indexes would put the photograph behind the page's
+   own background and paint it out entirely. */
+.scene { position: relative; isolation: isolate; overflow: hidden; }
+.scene-photo { position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; }
+.scene::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(30,16,10,.52) 0%, rgba(30,16,10,.12) 42%, rgba(30,16,10,.10) 58%, rgba(30,16,10,.58) 100%); }
+/* A room's copy sits in the top-left corner over whatever furniture happens
+   to be there — in Nghe An, a sunlit window. The village's copy is centred
+   over sky and needs no such help, so this is the room scrim only: a soft
+   wash from the left, under the heading, clearing before mid-frame. */
+.scene-room::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(105deg, rgba(30,16,10,.62) 0%, rgba(30,16,10,.42) 28%, rgba(30,16,10,0) 62%); }
+/* Scene type is white on a photograph, so it carries its own shadow rather
+   than relying on the scrim alone — the sky behind the village heading is
+   nearly as light as the text. */
+.scene-copy { position: relative; z-index: 2; color: #FFF8EF;
+  text-shadow: 0 1px 2px rgba(30,16,10,.5), 0 2px 18px rgba(30,16,10,.35); }
+.scene-copy :is(h1, h2) { color: inherit; }
+.scene-copy .lede { color: #FBEDDF; }
+.scene-eyebrow { display: block; font-size: .8125rem; font-weight: 500; letter-spacing: .14em;
+  text-transform: uppercase; color: #F2DFCC; margin: 0 0 .75rem; }
+
+/* The village scene is tall and centred; a room scene is shallower, since a
+   room has content stacked underneath it. Both are capped in vh so a short
+   laptop window never has to scroll past the picture to reach the app. */
+/* The village fills what's left of the window under the chrome, so you
+   arrive standing in the place rather than looking at a band of it. Capped
+   so a very tall window doesn't stretch the photograph past its crop. */
+.scene-village { min-height: min(calc(100vh - 3.75rem), 46rem); display: grid; align-content: start;
+  padding: 3.5rem 1.25rem 2.5rem; text-align: center; }
+.scene-room { min-height: min(52vh, 28rem); display: grid; align-content: start;
+  padding: 2rem 1.25rem 2.5rem; }
+@media (min-width: 768px) {
+  .scene-village { padding: 4.5rem 2rem 3rem; }
+  .scene-room { padding: 2.25rem 2rem 3rem; }
+}
+.scene-inner { width: 100%; max-width: 72rem; margin: 0 auto; }
+.scene-village h1 { font-size: clamp(2.75rem, 7vw, 4.5rem); margin: 0 0 .5rem; }
+.scene-village .lede { max-width: 34rem; margin: 0 auto .75rem; font-size: 1.25rem; }
+/* The rule, in small type, over the brightest part of the photograph — the
+   sunset sky is very nearly the colour of the text. A text-shadow alone
+   can't carry it, so the sentence gets its own soft panel. */
+.scene-village .scene-sub { max-width: 34rem; margin: 0 auto; font-size: .9375rem;
+  color: #FBF1E6; text-shadow: none; padding: .7rem 1.1rem; border-radius: .75rem;
+  background: rgba(40,22,14,.42);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.scene-room h1 { font-size: clamp(2.25rem, 5.5vw, 3.5rem); margin: .35rem 0 .35rem; }
+.scene-room .lede { max-width: 26rem; font-size: 1.0625rem; }
+/* Who is in the room, under the room's name: the discs and the same fact
+   in words. */
+.scene-presence { display: flex; align-items: center; gap: .6rem; margin: .9rem 0 0;
+  font-size: .9375rem; color: #FBF0E4; }
+.scene-presence .face { box-shadow: 0 0 0 2px rgba(40,22,14,.35); }
+/* A room with no photograph at all: its own tint rather than a broken
+   image. The copy on top is unchanged, so it stays legible either way. */
+.scene-untinted { --tint: var(--hearth);
+  background-image: linear-gradient(135deg,
+    color-mix(in srgb, var(--tint) 55%, #2A1710) 0%,
+    color-mix(in srgb, var(--tint) 25%, #2A1710) 100%); }
+/* The room's content sits under its scene, not beside a banner. */
+.layout-house { margin-top: 2rem; }
+/* Back out of a room, in the scene's own white rather than the link colour,
+   which is tuned for cream and disappears on a photograph. */
+.scene-back { display: inline-flex; align-items: center; gap: .4rem; min-height: 44px;
+  color: #F6E7D8; font-size: .9375rem; text-decoration: none; }
+.scene-back:hover { color: #FFFFFF; text-decoration: underline; }
+
+/* ---- Floating cards --------------------------------------------------
+   The Figma's signature: small cream cards lying on top of the scene, each
+   naming a house and who is in it. On a phone they stop floating and become
+   an ordinary stacked list under the heading — absolute positioning over a
+   photograph has nowhere to go at 380px wide. */
+/* Below 900px this is a plain stacked list under the heading, and it carries
+   the scene's own side padding because it is no longer inside the copy
+   column that was providing it. */
+.scene-cards { position: relative; z-index: 2; list-style: none; margin: 2rem 0 0;
+  padding: 0 1.25rem; display: grid; gap: .75rem; }
+.float-card { display: flex; align-items: center; gap: .85rem; width: 100%;
+  padding: .7rem .85rem; text-align: left; text-decoration: none; color: var(--ink);
+  background: var(--paper); border: 1px solid transparent; border-radius: .9rem;
+  box-shadow: var(--shadow-float); }
+.float-card:hover, .float-card:focus-visible { border-color: color-mix(in srgb, var(--hearth) 45%, transparent); }
+.float-card:focus-visible { outline: none;
+  box-shadow: var(--shadow-float), 0 0 0 3px color-mix(in srgb, var(--hearth) 35%, transparent); }
+.float-card .float-name { font-family: var(--display); font-weight: 700; font-size: 1.0625rem;
+  margin: 0; color: var(--ink); }
+.float-card .float-meta { margin: .15rem 0 0; font-size: .8125rem; color: var(--ink-soft); }
+.float-card .float-text { min-width: 0; display: block; }
+.float-card .float-name, .float-card .float-meta { display: block; }
+.float-card .float-go { margin-left: auto; display: inline-flex; align-items: center;
+  justify-content: center; width: 1.9rem; height: 1.9rem; min-width: 1.9rem; border-radius: 50%;
+  background: var(--sage); color: var(--on-hearth); font-size: .9rem; }
+.float-card[data-kind="meeting"] .float-go { background: var(--hearth); }
+
+/* A refusal or confirmation on top of a photograph needs its own ground;
+   the scrim is not enough to make small text reliably readable. */
+.scene-notice { display: inline-block; margin: 1rem 0 0; padding: .55rem .9rem;
+  background: var(--paper); color: var(--ink); border-radius: .6rem;
+  box-shadow: var(--shadow-float); font-size: .9375rem; text-shadow: none; }
+
+/* The note on the stone in the Figma. It is an instruction, so it is only
+   worth its space while the cards are floating and their affordance is less
+   obvious; stacked on a phone they are plainly a list of links. */
+.scene-hint { display: none; }
+@media (min-width: 900px) {
+  .scene-hint { display: block; position: absolute; left: 50%; bottom: 5%; z-index: 2;
+    transform: translateX(-50%) rotate(-3deg); margin: 0; text-align: center;
+    font-size: 1.625rem; text-shadow: 0 1px 10px rgba(30,16,10,.75), 0 1px 2px rgba(30,16,10,.6); }
+}
+.village-foot { text-align: center; margin: 1.5rem auto 0; }
+
+/* Above 900px the cards scatter across the scene the way they do in the
+   Figma, each one roughly over its own house. The list spans the whole
+   scene rather than sitting inside the centred copy column, so the
+   percentages below are percentages of the picture, which is what they
+   are describing. Below 900px it is an ordinary stacked list and the
+   positioning never applies. */
+@media (min-width: 900px) {
+  .scene-cards { position: absolute; inset: 0; z-index: 2; display: block;
+    margin: 0; pointer-events: none; }
+  .scene-cards li { position: absolute; width: 15.5rem; pointer-events: auto; }
+  .scene-cards li:nth-child(1) { left: 4%;  top: 46%; }
+  .scene-cards li:nth-child(2) { left: 30%; top: 56%; }
+  .scene-cards li:nth-child(3) { left: 54%; top: 62%; }
+  .scene-cards li:nth-child(4) { right: 4%; top: 44%; }
+}
+
+/* ---- People ----------------------------------------------------------
+   We hold a chosen name and nothing else, so a face is drawn from the name:
+   its initial on a tinted disc. Overlapped into a row, they read as "who is
+   here" at a glance, and the names are still written out beside them for
+   anyone who can't see the discs. */
+.faces { display: inline-flex; align-items: center; flex-direction: row-reverse; }
+.faces .face { margin-left: -.5rem; box-shadow: 0 0 0 2px var(--paper); }
+.faces .face:last-child { margin-left: 0; }
+.face { display: inline-flex; align-items: center; justify-content: center;
+  width: 1.75rem; height: 1.75rem; min-width: 1.75rem; border-radius: 50%;
+  font-family: var(--display); font-weight: 700; font-size: .8125rem; line-height: 1;
+  background: color-mix(in srgb, var(--sage) 24%, var(--card)); color: var(--sage-deep); }
+.face-lg { width: 2.25rem; height: 2.25rem; min-width: 2.25rem; font-size: 1rem; }
+/* Four tints so a row of faces is readable as several people rather than
+   one repeated disc. Assigned from the name, so a person keeps theirs. */
+.face[data-tint="1"] { background: color-mix(in srgb, var(--hearth) 22%, var(--card)); color: var(--hearth-deep); }
+.face[data-tint="2"] { background: color-mix(in srgb, var(--amber) 26%, var(--card)); color: var(--amber-deep); }
+.face[data-tint="3"] { background: color-mix(in srgb, var(--sage) 30%, var(--card)); color: var(--sage-deep); }
+
+/* ---- Handwriting -----------------------------------------------------
+   Caveat is the family's voice, never the interface's: a note on the path,
+   a pull-quote on the shelf. Controls, labels and refusals stay in DM Sans,
+   because a system message pretending to be handwritten is a lie about who
+   is speaking. */
+.hand { font-family: var(--hand); font-size: 1.5rem; line-height: 1.35; color: var(--ink); }
+.scene .hand { color: #FFF4E6; }
+
+/* ---- The shelf ------------------------------------------------------- */
+.shelf-head { display: flex; flex-wrap: wrap; align-items: flex-start;
+  justify-content: space-between; gap: 1rem 2rem; margin-top: 1.5rem; }
+.shelf-head-copy { max-width: 42rem; }
+.shelf-head h1 { margin-top: 0; }
+/* The family's own voice, once, at the top — the only handwriting on a page
+   that is otherwise all interface. */
+.shelf-aside { margin: .75rem 0 0; color: var(--ink-soft); transform: rotate(-2deg); }
+.shelf-count { margin: 1rem 0 1.25rem; }
+
+/* A wall of cards rather than a list per house: the shelf's claim is that
+   this is one family's memory, not four collections. Columns rather than a
+   grid so cards keep their own height — a memory with three perspectives on
+   it is genuinely taller than one with none, and stretching them all to a
+   row's tallest would be a lie about how much is there. */
+ol.wall { columns: 3 18rem; column-gap: 1.25rem; padding: 0; margin: 0; }
+@media (max-width: 640px) { ol.wall { columns: 1; } }
+li.card-shelf { break-inside: avoid; display: block; margin: 0 0 1.25rem;
+  padding: 0; overflow: hidden; background: var(--card); border: 1px solid var(--rule);
+  border-left: 1px solid var(--rule); border-radius: .9rem; box-shadow: var(--shadow-1); }
+/* The wall's cards don't tilt — a tilted slip reads as loose paper in a
+   room, which is right there and wrong here, where the point is that these
+   are settled. Same specificity as the tilt rules, declared after them. */
+li.card-shelf:nth-of-type(odd), li.card-shelf:nth-of-type(even) { transform: none; }
+.card-shelf-body { padding: 1.1rem 1.15rem .35rem; }
+.card-shelf-body .thing-title { margin-top: 0; font-size: 1.125rem; }
+.card-shelf-foot { padding: .6rem 1.15rem 1rem; }
+.card-shelf-where { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0 0 .5rem; }
+/* Who kept it, with the faces: the two names are the product, so they are
+   the last thing on the card and they are not small. */
+.card-shelf-who { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0; }
+.card-shelf-who .state { font-weight: 500; }
+/* Each house gets its own chip tint, matching the map's four. */
+.chip-house { background: color-mix(in srgb, var(--hearth) 16%, var(--card)); color: var(--hearth-deep); }
+.chip-house[data-house="hanoi"] { background: color-mix(in srgb, var(--sage) 20%, var(--card)); color: var(--sage-deep); }
+.chip-house[data-house="canberra"] { background: color-mix(in srgb, var(--amber) 24%, var(--card)); color: var(--amber-deep); }
+.chip-house[data-house="meeting"] { background: color-mix(in srgb, var(--ink) 10%, var(--card)); color: var(--ink); }
+
 @media (prefers-reduced-motion: no-preference) {
   a.house-card { transition: transform .15s ease; }
   a.house-card:hover { transform: translateY(-2px); }
+  .float-card { transition: transform .15s ease, border-color .15s ease; }
+  .float-card:hover { transform: translateY(-2px); }
 }
 `;
 
-export function page(title: string, inner: string, me?: Person | null): string {
+/** Which nav link is the page you are on, so it can be marked. Pages that
+ *  aren't one of the three (the README, a household room) pass nothing and
+ *  no link is marked, which is honest — none of them is where you are. */
+export type NavKey = "map" | "shelf" | "meeting";
+
+export function page(
+  title: string,
+  inner: string,
+  me?: Person | null,
+  active?: NavKey,
+): string {
+  const link = (href: string, key: NavKey, label: string): string =>
+    `<a href="${href}"${active === key ? ' aria-current="page"' : ""}>${label}</a>`;
   return `<!doctype html>
 <html lang="en-AU"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -270,16 +527,47 @@ ${FONTS_HEAD}
 </head><body>
 <header class="chrome">
   <p class="brand">The village</p>
-  ${me ? `<p class="whoami">You are <strong>${esc(me.name)}</strong></p>` : ""}
+  <nav class="site" aria-label="site">
+    ${link("/", "map", "Village map")}
+    ${link("/shelf", "shelf", "Memory shelf")}
+    ${link("/house/meeting", "meeting", "The meeting house")}
+    <form class="leave" method="post" action="/leave"><button type="submit">Leave the village</button></form>
+  </nav>
+  ${
+    me
+      ? `<p class="whoami">You are <strong>${esc(me.name)}</strong> ${face(me.name)}</p>`
+      : ""
+  }
 </header>
-<nav class="site" aria-label="site">
-  <a href="/">Village map</a>
-  <a href="/shelf">Memory shelf</a>
-  <a href="/house/meeting">The meeting house</a>
-  <form class="leave" method="post" action="/leave"><button type="submit">Leave the village</button></form>
-</nav>
 ${inner}
 </body></html>`;
+}
+
+/** A person as a disc with their initial. We hold a chosen name and nothing
+ *  else — no uploads, no accounts — so the face is derived from the name
+ *  rather than stored. The tint is derived too, so a person keeps the same
+ *  one everywhere without anything being written down about them.
+ *  `aria-hidden` because every face in this app sits beside the name it was
+ *  made from: read aloud, it would just say the name twice. */
+function face(name: string, size: "sm" | "lg" = "sm"): string {
+  const initial = [...name.trim()][0] ?? "?";
+  let hash = 0;
+  for (const ch of name) hash = (hash * 31 + ch.codePointAt(0)!) % 4;
+  return `<span class="face${size === "lg" ? " face-lg" : ""}" data-tint="${hash}" aria-hidden="true">${esc(initial.toUpperCase())}</span>`;
+}
+
+/** A row of faces for the people in a room, newest-overlapping-oldest. Caps
+ *  at four discs and counts the rest, since five overlapping discs stop
+ *  being legible as people. Always paired with the names in text. */
+function faces(list: string[]): string {
+  if (list.length === 0) return "";
+  const shown = list.slice(0, 4);
+  const rest = list.length - shown.length;
+  // Reversed in the markup because the row is laid out row-reverse, which
+  // is what makes the first person overlap on top rather than underneath.
+  const discs = [...shown].reverse().map((n) => face(n)).join("");
+  const more = rest > 0 ? `<span class="face" aria-hidden="true">+${rest}</span>` : "";
+  return `<span class="faces">${more}${discs}</span>`;
 }
 
 const names = (list: string[]): string =>
@@ -482,7 +770,7 @@ export function joinPage(houses: House[], message: string | null): string {
     .join("");
   return page(
     "The village",
-    `<main>
+    `<main class="measured">
       <h1>The village</h1>
       <p class="lede">Four places and the people in them. Before you go in,
         say who you are — the app keeps a name and nothing else.</p>
@@ -563,6 +851,84 @@ const PICTURES: Record<string, { width: number; height: number; alt: string }> =
  *  once, here, rather than repeated per house. */
 const STAND_IN_CAPTION = "A stand-in picture, until we take our own.";
 
+/** The full-bleed photographs the village and two of the rooms are built on.
+ *  Three widths each: a phone fetches a third of what a laptop does, which
+ *  is the whole reason these exist as WebP rather than the 3MB source PNGs.
+ *  `scripts/build-images.sh` writes them; this table names them. */
+const SCENES: Record<string, { alt: string }> = {
+  village: {
+    alt: "Four houses around a stone path at sunset, lanterns lit, hills behind.",
+  },
+  "room-nghe-an": {
+    alt: "A long wooden dining table by open shutters, flowers in a jug, bookcases along the wall.",
+  },
+  "room-meeting": {
+    alt: "A timber hall with a lit fireplace, a long table laid out, and mountains through the windows.",
+  },
+};
+
+/** A photograph you stand inside. The picture is an element rather than a
+ *  CSS background so it can carry `srcset` and be told what width to fetch;
+ *  `sizes=100vw` because every scene is full-bleed. It is `aria-hidden` and
+ *  alt-empty when the copy above it already says where you are — a room's
+ *  own heading names the room better than a description of the furniture.
+ *
+ *  Scenes are the one place the app loads an image eagerly: it is the first
+ *  thing on the page, and lazy-loading the thing at the top of the viewport
+ *  only delays it. */
+/** Which houses have a room photograph to stand inside. Nghe An and the
+ *  meeting house do; Hanoi and Canberra fall back to their existing house
+ *  picture as the scene, which is a narrower crop but the same idea. The
+ *  day someone supplies real room photographs for those two, they get an
+ *  entry here and `scripts/build-images.sh` does the rest. */
+const ROOM_SCENES: Record<string, string> = {
+  "nghe-an": "room-nghe-an",
+  meeting: "room-meeting",
+};
+
+/** A room as a scene. Houses with a Figma room photograph get the three
+ *  WebP widths; the other two get their single house JPEG, which carries
+ *  no srcset because there is only the one file. */
+function roomScene(slug: string, inner: string, over = ""): string {
+  const named = ROOM_SCENES[slug];
+  if (named) return scene(named, "room", inner, over);
+  const pic = PICTURES[slug];
+  if (!pic || !hasPicture(slug)) {
+    // No picture at all: the scene degrades to a tinted band rather than a
+    // broken image, and the copy on top is unchanged.
+    return `<div class="scene scene-room scene-untinted" style="--tint:${tintFor(slug)}">
+      <div class="scene-inner scene-copy">${inner}</div>
+      ${over}
+    </div>`;
+  }
+  return `<div class="scene scene-room">
+    <img class="scene-photo" src="/img/${esc(slug)}.jpg" width="${pic.width}" height="${pic.height}"
+      decoding="async" alt="${esc(pic.alt)}">
+    <div class="scene-inner scene-copy">${inner}</div>
+    ${over}
+  </div>`;
+}
+
+function scene(
+  name: keyof typeof SCENES | string,
+  modifier: "village" | "room",
+  inner: string,
+  // Anything that lies on the picture rather than in the centred copy
+  // column — the house cards. It is a sibling of the copy so its
+  // percentages are percentages of the photograph.
+  over = "",
+): string {
+  const meta = SCENES[name];
+  const widths = [760, 1200, 1672];
+  const srcset = widths.map((w) => `/img/${name}-${w}.webp ${w}w`).join(", ");
+  return `<div class="scene scene-${modifier}">
+    <img class="scene-photo" src="/img/${name}-1200.webp" srcset="${srcset}" sizes="100vw"
+      width="1672" height="941" decoding="async" alt="${esc(meta?.alt ?? "")}">
+    <div class="scene-inner scene-copy">${inner}</div>
+    ${over}
+  </div>`;
+}
+
 /** The photograph if the house has one, falling back to the CSS-drawn
  *  placeholder when it does not — a house without a file still has to look
  *  deliberate, not broken. */
@@ -580,29 +946,25 @@ export function mapPage(
   me: Person,
   message: string | null,
 ): string {
+  // The cards lie on the photograph, one over roughly its own house, and
+  // each says the two things you want before you decide where to go: who is
+  // in there, and how much is kept there. Who is here is written out, not
+  // only drawn as discs — presence is state, and state is carried in text.
   const cards = houses
     .map((h) => {
-      const isHere = h.hereNames.length > 0;
-      const presence = isHere
-        ? names(h.hereNames) + (h.hereNames.length === 1 ? " is here" : " are here")
+      const here = h.hereNames.length;
+      const presence = here
+        ? `${names(h.hereNames)} ${here === 1 ? "is" : "are"} here`
         : "Nobody is here";
-      const cta = isHere ? "Come on in →" : "Step inside →";
-      const home = h.slug === me.homeSlug ? `<span class="chip chip-home">Your house</span>` : "";
-      const countsLine = `<p class="note">${h.counts.inRoom} in the room · ${h.counts.onShelf} on the shelf</p>`;
-      return `<li class="house">
-        <a class="house-card" href="/house/${esc(h.slug)}">
-          <div class="card">
-            <span class="eyebrow">${esc(eyebrowFor(h.slug))}</span>
-            <h2>${esc(h.name)} ${home}</h2>
-            ${photoPanel(h.slug)}
-            ${countsLine}
-            <hr class="dashed-rule">
-            <p class="presence-row">
-              <span class="presence-dot" data-here="${isHere}"></span>
-              <span class="here">${esc(presence)}</span>
-              <span class="enter-cta">${cta}</span>
-            </p>
-          </div>
+      const yours = h.slug === me.homeSlug ? " · yours" : "";
+      return `<li>
+        <a class="float-card" href="/house/${esc(h.slug)}" data-kind="${h.kind === "meeting" ? "meeting" : "home"}">
+          ${faces(h.hereNames)}
+          <span class="float-text">
+            <span class="float-name">${esc(h.name)}</span>
+            <span class="float-meta">${esc(presence)}${yours} · ${h.counts.onShelf} kept</span>
+          </span>
+          <span class="float-go" aria-hidden="true">›</span>
         </a>
       </li>`;
     })
@@ -610,17 +972,23 @@ export function mapPage(
   return page(
     "The village",
     `<main>
-      <h1>The village</h1>
-      <p class="lede">A thing you put down stays in the room you put it in.
-        It goes on that house's shelf when somebody else was there for it —
-        a memory is something two of you were there for.</p>
-      ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
-      <div class="village-panel">
-        <ul class="village">${cards}</ul>
-        <p class="quiet village-panel-foot">The map updates on its own as people arrive and leave.</p>
-      </div>
+      ${scene(
+        "village",
+        "village",
+        `<span class="scene-eyebrow">Four places. One family.</span>
+        <h1>The village</h1>
+        <p class="lede">A place for our family memories, across distance.</p>
+        <p class="scene-sub">What you put down stays in the room you put it in. It reaches
+          a house's shelf once somebody else writes their own perspective on it and keeps
+          it together — a memory is something two of you were there for.</p>
+        ${message ? `<p class="scene-notice" role="status">${esc(message)}</p>` : ""}`,
+        `<ul class="scene-cards">${cards}</ul>
+        <p class="hand scene-hint">Click a house<br>to step inside.</p>`,
+      )}
+      <p class="quiet measured village-foot">The map updates on its own as people arrive and leave.</p>
     </main>`,
     me,
+    "map",
   );
 }
 
@@ -676,11 +1044,25 @@ export function housePage(
   return page(
     house.name,
     `<main>
-      <h1>${esc(house.name)}</h1>
-      ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
-      <div class="layout-house">
+      ${roomScene(
+        house.slug,
+        `<a class="scene-back" href="/">← Back to the village</a>
+        <h1>${esc(house.name)}</h1>
+        <p class="lede">${esc(eyebrowFor(house.slug))}.</p>
+        <p class="scene-presence">
+          ${faces(otherNames)}
+          <span>${
+            // `names` escapes each name itself, so this is already safe and
+            // must not be escaped again or the ampersand in a name doubles.
+            otherNames.length
+              ? `${names(otherNames)} ${otherNames.length === 1 ? "is" : "are"} here right now`
+              : "Nobody else is here right now"
+          }</span>
+        </p>
+        ${message ? `<p class="scene-notice" role="status">${esc(message)}</p>` : ""}`,
+      )}
+      <div class="layout-house measured">
         <div>
-          ${photoPanel(house.slug, "banner")}
           <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
         </div>
         <div class="panel-stack">
@@ -727,7 +1109,46 @@ export function housePage(
       </script>
     </main>`,
     me,
+    // Only the meeting house is in the nav; the three household rooms are
+    // reached from the map, so nothing is marked current while you're in one.
+    isMeeting ? "meeting" : undefined,
   );
+}
+
+const isFilteredFrom = (f: { year: string; q: string; house: string }): boolean =>
+  Boolean(f.house || f.year || f.q);
+
+/** One kept thing, as a card on the wall. Keeps `li.thing` because that is
+ *  what the route tests look for, and because a shelf card and a room slip
+ *  really are the same object seen in two places.
+ *
+ *  The two names are the point of the whole app, so they are the loudest
+ *  line on the card after the title — not a footnote. */
+function shelfCard(t: ThingView, house: House): string {
+  const everyone = [t.placedByName, ...t.keeperNames];
+  // Things placed before the app had titles have an empty one. An empty
+  // <h3> is a heading a screen reader announces with nothing in it, so the
+  // card simply goes without rather than rendering a hollow one.
+  const title = t.title.trim()
+    ? `<h3 class="thing-title">${esc(t.title)}</h3>`
+    : "";
+  return `<li class="thing card-shelf">
+    <div class="card-shelf-body">
+      ${title}
+      <p class="body">${esc(t.body)}</p>
+      ${t.perspectives.length ? perspectivesList(t) : ""}
+    </div>
+    <div class="card-shelf-foot">
+      <p class="card-shelf-where">
+        <span class="chip chip-house" data-house="${esc(house.slug)}">${esc(house.name)}</span>
+        ${t.eventDate ? `<span class="note">${esc(t.eventDate)}</span>` : ""}
+      </p>
+      <p class="card-shelf-who">
+        ${faces(everyone)}
+        <span class="state" data-state="on-the-shelf">Kept together by ${esc(t.placedByName)} &amp; ${names(t.keeperNames)}</span>
+      </p>
+    </div>
+  </li>`;
 }
 
 export function shelfPage(
@@ -741,14 +1162,20 @@ export function shelfPage(
     ? houses.filter((h) => h.slug === filters.house)
     : houses;
   const totalShown = visibleHouses.reduce((n, h) => n + h.shelved.length, 0);
-  const sections = visibleHouses
-    .map((h) => {
-      const body = h.shelved.length
-        ? `<ol>${h.shelved.map((t) => thingItem(t, h.slug)).join("")}</ol>`
-        : `<p class="empty">Nothing from ${esc(h.name)} matches, or is on the shelf yet.</p>`;
-      return `<section><h2>${esc(h.name)}</h2>${body}</section>`;
-    })
-    .join("");
+  // One wall rather than a section per house: the shelf's argument is that
+  // these are the family's memories, not four separate collections, and a
+  // card says which house it came from anyway. The house headings stay as
+  // the filter, which is where choosing a house belongs.
+  const everything = visibleHouses.flatMap((h) =>
+    h.shelved.map((t) => shelfCard(t, h)),
+  );
+  const wall = everything.length
+    ? `<ol class="wall">${everything.join("")}</ol>`
+    : `<p class="empty">${
+        isFilteredFrom(filters)
+          ? "Nothing on the shelf matches those filters."
+          : "Nothing is on the shelf yet. A thing reaches it once someone other than whoever put it down writes their own perspective and keeps it together."
+      }</p>`;
   const houseOptions = houses
     .map(
       (h) =>
@@ -758,13 +1185,19 @@ export function shelfPage(
   const yearOptions = years
     .map((y) => `<option value="${esc(y)}"${filters.year === y ? " selected" : ""}>${esc(y)}</option>`)
     .join("");
-  const isFiltered = filters.house || filters.year || filters.q;
+  const isFiltered = isFilteredFrom(filters);
   return page(
     "The memory shelf",
-    `<main>
-      <h1>The memory shelf</h1>
-      <p class="lede">Only the things more than one of you were there for. No
-        compose box here — the shelf is for looking at.</p>
+    `<main class="measured">
+      <div class="shelf-head">
+        <div class="shelf-head-copy">
+          <h1>The memory shelf</h1>
+          <p class="lede">Only the things more than one of you were there for.</p>
+          <p class="note">No compose box here — the shelf is for looking at. Everything
+            on it carries two names and the day it was kept.</p>
+        </div>
+        <p class="hand shelf-aside">Same people.<br>Different places.<br>A fuller story.</p>
+      </div>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
       <form method="get" action="/shelf" class="shelf-filters">
         <div>
@@ -788,10 +1221,11 @@ export function shelfPage(
         <button class="primary">Filter</button>
         ${isFiltered ? `<a href="/shelf">Clear</a>` : ""}
       </form>
-      <p class="note">${totalShown} ${totalShown === 1 ? "memory" : "memories"} shown${isFiltered ? " for these filters" : ""}.</p>
-      ${sections}
+      <p class="note shelf-count">${totalShown} ${totalShown === 1 ? "memory" : "memories"} shown${isFiltered ? " for these filters" : ""}.</p>
+      ${wall}
     </main>`,
     me,
+    "shelf",
   );
 }
 

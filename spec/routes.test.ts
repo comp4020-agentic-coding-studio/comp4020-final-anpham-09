@@ -160,12 +160,26 @@ describe("what a browser gets", () => {
     expect(res.status).toBe(404);
   });
 
-  it("puts a photograph of Hanoi on the village map", async () => {
+  it("puts a photograph of the village on the map, at three widths", async () => {
+    // Was: one <img class="photo" src="/img/hanoi.jpg"> per house card. The
+    // map is now a single photograph you stand inside, with the houses as
+    // cards lying on top of it, so there is no per-house picture here to
+    // assert any more. What replaces it is a stronger claim than the old
+    // one: the scene is a real file, and it ships at three widths so a
+    // phone is never sent the 1672px version. A map that silently lost its
+    // photograph, or that offered only one size, still fails.
     const s = session();
     await s.get("/");
     await s.post("/join", { name: "Alice", home: "canberra" });
     const html = await (await s.get("/")).text();
-    expect(html).toContain('<img class="photo" src="/img/hanoi.jpg"');
+    expect(html).toContain('class="scene-photo"');
+    for (const width of [760, 1200, 1672]) {
+      expect(html).toContain(`/img/village-${width}.webp ${width}w`);
+    }
+    // And the file behind the smallest of them is really there.
+    const res = await fetch(new URL("/img/village-760.webp", baseUrl));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("image/webp");
   });
 
   it("answers a HEAD request for a picture with the real headers and no body", async () => {
@@ -276,7 +290,12 @@ describe("what a browser gets", () => {
       await bob.post("/take", { thing: thingId, house: "canberra" });
 
       const shelf = await (await alice.get("/shelf")).text();
-      const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?</li>`).exec(shelf);
+      // `class="thing ..."` rather than `class="thing"`: a shelf card now
+      // carries a second class for the card-wall layout. The element is
+      // still the same `li.thing` a room renders — matching the class as a
+      // prefix keeps this test about escaping, which is what it is for,
+      // rather than about how the shelf happens to be laid out this week.
+      const item = new RegExp(`<li class="thing[^"]*">(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?</li>`).exec(shelf);
       expect(item, "the kept thing is not on the shelf").not.toBeNull();
       expect(item![0]).not.toContain("<script>");
       expect(item![0]).toContain("&lt;script&gt;");

@@ -116,18 +116,24 @@ const server = createServer((req, res) => {
     // The README is published whether or not you've said who you are.
     if (method === "GET" && path === "/readme") {
       const src = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-      html(res, 200, page("About — the village", `<main>${markdown(src)}</main>`, me), setCookie);
+      html(res, 200, page("About — the village", `<main class="measured">${markdown(src)}</main>`, me), setCookie);
       return;
     }
 
     // Pictures are chrome, not content: they sit on the join page itself and
     // gating them behind a name would be pointless, so this is answered
     // before the join gate below, same as the README.
-    const img = /^\/img\/([a-z-]+)\.jpg$/.exec(path);
+    // Two extensions, not one: the house photographs are still JPEG, and the
+    // village and room backgrounds are WebP at three widths each, because a
+    // full-bleed photograph at 1672px is a different object on a phone than
+    // it is on a laptop. Digits are allowed for those widths. The extension
+    // is an explicit alternation rather than a character class so a request
+    // for any other format is a 404 rather than a read.
+    const img = /^\/img\/([a-z0-9-]+)\.(jpg|webp)$/.exec(path);
     if (method === "GET" && img) {
-      const filePath = join(IMAGES_DIR, `${img[1]}.jpg`);
-      // The slug is already constrained to [a-z-]+ by the regex above, so it
-      // cannot contain a path separator or "..", but the resolved path is
+      const filePath = join(IMAGES_DIR, `${img[1]}.${img[2]}`);
+      // The slug is already constrained to [a-z0-9-]+ by the regex above, so
+      // it cannot contain a path separator or "..", but the resolved path is
       // checked against the images directory anyway, as a second line of
       // defence against a future loosening of that pattern.
       if (!filePath.startsWith(IMAGES_DIR)) {
@@ -137,7 +143,7 @@ const server = createServer((req, res) => {
       try {
         const data = readFileSync(filePath);
         res.writeHead(200, {
-          "content-type": "image/jpeg",
+          "content-type": img[2] === "webp" ? "image/webp" : "image/jpeg",
           "content-length": data.length,
           // An hour: long enough to matter on a slow connection, short enough
           // that a real family photo dropped in under the same filename shows
@@ -196,7 +202,7 @@ const server = createServer((req, res) => {
       // Nothing else is a page this visitor can see without joining — the
       // same 404 the rest of the app gives, reached here directly rather
       // than falling through to routes below that assume `me` is a Person.
-      html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such page.</p></main>", me), setCookie);
+      html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such page.</p></main>", me), setCookie);
       return;
     }
 
@@ -239,7 +245,7 @@ const server = createServer((req, res) => {
     const room = /^\/house\/([a-z-]+)\/room$/.exec(path);
     if (method === "GET" && room) {
       const house = houseBySlug(room[1]);
-      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
+      if (!house) { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
       enter(token, house.slug);
       // Computed exactly as the /house/:slug route does, so a reconnecting
       // stream's resync carries the same who-line the full page would.
@@ -287,7 +293,7 @@ const server = createServer((req, res) => {
     const visit = /^\/house\/([a-z-]+)$/.exec(path);
     if (method === "GET" && visit) {
       const house = houseBySlug(visit[1]);
-      if (!house) { html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
+      if (!house) { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
       // Arriving is what makes you present, so a reader with JavaScript off
       // still counts for the 45 seconds the app will admit to.
       enter(token, house.slug);
@@ -345,7 +351,7 @@ const server = createServer((req, res) => {
       return;
     }
 
-    html(res, 404, page("Not found", "<main><h1>Not found</h1><p>No such page.</p></main>", me), setCookie);
+    html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such page.</p></main>", me), setCookie);
   })().catch((err: unknown) => {
     if (err instanceof BodyTooLarge) {
       // Stop reading rather than buffer the rest of an oversized body —
