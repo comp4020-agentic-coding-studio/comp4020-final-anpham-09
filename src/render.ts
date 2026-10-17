@@ -1178,8 +1178,10 @@ function boardStatus(g: GameView, picked: number | null): string {
     return `${g.bottomName} has set out a board and is waiting for somebody to sit down.`;
   }
   const mover = g.turn === "bottom" ? g.bottomName : g.topName;
-  if (g.mustRefill && !g.canAffordRefill) {
-    return `${mover} has no stones left and can't pay to refill, so the game goes the other way.`;
+  if (g.stuck) {
+    const loser = g.stuck === "bottom" ? g.bottomName : g.topName;
+    const winner = g.stuck === "bottom" ? g.topName : g.bottomName;
+    return `${loser}'s five pits are empty and there aren't five points to refill with, so the game goes to ${winner ?? "the other chair"}. Someone needs to call it.`;
   }
   if (g.mustRefill) {
     return `${mover}'s five pits are empty — their turn starts by paying five points to refill.`;
@@ -1200,14 +1202,28 @@ function tablePanel(g: GameView | null, houseSlug: string, watching: number): st
     const past = g?.ended
       ? `<p class="note">${
           g.ended === "stopped"
-            ? "The last game was ended early."
+            ? "The last game was ended early, so it has no score."
             : `Last game: ${esc(g.bottomName)} ${g.final?.bottom ?? 0}, ${esc(g.topName ?? "nobody")} ${g.final?.top ?? 0}.`
         }</p>`
       : "";
+    // Only a finished game, only to the two who played it, and only once.
+    // A game ended early has no result to keep — the button is absent
+    // rather than present-and-refusing, because there is nothing there to
+    // offer. `canPlace` is false for every other case, so this one
+    // condition carries all of it.
+    const keep =
+      g?.canPlace && g.yourSide
+        ? `<form method="post" action="/game/place">
+            <input type="hidden" name="house" value="${esc(houseSlug)}">
+            <button>Put this game in the room</button>
+          </form>
+          <p class="note">It reaches the shelf when the other player adds their side of it.</p>`
+        : "";
     return `<div class="card">
       <h3 class="rule-title">Ô ăn quan</h3>
       <p class="body-sm">A little strategy. A lot of childhood.</p>
       ${past}
+      ${keep}
       <form method="post" action="/game/sit">
         <input type="hidden" name="house" value="${esc(houseSlug)}">
         <button class="primary">Set out a board</button>
@@ -1236,19 +1252,40 @@ function tablePanel(g: GameView | null, houseSlug: string, watching: number): st
     </li>`;
   };
 
-  const leave = g.yourSide
-    ? `<form method="post" action="/game/stand">
-        <input type="hidden" name="house" value="${esc(houseSlug)}">
-        <button>${g.moveCount > 0 ? "End this game" : "Leave the table"}</button>
-      </form>`
-    : "";
+  // Three different things a player might do, and they are genuinely
+  // different endings rather than three names for one:
+  //
+  //   call it   — the board says somebody has lost; this records the score.
+  //   end it    — walk away; NO score, no winner, nothing to keep.
+  //   leave     — nothing has been played yet, so nothing is ended at all.
+  //
+  // Only one is ever shown, because only one of them is true at a time.
+  const action = !g.yourSide
+    ? ""
+    : g.stuck
+      ? `<form method="post" action="/game/concede">
+          <input type="hidden" name="house" value="${esc(houseSlug)}">
+          <button class="primary">Call it — ${esc(
+            (g.stuck === "bottom" ? g.topName : g.bottomName) ?? "the other chair",
+          )} wins</button>
+        </form>`
+      : g.moveCount > 0
+        ? `<form method="post" action="/game/end">
+            <input type="hidden" name="house" value="${esc(houseSlug)}">
+            <button>End this game</button>
+          </form>
+          <p class="note">Ending early leaves no score — it's a game nobody won.</p>`
+        : `<form method="post" action="/game/stand">
+            <input type="hidden" name="house" value="${esc(houseSlug)}">
+            <button>Leave the table</button>
+          </form>`;
 
   return `<div class="card">
     <h3 class="rule-title">At the table</h3>
     <p class="note">${g.top ? "2 playing" : "1 waiting"} · ${watching} ${watching === 1 ? "watching" : "watching"}</p>
     <ul class="chairs">${chair("bottom")}${chair("top")}</ul>
     <p class="note">Dân 1 point · quan 10 · no timer</p>
-    ${leave}
+    ${action}
   </div>`;
 }
 
@@ -1289,14 +1326,18 @@ export function tableFragment(
 ): string {
   return `<div class="table-board">
       ${
-        game && !game.ended
-          ? `<p class="board-status" role="status">${esc(boardStatus(game, picked))}</p>
-             ${boardPanel(game, houseSlug, picked)}`
-          : `<p class="board-status">${
-              game
-                ? esc(boardStatus(game, null))
-                : "Nobody has set out a board. Ô ăn quan takes two."
-            }</p>`
+        game
+          ? // The board is drawn for a finished game too, not just a live
+            // one. The final position is how you see HOW somebody won —
+            // which quan went when, whose side emptied — and a result line
+            // floating over the space where the board used to be says less
+            // and looks like something failed to load. `picked` is dropped
+            // once the game is over, because there is nothing to pick up.
+            `<p class="board-status"${game.ended ? "" : ' role="status"'}>${esc(
+              boardStatus(game, game.ended ? null : picked),
+            )}</p>
+             ${boardPanel(game, houseSlug, game.ended ? null : picked)}`
+          : `<p class="board-status">Nobody has set out a board. Ô ăn quan takes two.</p>`
       }
       ${rulesDrawer()}
     </div>

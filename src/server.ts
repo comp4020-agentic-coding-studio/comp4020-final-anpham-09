@@ -3,7 +3,18 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { publish, subscribe } from "./events.ts";
-import { gameAt, play, sitDown, standUp, type PlayRefusal, type SitRefusal } from "./games.ts";
+import {
+  concede,
+  endGame,
+  gameAt,
+  placeGame,
+  play,
+  sitDown,
+  standUp,
+  type PlaceGameRefusal,
+  type PlayRefusal,
+  type SitRefusal,
+} from "./games.ts";
 import { houseBySlug, listHouses } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
 import { ensurePerson, getPerson, nameOf, type Person, type PersonRefusal } from "./people.ts";
@@ -89,6 +100,8 @@ const REFUSALS: Record<
   | NonNullable<KeepRefusal>
   | SitRefusal
   | PlayRefusal
+  | PlaceGameRefusal
+  | "not-stuck"
   | "not-seated",
   string
 > = {
@@ -117,6 +130,13 @@ const REFUSALS: Record<
   "must-refill": "Your five pits are empty, so your turn starts by paying five points to fill them again.",
   "game-over": "That game is over. Its score stays on the table — set out a new one to play again.",
   "game-finished": "That game is over. Its score stays on the table — set out a new one to play again.",
+  // Easy to confuse with "game-finished" above, and they are opposites.
+  // That one refuses a MOVE because the game is already over; this one
+  // refuses KEEPING because it isn't over yet, or because it ended without
+  // ever producing a result.
+  "game-not-finished": "There's no result to keep yet. A game that was ended early didn't produce one, and one still being played hasn't yet.",
+  "not-stuck": "Nobody is stuck — there's still a move to make, so the game is still on.",
+  "already-placed": "This game is already in the room. One game is one memory, however many times it's clicked.",
 };
 
 const server = createServer((req, res) => {
@@ -417,6 +437,63 @@ const server = createServer((req, res) => {
       }
       publish(slug, "moved");
       seeOther(res, backTo(slug), setCookie);
+      return;
+    }
+
+    // Ending early. Either player can, and it ends with NO result — no
+    // score, no winner, nothing to keep. That asymmetry with the finished
+    // game below is the point: a game somebody walked away from did not
+    // produce one.
+    if (req.method === "POST" && path === "/game/end") {
+      const form = await formData(req);
+      const slug = (form.get("house") ?? "").trim();
+      const refusal = endGame(slug, token);
+      if (refusal) {
+        seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);
+        return;
+      }
+      publish(slug, "ended");
+      seeOther(
+        res,
+        said(backTo(slug), "The game's ended. Nobody won it — set out another whenever you like."),
+        setCookie,
+      );
+      return;
+    }
+
+    // The third ending: a side that must refill and cannot afford to has
+    // lost by the family's own house rules. Either player may say so,
+    // because both can see it, and the board is swept for a real score.
+    if (req.method === "POST" && path === "/game/concede") {
+      const form = await formData(req);
+      const slug = (form.get("house") ?? "").trim();
+      const refusal = concede(slug, token);
+      if (refusal) {
+        seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);
+        return;
+      }
+      publish(slug, "conceded");
+      seeOther(res, backTo(slug), setCookie);
+      return;
+    }
+
+    // Putting a finished game down in the room. It is a thing like any
+    // other from here on: it reaches the shelf only when the other player
+    // writes their own perspective and keeps it together.
+    if (req.method === "POST" && path === "/game/place") {
+      const form = await formData(req);
+      const slug = (form.get("house") ?? "").trim();
+      const result = placeGame(slug, token);
+      if (typeof result === "string") {
+        seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
+        return;
+      }
+      publish(slug, "placed");
+      seeOther(
+        res,
+        said(backTo(slug), "The game's in the room. It reaches the shelf when they add their side of it."),
+        setCookie,
+      );
       return;
     }
 

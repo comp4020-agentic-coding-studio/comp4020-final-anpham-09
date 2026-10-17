@@ -185,6 +185,14 @@ if (!thingsColumns.has("title")) {
 if (!thingsColumns.has("event_date")) {
   db.exec("ALTER TABLE things ADD COLUMN event_date TEXT");
 }
+// A thing that is a finished game points back at it. Nullable because
+// almost nothing is: this is the one kind of thing the app writes on
+// somebody's behalf rather than taking from a form. It exists so that
+// "has this game already been written down" is a question about the
+// things table rather than a flag on the game that could drift from it.
+if (!thingsColumns.has("game_id")) {
+  db.exec("ALTER TABLE things ADD COLUMN game_id INTEGER REFERENCES games(id)");
+}
 
 // Houses are fixed furniture, not user-created content: the village is this
 // family's three homes and the place they meet, and nothing in the app adds

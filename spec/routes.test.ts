@@ -20,6 +20,22 @@ const baseUrl = inject("baseUrl");
 // out (see below), so the suite is safely re-runnable without waiting out
 // the TTL.
 
+/** A page with its inlined stylesheet removed.
+ *
+ *  Every page carries the whole stylesheet in a `<style>` block, and the
+ *  stylesheet names the very classes the markup uses — `pit-pick`,
+ *  `data-stones="0"` and so on. So `expect(html).not.toContain("pit-pick")`
+ *  is always false no matter what the markup does, and
+ *  `expect(html).toContain("pit-pick")` is always true. Both are vacuous,
+ *  and the second kind is the dangerous one: it passes while the feature
+ *  is broken.
+ *
+ *  This has now bitten twice — once counting phantom pits out of two CSS
+ *  selectors, once asserting a control was gone when only the rule for it
+ *  was present. Strip the stylesheet first and the question becomes the
+ *  one actually being asked: is it in the MARKUP. */
+const markup = (html: string): string => html.replace(/<style>[\s\S]*?<\/style>/g, "");
+
 /** The position after bottom sows pit 1 to the right from the opening
  *  board, counted the way `data-stones` counts: stones in the pit, so a
  *  quan reads as one rather than as ten.
@@ -45,7 +61,9 @@ const SOWED_PIT_1_RIGHT = [2, 6, 6, 6, 6, 0, 0, 0, 6, 6, 6, 2];
  *  boardPanel — the ring on screen has to match the ring the stones
  *  travel — so the test reads what a person actually sees. */
 function stonesOnBoard(html: string): number[] {
-  return [...html.matchAll(/<li class="pit[^"]*" data-stones="(\d+)"/g)].map((m) => Number(m[1]));
+  return [...markup(html).matchAll(/<li class="pit[^"]*" data-stones="(\d+)"/g)].map((m) =>
+    Number(m[1]),
+  );
 }
 
 /** A session is a cookie jar. Two of these is two people. */
@@ -468,6 +486,62 @@ describe("what a browser gets", () => {
       // There is no table in a household house, and asking for one is not
       // a quietly empty page — it is a 404, like any path the app hasn't got.
       expect((await one.get("/house/canberra/table")).status).toBe(404);
+    } finally {
+      await one.post("/game/stand", { house: "meeting" });
+      await one.post("/leave", {});
+      await two.post("/leave", {});
+    }
+  });
+
+  it("offers to keep a finished game, and offers nothing after an early end", async () => {
+    // The two endings are not two names for one thing, and the interface
+    // is where that has to show. A game somebody walked away from produced
+    // no result, so there is nothing to put in the room — and the button
+    // must be ABSENT rather than present-and-refusing, because offering an
+    // action that cannot work is how an interface teaches somebody that it
+    // is broken.
+    const one = session();
+    const two = session();
+    try {
+      await one.get("/");
+      await one.post("/join", { name: "Ending One", home: "canberra" });
+      await two.get("/");
+      await two.post("/join", { name: "Ending Two", home: "hanoi" });
+      await one.post("/game/sit", { house: "meeting" });
+      await two.post("/game/sit", { house: "meeting" });
+      await one.post("/game/move", { house: "meeting", pit: "1", dir: "right" });
+
+      // Mid-game, the only ending on offer is the one with no result, and
+      // the page says so rather than leaving it to be discovered.
+      const live = await (await one.get("/house/meeting")).text();
+      expect(live).toContain("/game/end");
+      expect(live).toContain("no score");
+      expect(live).not.toContain("/game/place");
+
+      // Either player can end it — here the one who did not start it.
+      const ended = await two.post("/game/end", { house: "meeting" });
+      expect(ended.status).toBe(303);
+      const told = await (await two.get(ended.headers.get("location")!)).text();
+      expect(told).toContain("Nobody won it");
+
+      // And afterwards there is nothing to keep, for either of them.
+      for (const who of [one, two]) {
+        const after = await (await who.get("/house/meeting")).text();
+        expect(after).toContain("ended early");
+        expect(after).not.toContain("/game/place");
+        // The final position stays on the table rather than vanishing.
+        // A result line floating over the space where the board used to
+        // be says less than the board does, and looks like something
+        // failed to load.
+        expect(stonesOnBoard(after)).toHaveLength(12);
+        // But nothing on it is a control any more: the game is over.
+        expect(markup(after)).not.toContain("pit-pick");
+      }
+      // Asking anyway is refused in words, not with a 500.
+      const refused = await one.post("/game/place", { house: "meeting" });
+      expect(refused.status).toBe(303);
+      const why = await (await one.get(refused.headers.get("location")!)).text();
+      expect(why).toContain("no result to keep");
     } finally {
       await one.post("/game/stand", { house: "meeting" });
       await one.post("/leave", {});

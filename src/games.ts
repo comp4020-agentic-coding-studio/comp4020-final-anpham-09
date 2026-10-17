@@ -45,6 +45,19 @@ export interface GameView {
   /** Whether that side can afford to. False means they have lost. */
   canAffordRefill: boolean;
   moveCount: number;
+  /** Whether this game can be put down in the room as a thing. True only
+   *  for a game that reached its own end, has a real score, and has not
+   *  been written down already. A game somebody walked away from produced
+   *  no result, and offering to keep it would put a number on something
+   *  that never happened; a game already in the room would just be a
+   *  second copy of one memory. Either way the button is absent rather
+   *  than present-and-refusing. */
+  canPlace: boolean;
+  /** The side that must refill and cannot afford to, and has therefore
+   *  lost — null whenever that is not the situation. The game is still
+   *  live at this point: somebody has to say so, which is what
+   *  `concede` is for. */
+  stuck: Side | null;
 }
 
 export type SitRefusal =
@@ -153,6 +166,7 @@ function viewOf(row: GameRow, viewer: string): GameView {
   const final = over && row.ended !== "stopped" ? finalScore(board, scores) : null;
 
   const mustRefill = !over && needsRefill(board, turn);
+  const canAffordRefill = mustRefill && scores[turn] >= REFILL_COST;
   return {
     id: row.id,
     board,
@@ -169,8 +183,13 @@ function viewOf(row: GameRow, viewer: string): GameView {
     final,
     playable: !over && yourSide === turn ? legalPits(board, turn) : [],
     mustRefill,
-    canAffordRefill: mustRefill && scores[turn] >= REFILL_COST,
+    canAffordRefill,
     moveCount,
+    // A finished game has a score worth keeping. A stopped one has
+    // nothing to keep, a live one is not over yet, and one already written
+    // down does not want writing down twice.
+    canPlace: row.ended === "finished" && !gameIsPlaced(row.id),
+    stuck: mustRefill && !canAffordRefill ? turn : null,
   };
 }
 
@@ -208,9 +227,7 @@ export function standUp(houseSlug: string, person: string): "no-game" | "not-sea
 
   const played = lastMove(live.id) !== undefined;
   if (played) {
-    db.prepare("UPDATE games SET ended = 'stopped', ended_at = datetime('now') WHERE id = ?").run(
-      live.id,
-    );
+    markEnded(live.id, "stopped");
     return null;
   }
   if (live.top === person) {
@@ -224,9 +241,7 @@ export function standUp(houseSlug: string, person: string): "no-game" | "not-sea
     db.prepare("UPDATE games SET bottom = top, top = NULL WHERE id = ?").run(live.id);
     return null;
   }
-  db.prepare("UPDATE games SET ended = 'stopped', ended_at = datetime('now') WHERE id = ?").run(
-    live.id,
-  );
+  markEnded(live.id, "stopped");
   return null;
 }
 
@@ -280,11 +295,7 @@ export function play(
   seq += 1;
   insertMove(live.id, seq, side, "sow", pit, direction, result.board, after);
 
-  if (isFinished(result.board)) {
-    db.prepare("UPDATE games SET ended = 'finished', ended_at = datetime('now') WHERE id = ?").run(
-      live.id,
-    );
-  }
+  if (isFinished(result.board)) markEnded(live.id, "finished");
   return null;
 }
 
@@ -304,20 +315,130 @@ function insertMove(
   ).run(gameId, seq, side, kind, pit, direction, encodeBoard(board), scores.bottom, scores.top);
 }
 
-/** End a game early. No score, no winner — a game somebody walked away
- *  from did not produce a result, and saying otherwise would put a number
- *  on something that never finished. */
-export function stopGame(houseSlug: string, person: string): "no-game" | "not-playing" | null {
+/** End a game early. Either player can, and it ends with no result at all:
+ *  no score, no winner, nothing to put on a shelf. A game somebody walked
+ *  away from did not produce a result, and recording one would put a number
+ *  on something that never happened.
+ *
+ *  This is the same ending `standUp` reaches by a different door — leaving
+ *  your chair mid-game ends the game, because there is no one left to play
+ *  it. Both funnel through here so there is one place that knows what
+ *  "ended early" means. */
+export function endGame(houseSlug: string, person: string): "no-game" | "not-playing" | null {
   const house = houseBySlug(houseSlug);
   if (!house) return "no-game";
   const live = liveGameRow(house.id);
   if (!live) return "no-game";
   if (live.bottom !== person && live.top !== person) return "not-playing";
-  db.prepare("UPDATE games SET ended = 'stopped', ended_at = datetime('now') WHERE id = ?").run(
-    live.id,
-  );
+  markEnded(live.id, "stopped");
   return null;
 }
+
+/** The third ending, and the one that is easiest to leave out: a player
+ *  whose five pits are empty must pay five points to refill them, and a
+ *  player who cannot afford that has lost. The family's house rules say so
+ *  — "insufficient refill points means loss".
+ *
+ *  Without this the game is simply stuck. `play` refuses the move, quite
+ *  correctly, and goes on refusing it forever; the board sits there with no
+ *  legal action for anyone and no way to finish. It happens in roughly one
+ *  game in fifty under random play, which is often enough to matter and
+ *  rare enough to never see by hand.
+ *
+ *  Unlike ending early, this DOES produce a score. The board is swept the
+ *  same way a naturally finished game is swept, because the position is
+ *  real and the points on it were genuinely won — it is only the next move
+ *  that is impossible. So it ends as 'finished', and can be kept. */
+export function concede(houseSlug: string, person: string): "no-game" | "not-playing" | "not-stuck" | null {
+  const house = houseBySlug(houseSlug);
+  if (!house) return "no-game";
+  const live = liveGameRow(house.id);
+  if (!live) return "no-game";
+  if (live.bottom !== person && live.top !== person) return "not-playing";
+  if (live.top === null) return "no-game";
+
+  const { board, scores, turn } = stateOf(live.id);
+  if (isFinished(board)) return "not-stuck";
+  // Either player may say it, because both can see it — but only about a
+  // side that really is stuck. A player cannot concede their way out of a
+  // turn they could still play.
+  if (!needsRefill(board, turn) || scores[turn] >= REFILL_COST) return "not-stuck";
+  markEnded(live.id, "finished");
+  return null;
+}
+
+const markEnded = (gameId: number, how: "finished" | "stopped"): void => {
+  db.prepare("UPDATE games SET ended = ?, ended_at = datetime('now') WHERE id = ?").run(
+    how,
+    gameId,
+  );
+};
+
+export type PlaceGameRefusal =
+  | "no-game"
+  | "not-playing"
+  | "game-not-finished"
+  | "already-placed";
+
+/** Put a finished game down in the room, as a thing like any other.
+ *
+ *  Deliberately NOT automatic. A finished game is not a memory yet — it is
+ *  a score. It becomes a memory the same way everything else in this app
+ *  does: somebody chooses to put it down, and it only reaches the shelf
+ *  once the other person writes their own perspective on it and keeps it
+ *  together. The game gets no shortcut past the rule the whole app is
+ *  about.
+ *
+ *  Only a player can place it, and only once. A watcher saw the game but
+ *  did not play it, and a second copy of the same score is not a second
+ *  memory. */
+export function placeGame(
+  houseSlug: string,
+  person: string,
+): number | PlaceGameRefusal {
+  const house = houseBySlug(houseSlug);
+  if (!house) return "no-game";
+  const row = liveGameRow(house.id) ?? lastEndedGame(house.id);
+  if (!row) return "no-game";
+  if (row.bottom !== person && row.top !== person) return "not-playing";
+  // 'stopped' is the point of this check: a game ended early has no score,
+  // so there is nothing true to write down about it.
+  if (row.ended !== "finished") return "game-not-finished";
+  if (placedGameIds().has(row.id)) return "already-placed";
+
+  const view = viewOf(row, person);
+  const final = view.final ?? { bottom: 0, top: 0 };
+  const names = { bottom: view.bottomName, top: view.topName ?? "nobody" };
+  const title = `Ô ăn quan · ${names.bottom} and ${names.top}`;
+  const body =
+    view.winner === "draw"
+      ? `A draw, ${final.bottom} each, over ${view.moveCount} ${view.moveCount === 1 ? "move" : "moves"}.`
+      : `${view.winner === "bottom" ? names.bottom : names.top} won — ${names.bottom} ${final.bottom}, ${names.top} ${final.top}, over ${view.moveCount} ${view.moveCount === 1 ? "move" : "moves"}.`;
+
+  const info = db
+    .prepare(
+      "INSERT INTO things (house_id, placed_by, title, body, game_id) VALUES (?, ?, ?, ?, ?)",
+    )
+    .run(house.id, person, title, body, row.id);
+  return Number(info.lastInsertRowid);
+}
+
+/** The games already written down, so the interface can stop offering to
+ *  write one down twice. Derived from the things rows themselves rather
+ *  than from a flag on the game, for the same reason the shelf is: there
+ *  is a fact underneath (a things row with this game_id) and a second copy
+ *  of it could drift. */
+const placedGameIds = (): Set<number> =>
+  new Set(
+    (
+      db.prepare("SELECT game_id FROM things WHERE game_id IS NOT NULL").all() as Array<{
+        game_id: number;
+      }>
+    ).map((r) => r.game_id),
+  );
+
+/** Whether this game has already been put down in the room. */
+export const gameIsPlaced = (gameId: number): boolean => placedGameIds().has(gameId);
 
 /** Every move of a game, oldest first — for the replay check that keeps the
  *  stored board honest. */
