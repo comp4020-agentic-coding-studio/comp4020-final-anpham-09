@@ -37,3 +37,10 @@ mise.local.toml
 # it, and this repo goes public on a 256MB machine.
 exports/
 assets/village-screens*/
+# Same reasoning for the ô ăn quan screens: 14MB of PNG and SVG that only a
+# person reading them needs. Its README is the exception and is tracked by
+# name below, because it records the family's house rules — dân 1, quan 10,
+# no borrowing, no timer — which the engine implements and which exist
+# nowhere else in writing.
+assets/o-an-quan*/*
+!assets/o-an-quan*/README.md

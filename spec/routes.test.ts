@@ -10,10 +10,43 @@ const baseUrl = inject("baseUrl");
 // an unwanted extra witness and its "in the room" assertion turns into "on
 // the shelf". Each presence-sensitive test below therefore gets its own
 // house: the form-POST test uses `canberra`, the refusal test uses `hanoi`.
-// `meeting` is left alone for Task 8's real-time tests. Do not consolidate
-// these onto one house — that reintroduces the flakiness this comment is
-// here to prevent. Each such test also leaves on its way out (see below), so
-// the suite is safely re-runnable without waiting out the TTL.
+// `meeting` is shared with Task 8's real-time tests and now also with the
+// game test at the bottom of this file, because the game lives only in the
+// meeting house and there is nowhere else to put it. That sharing is safe
+// in a way the others are not: the game test places nothing, so no "in the
+// room" assertion anywhere can be disturbed by the witness it leaves. Do
+// not consolidate the rest onto one house — that reintroduces the flakiness
+// this comment is here to prevent. Each such test also leaves on its way
+// out (see below), so the suite is safely re-runnable without waiting out
+// the TTL.
+
+/** The position after bottom sows pit 1 to the right from the opening
+ *  board, counted the way `data-stones` counts: stones in the pit, so a
+ *  quan reads as one rather than as ten.
+ *
+ *  Sowing the same pit to the LEFT instead gives
+ *  [0,6,6,6,6,0,0,6,6,6,6,2] — a different position, which is the whole
+ *  reason this constant is worth asserting against. */
+const SOWED_PIT_1_RIGHT = [2, 6, 6, 6, 6, 0, 0, 0, 6, 6, 6, 2];
+
+/** The board as the page shows it: each pit carries its own count in a data
+ *  attribute, so a test can read the position without a DOM parser and
+ *  without the app growing a JSON endpoint it has no other use for.
+ *
+ *  The match is anchored on the list item rather than on the attribute
+ *  alone, because the stylesheet is inlined into every page and contains
+ *  data-stones="0" in two of its own selectors. An unanchored regex picks
+ *  those up and prepends two phantom pits to every reading — which is
+ *  exactly what the first draft of this helper did.
+ *
+ *  The order is the order the page lays the board out, which is not the
+ *  engine's: the left quan, then the top row right-to-left (11..7), then
+ *  the bottom row (1..5), then the right quan. That is deliberate in
+ *  boardPanel — the ring on screen has to match the ring the stones
+ *  travel — so the test reads what a person actually sees. */
+function stonesOnBoard(html: string): number[] {
+  return [...html.matchAll(/<li class="pit[^"]*" data-stones="(\d+)"/g)].map((m) => Number(m[1]));
+}
 
 /** A session is a cookie jar. Two of these is two people. */
 function session(): { get: (p: string) => Promise<Response>; post: (p: string, body: Record<string, string>) => Promise<Response> } {
@@ -329,6 +362,116 @@ describe("what a browser gets", () => {
       expect(afterLeaving).toContain("What should everyone call you?");
     } finally {
       await s.post("/leave", {});
+    }
+  });
+
+  it("plays a whole move with no JavaScript: a GET to pick, a POST to sow", async () => {
+    // CLAUDE.md: "the app must work with JavaScript off". The mock's board
+    // is a pick-then-choose-direction interaction, which is two steps, and
+    // the first of them must not write anything — it is a GET, and a GET
+    // that changed the board would break the back button and every
+    // prefetcher on the internet. The shelf filters are the precedent.
+    //
+    // Two sessions, because a game needs two of you.
+    const one = session();
+    const two = session();
+    try {
+      await one.get("/");
+      await one.post("/join", { name: "Player One", home: "canberra" });
+      await two.get("/");
+      await two.post("/join", { name: "Player Two", home: "hanoi" });
+
+      // A bare table: both sit, and the second sitting fills the far chair.
+      expect((await one.post("/game/sit", { house: "meeting" })).status).toBe(303);
+      expect((await two.post("/game/sit", { house: "meeting" })).status).toBe(303);
+
+      // Step one is a link. It renders the direction buttons and a way out,
+      // and it is reachable by typing the URL — no script anywhere.
+      const picked = await (await one.get("/house/meeting?pit=1")).text();
+      expect(picked).toContain("Which way would you like to sow?");
+      expect(picked).toContain('value="left"');
+      expect(picked).toContain('value="right"');
+      expect(picked).toContain("Cancel selection");
+
+      // Picking is a GET, so it must leave the board exactly as it was.
+      expect(stonesOnBoard(picked)).toEqual(stonesOnBoard(await (await one.get("/house/meeting")).text()));
+
+      // Step two is a form POST that redirects, like every other write in
+      // the app. After it, it is the other player's turn.
+      const moved = await one.post("/game/move", { house: "meeting", pit: "1", dir: "right" });
+      expect(moved.status).toBe(303);
+      expect(moved.headers.get("location")).toBe("/house/meeting");
+
+      // Read the board back off the page. Sowing pit 1 to the RIGHT leaves
+      // a position sowing LEFT could not produce, so asserting the whole
+      // board makes this a test of the direction the player chose and not
+      // merely of a move having happened.
+      const after = await (await one.get("/house/meeting")).text();
+      expect(after).toContain("It's Player Two's turn.");
+      expect(stonesOnBoard(after)).toEqual(SOWED_PIT_1_RIGHT);
+
+      // And a move out of turn is refused in the app's own words rather
+      // than by the absence of a button.
+      const refused = await one.post("/game/move", { house: "meeting", pit: "2", dir: "right" });
+      expect(refused.headers.get("location")).toContain("said=");
+      const told = await (await one.get(refused.headers.get("location")!)).text();
+      expect(told).toContain("It isn't your turn yet");
+    } finally {
+      await one.post("/game/stand", { house: "meeting" });
+      await one.post("/leave", {});
+      await two.post("/leave", {});
+    }
+  });
+
+  it("serves the board as its own fragment, so a move can arrive without a reload", async () => {
+    // The board is a sibling of #room, not part of it, which means the
+    // live resync has to fetch and swap both. This was found by watching:
+    // the move landed in the database and the opponent's page sat there
+    // showing the old position until it was reloaded by hand. A structural
+    // check would not have caught it — the markup was correct, it was just
+    // never asked for.
+    //
+    // The ?pit= selection rides along on the fragment too. Without that,
+    // ANY event — including somebody else simply saying something in the
+    // room — puts your stones back down in the middle of your own move.
+    const one = session();
+    const two = session();
+    try {
+      await one.get("/");
+      await one.post("/join", { name: "Fragment One", home: "canberra" });
+      await two.get("/");
+      await two.post("/join", { name: "Fragment Two", home: "hanoi" });
+      await one.post("/game/sit", { house: "meeting" });
+      await two.post("/game/sit", { house: "meeting" });
+
+      const fragment = await one.get("/house/meeting/table");
+      expect(fragment.status).toBe(200);
+      const board = await fragment.text();
+      // A fragment, not a page: no doctype, no nav, no second h1.
+      expect(board).not.toContain("<!doctype");
+      expect(board).not.toContain("<h1");
+      expect(stonesOnBoard(board)).toHaveLength(12);
+
+      // The same selection the full page would show, so a resync mid-move
+      // hands back the board with your stones still in your hand.
+      const picked = await (await one.get("/house/meeting/table?pit=1")).text();
+      expect(picked).toContain("Which way would you like to sow?");
+      expect(picked).toContain('value="right"');
+
+      // After the move, the fragment alone carries the new position —
+      // which is what makes a reload unnecessary.
+      await one.post("/game/move", { house: "meeting", pit: "1", dir: "right" });
+      const moved = await (await two.get("/house/meeting/table")).text();
+      expect(stonesOnBoard(moved)).toEqual(SOWED_PIT_1_RIGHT);
+      expect(moved).toContain("Fragment One");
+
+      // There is no table in a household house, and asking for one is not
+      // a quietly empty page — it is a 404, like any path the app hasn't got.
+      expect((await one.get("/house/canberra/table")).status).toBe(404);
+    } finally {
+      await one.post("/game/stand", { house: "meeting" });
+      await one.post("/leave", {});
+      await two.post("/leave", {});
     }
   });
 });

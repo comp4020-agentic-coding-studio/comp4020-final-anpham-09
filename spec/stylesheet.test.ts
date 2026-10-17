@@ -173,4 +173,28 @@ describe("the stylesheet", () => {
     }
     expect(small).toEqual([]);
   });
+
+  it("keeps a pit big enough to tap, including the ones that are links", () => {
+    // The test above cannot see this one. `a.pit-pick` is positioned
+    // `inset: 0` inside its pit, so it has no height of its own — it is
+    // exactly as big as `.pit`, and `.pit` does not look like a control to
+    // a selector match. Measured in the browser at 68x111 and 72x142, but
+    // a number in a stylesheet is what a future edit will change, so the
+    // floor is asserted on the declaration the geometry comes from.
+    const css = withoutComments(stylesheet());
+    const pit = /\.pit\s*{([^}]*)}/.exec(css);
+    expect(pit).not.toBe(null);
+    const height = /min-height:\s*([\d.]+)rem/.exec(pit![1]);
+    expect(height).not.toBe(null);
+    expect(Number(height![1]) * 16).toBeGreaterThanOrEqual(44);
+
+    // And the board refuses to shrink below the width where five pits plus
+    // two quan would drop under that floor — it scrolls sideways instead.
+    // That is the trade the comment beside it claims to make.
+    const board = /\.board\s*{([^}]*)}/.exec(css);
+    const minWidth = /min-width:\s*([\d.]+)rem/.exec(board![1]);
+    expect(minWidth).not.toBe(null);
+    expect(Number(minWidth![1]) * 16).toBeGreaterThanOrEqual(7 * 44);
+    expect(/\.board-wrap\s*{[^}]*overflow-x:\s*auto/.test(css)).toBe(true);
+  });
 });

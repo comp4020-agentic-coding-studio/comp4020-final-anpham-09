@@ -1,4 +1,6 @@
+import type { GameView } from "./games.ts";
 import { hasPicture, houseBySlug, type House } from "./houses.ts";
+import { isQuanPit } from "./oanquan.ts";
 import { getPerson, type Person } from "./people.ts";
 import type { ThingView } from "./things.ts";
 
@@ -469,6 +471,80 @@ main :is(h2,h3) { margin-top: 2rem; }
 form.say { display: flex; align-items: center; gap: .5rem; margin: 1.25rem 0; }
 form.say input { flex: 1 1 auto; min-width: 0; }
 form.say button { flex: 0 0 auto; }
+
+/* ---- The table ------------------------------------------------------- */
+.table-area { display: grid; gap: 1.5rem; margin-top: 2rem; align-items: start; }
+@media (min-width: 900px) { .table-area { grid-template-columns: 1fr 19rem; } }
+.board-status { margin: 0 0 .9rem; font-size: 1.0625rem; color: var(--ink); }
+
+/* The board is a ring of twelve, drawn as two rows between two half-round
+   ends. It scrolls sideways rather than shrinking below legibility: five
+   pits plus two quan in 360px would be 40px cells, under the 44px floor. */
+.board-wrap { overflow-x: auto; padding-bottom: .25rem; }
+.board { display: flex; align-items: stretch; gap: .4rem; min-width: 34rem;
+  padding: .6rem; background: var(--card); border: 1px solid var(--rule);
+  border-radius: 6rem / 4rem; box-shadow: var(--shadow-1); }
+.board-rows { flex: 1; display: grid; gap: .4rem; }
+ul.pit-row { list-style: none; margin: 0; padding: 0; display: grid;
+  grid-template-columns: repeat(5, 1fr); gap: .4rem; }
+.pit { position: relative; display: flex; align-items: center; justify-content: center;
+  min-height: 4.25rem; border-radius: .6rem; background: var(--card-raised);
+  box-shadow: inset 0 0 0 1px var(--rule); }
+.pit-count { font-family: var(--display); font-weight: 700; font-size: 1.0625rem;
+  color: var(--ink-soft); }
+/* A pit holding a quan is the terracotta disc from the Figma. */
+.quan-end { display: flex; align-items: center; }
+.quan-end .pit { width: 4.5rem; min-height: 100%; border-radius: 4rem / 6rem; }
+.pit-quan .pit-count { color: var(--on-hearth); }
+.pit-quan { background: var(--hearth-fill); box-shadow: none; }
+/* An emptied quan pit is no longer special, and says so by losing the fill
+   rather than by keeping a colour that would claim a quan is still there. */
+.pit-quan[data-stones="0"] { background: var(--card-raised); box-shadow: inset 0 0 0 1px var(--rule); }
+.pit-quan[data-stones="0"] .pit-count { color: var(--ink-soft); }
+
+/* A pit you can pick up is a link, and looks like a control. A pit you
+   cannot is not a control at all — no disabled button to click at. */
+a.pit-pick { position: absolute; inset: 0; display: flex; align-items: center;
+  justify-content: center; border-radius: .6rem; text-decoration: none;
+  background: var(--paper); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--sage) 45%, transparent); }
+a.pit-pick .pit-count { color: var(--ink); }
+a.pit-pick:hover { box-shadow: inset 0 0 0 2px var(--hearth); }
+a.pit-pick:focus-visible { outline: none;
+  box-shadow: inset 0 0 0 2px var(--hearth), 0 0 0 3px color-mix(in srgb, var(--hearth) 30%, transparent); }
+/* The picked pit, marked by weight and a ring rather than by colour alone —
+   and the aria-current attribute carries the same fact for a screen
+   reader. */
+a.pit-pick[aria-current] { background: var(--paper);
+  box-shadow: inset 0 0 0 3px var(--hearth), var(--shadow-2); }
+a.pit-pick[aria-current] .pit-count { color: var(--hearth-deep); }
+
+.board-side-label { margin: .35rem 0; font-size: .8125rem; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--ink-soft); text-align: center; }
+form.sow { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: 1rem 0 0; }
+form.sow .cancel { font-size: .875rem; }
+
+ul.chairs { list-style: none; margin: .75rem 0; padding: 0; display: grid; gap: .5rem; }
+li.chair { display: flex; align-items: center; gap: .6rem; padding: .5rem .6rem;
+  background: var(--card-raised); border-radius: .6rem; }
+li.chair .chair-name { flex: 1; min-width: 0; font-size: .9375rem; }
+li.chair .chair-score { font-family: var(--display); font-weight: 700; font-size: 1.125rem; }
+li.chair-empty { background: transparent; box-shadow: inset 0 0 0 1px dashed var(--rule); }
+li.chair-empty .chair-name { color: var(--ink-soft); font-style: italic; }
+li.chair form { margin: 0; }
+
+/* The rules, as a disclosure: no script, keyboard-operable, and open by
+   default for nobody — it is reference, not an interruption. */
+details.rules { margin: 1.25rem 0 0; }
+details.rules > summary { display: flex; align-items: center; min-height: 44px;
+  cursor: pointer; font-weight: 500; color: var(--hearth-deep); }
+.rules-body { padding: .5rem 0 0; }
+.rules-body .rule { margin: 0 0 .75rem; }
+.rules-body h4 { font-family: var(--display); font-size: .9375rem; margin: 0 0 .15rem; }
+.rules-body p { font-size: .9375rem; margin: 0; color: var(--ink-soft); }
+@media (min-width: 640px) {
+  .rules-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem; }
+  .rules-body > .lede, .rules-body > .quiet { grid-column: 1 / -1; }
+}
 
 /* ---- The shelf ------------------------------------------------------- */
 .shelf-head { display: flex; flex-wrap: wrap; align-items: flex-start;
@@ -1013,6 +1089,222 @@ export function mapPage(
   );
 }
 
+/** The board, as a page element.
+ *
+ *  Picking a pit and choosing a direction are two interactions, and nothing
+ *  is written until the second one. The first is a GET that carries ?pit= —
+ *  a link, not a form, so it costs no state anywhere and works with
+ *  JavaScript off. The second is an ordinary form POST, like every other
+ *  action in this app.
+ *
+ *  Each pit is rendered as a link when it is yours and playable, and as a
+ *  plain cell when it is not. A disabled-looking button you can still click
+ *  would be the dishonest option; a cell that is simply not a control says
+ *  what is true. */
+function boardPanel(g: GameView, houseSlug: string, picked: number | null): string {
+  const selectable = new Set(g.playable);
+  const isPicked = (i: number): boolean => picked === i && selectable.has(i);
+
+  const cell = (i: number): string => {
+    const pit = g.board[i];
+    const stones = pit.dan + pit.quan;
+    const label = pit.quan > 0 ? `${pit.dan + pit.quan * 10}` : `${pit.dan}`;
+    const inner = `<span class="pit-count">${esc(label)}</span>
+      <span class="visually-hidden">${
+        pit.quan > 0
+          ? `a quan and ${pit.dan} ${pit.dan === 1 ? "stone" : "stones"}`
+          : `${pit.dan} ${pit.dan === 1 ? "stone" : "stones"}`
+      }</span>`;
+    const quanClass = isQuanPit(i) ? " pit-quan" : "";
+    if (!selectable.has(i)) {
+      return `<li class="pit${quanClass}" data-stones="${stones}">${inner}</li>`;
+    }
+    const href = isPicked(i)
+      ? `/house/${esc(houseSlug)}`
+      : `/house/${esc(houseSlug)}?pit=${i}`;
+    return `<li class="pit${quanClass}" data-stones="${stones}">
+      <a class="pit-pick" href="${href}"${isPicked(i) ? ' aria-current="true"' : ""}>
+        ${inner}
+      </a>
+    </li>`;
+  };
+
+  // Top row reads right-to-left so that the board on screen matches the
+  // ring the stones actually travel: 7..11 laid out above 1..5 would put
+  // pit 7 above pit 1 and make "sow right" look like it goes two ways.
+  const topRow = [11, 10, 9, 8, 7].map(cell).join("");
+  const bottomRow = [1, 2, 3, 4, 5].map(cell).join("");
+
+  const directions =
+    picked !== null && selectable.has(picked)
+      ? `<form class="sow" method="post" action="/game/move">
+          <input type="hidden" name="house" value="${esc(houseSlug)}">
+          <input type="hidden" name="pit" value="${picked}">
+          <button class="primary" name="dir" value="left">← Sow left</button>
+          <button class="primary" name="dir" value="right">Sow right →</button>
+          <a class="cancel" href="/house/${esc(houseSlug)}">Cancel selection</a>
+        </form>`
+      : "";
+
+  return `<div class="board-wrap">
+    <p class="board-side-label">${esc(g.topName ?? "The empty chair")}’s side</p>
+    <div class="board">
+      <div class="quan-end">${cell(0)}</div>
+      <div class="board-rows">
+        <ul class="pit-row">${topRow}</ul>
+        <ul class="pit-row">${bottomRow}</ul>
+      </div>
+      <div class="quan-end">${cell(6)}</div>
+    </div>
+    <p class="board-side-label">${esc(g.bottomName)}’s side</p>
+    ${directions}
+  </div>`;
+}
+
+/** What the board says in words. State is carried in text, never by a
+ *  highlighted cell alone — the same rule the two-state label follows. */
+function boardStatus(g: GameView, picked: number | null): string {
+  if (g.ended === "stopped") {
+    return "This game was ended before it finished, so there's no score for it.";
+  }
+  if (g.final) {
+    const who =
+      g.winner === "draw"
+        ? "It was a draw"
+        : `${g.winner === "bottom" ? g.bottomName : g.topName} won`;
+    return `${who} — ${g.bottomName} ${g.final.bottom}, ${g.topName ?? "nobody"} ${g.final.top}.`;
+  }
+  if (!g.top) {
+    return `${g.bottomName} has set out a board and is waiting for somebody to sit down.`;
+  }
+  const mover = g.turn === "bottom" ? g.bottomName : g.topName;
+  if (g.mustRefill && !g.canAffordRefill) {
+    return `${mover} has no stones left and can't pay to refill, so the game goes the other way.`;
+  }
+  if (g.mustRefill) {
+    return `${mover}'s five pits are empty — their turn starts by paying five points to refill.`;
+  }
+  if (!g.yourTurn) return `It's ${mover}'s turn.`;
+  if (picked !== null && g.playable.includes(picked)) {
+    const pit = g.board[picked];
+    const n = pit.dan;
+    return `Pit picked up · ${n} ${n === 1 ? "stone" : "stones"} in hand. Which way would you like to sow?`;
+  }
+  return "Your turn. Choose any pit on your side with stones in it.";
+}
+
+/** The panel beside the board: who is playing, the score, and the one
+ *  action available to the viewer. */
+function tablePanel(g: GameView | null, houseSlug: string, watching: number): string {
+  if (!g || g.ended) {
+    const past = g?.ended
+      ? `<p class="note">${
+          g.ended === "stopped"
+            ? "The last game was ended early."
+            : `Last game: ${esc(g.bottomName)} ${g.final?.bottom ?? 0}, ${esc(g.topName ?? "nobody")} ${g.final?.top ?? 0}.`
+        }</p>`
+      : "";
+    return `<div class="card">
+      <h3 class="rule-title">Ô ăn quan</h3>
+      <p class="body-sm">A little strategy. A lot of childhood.</p>
+      ${past}
+      <form method="post" action="/game/sit">
+        <input type="hidden" name="house" value="${esc(houseSlug)}">
+        <button class="primary">Set out a board</button>
+      </form>
+    </div>`;
+  }
+
+  const chair = (side: "bottom" | "top"): string => {
+    const name = side === "bottom" ? g.bottomName : g.topName;
+    const score = g.scores[side];
+    const yours = g.yourSide === side ? " · you" : "";
+    const toMove = !g.ended && g.turn === side && g.top ? " · to move" : "";
+    if (!name) {
+      return `<li class="chair chair-empty">
+        <span class="chair-name">The empty chair</span>
+        <form method="post" action="/game/sit">
+          <input type="hidden" name="house" value="${esc(houseSlug)}">
+          <button>Sit down</button>
+        </form>
+      </li>`;
+    }
+    return `<li class="chair">
+      ${face(name)}
+      <span class="chair-name">${esc(name)}${esc(yours)}${esc(toMove)}</span>
+      <span class="chair-score">${score}</span>
+    </li>`;
+  };
+
+  const leave = g.yourSide
+    ? `<form method="post" action="/game/stand">
+        <input type="hidden" name="house" value="${esc(houseSlug)}">
+        <button>${g.moveCount > 0 ? "End this game" : "Leave the table"}</button>
+      </form>`
+    : "";
+
+  return `<div class="card">
+    <h3 class="rule-title">At the table</h3>
+    <p class="note">${g.top ? "2 playing" : "1 waiting"} · ${watching} ${watching === 1 ? "watching" : "watching"}</p>
+    <ul class="chairs">${chair("bottom")}${chair("top")}</ul>
+    <p class="note">Dân 1 point · quan 10 · no timer</p>
+    ${leave}
+  </div>`;
+}
+
+/** The rules, as a disclosure. `<details>` is keyboard-operable, works with
+ *  JavaScript off, and needs no script — so the one place in this app that
+ *  explains a game does not become the one place that requires a runtime. */
+function rulesDrawer(): string {
+  const rule = (n: string, title: string, body: string): string =>
+    `<div class="rule"><h4>${esc(n)} ${esc(title)}</h4><p>${esc(body)}</p></div>`;
+  return `<details class="rules">
+    <summary>How to play ô ăn quan</summary>
+    <div class="rules-body">
+      <p class="lede">Collect the most points by sowing and capturing stones.</p>
+      ${rule("01", "Set the table", "Ten small pits start with five dân each; the two end pits hold one quan each. You own the five small pits nearest you.")}
+      ${rule("02", "Sow your stones", "Pick a non-empty small pit on your side. Sow all its stones, one per pit, left or right around the whole board, including both quan pits.")}
+      ${rule("03", "Keep going — or stop", "After your last drop, look at the next pit. An occupied small pit: pick it up and keep sowing the same way. An occupied quan pit, or two empty pits: stop.")}
+      ${rule("04", "Capture across a gap", "If the next pit is empty and the one beyond it holds stones, capture that second pit. Repeat across further empty-then-occupied pairs, then end your turn.")}
+      ${rule("05", "Refill an empty side", "If your five pits are empty at the start of your turn, pay five captured points to put one dân in each. Fewer than five points and the game is lost.")}
+      ${rule("06", "Finish and count", "When both quan pits are empty, each of you collects the dân left on your own side and adds it to what you captured. The higher score wins; equal scores are a draw.")}
+      <p class="quiet">Our house rules: quan counts 10, no mature-quan restriction, no borrowing, no timer.</p>
+    </div>
+  </details>`;
+}
+
+/** The table, as a fragment the live stream can swap in on its own. It is
+ *  the board's counterpart to `roomFragment`: everything inside `#table`,
+ *  and nothing outside it, so the resync can replace one with the other
+ *  without the page having to know what changed.
+ *
+ *  Keeping the whole table in one fragment rather than updating pits
+ *  individually means the status line, the chairs and the board can never
+ *  disagree with each other — they are always one render of one position. */
+export function tableFragment(
+  game: GameView | null,
+  houseSlug: string,
+  picked: number | null,
+  othersHere: number,
+): string {
+  return `<div class="table-board">
+      ${
+        game && !game.ended
+          ? `<p class="board-status" role="status">${esc(boardStatus(game, picked))}</p>
+             ${boardPanel(game, houseSlug, picked)}`
+          : `<p class="board-status">${
+              game
+                ? esc(boardStatus(game, null))
+                : "Nobody has set out a board. Ô ăn quan takes two."
+            }</p>`
+      }
+      ${rulesDrawer()}
+    </div>
+    <div class="table-side">
+      ${tablePanel(game, houseSlug, othersHere)}
+    </div>`;
+}
+
 /** What actually moves a thing to the shelf: never presence alone, always a
  *  distinct second member writing their own perspective and choosing to
  *  keep it together. Presence names are still shown, since who is around is
@@ -1032,6 +1324,10 @@ export function housePage(
   otherNames: string[],
   things: ThingView[],
   message: string | null,
+  /** The meeting house only: the game at the table and which pit the
+   *  viewer has picked up. Optional so the three household houses, and
+   *  every existing caller, carry on unchanged. */
+  table?: { game: GameView | null; picked: number | null },
 ): string {
   const isMeeting = house.slug === "meeting";
   const composeLabel = isMeeting ? "What do you want to say at the table?" : "What do you want to put down here?";
@@ -1085,6 +1381,24 @@ export function housePage(
         </p>
         ${message ? `<p class="scene-notice" role="status">${esc(message)}</p>` : ""}`,
       )}
+      ${
+        // The board sits above the conversation, because it is the thing
+        // people came to the table for; the talk goes on beside and under
+        // it, the way it does around a real one.
+        //
+        // The id is what makes the board live. It is a sibling of #room
+        // rather than part of it, so the resync below has to fetch and
+        // swap both: a board that only updated when you reloaded would be
+        // a game of correspondence chess, not a game at the same table.
+        isMeeting && table
+          ? `<section id="table" class="table-area measured">${tableFragment(
+              table.game,
+              house.slug,
+              table.picked,
+              otherNames.length,
+            )}</section>`
+          : ""
+      }
       <div class="layout-house measured">
         <div>
           <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
@@ -1129,13 +1443,32 @@ export function housePage(
         // Live updating is the only thing JavaScript adds. Without it the page
         // still renders, and every action is still a form POST.
         const room = document.getElementById("room");
+        // Null in the three household houses, which have no table.
+        const table = document.getElementById("table");
         ${scrollHelper}
         const stream = new EventSource("/stream?house=" + encodeURIComponent(${JSON.stringify(house.slug)}));
+        const slug = encodeURIComponent(${JSON.stringify(house.slug)});
+        const swap = async (el, path) => {
+          const res = await fetch("/house/" + slug + path, { headers: { accept: "text/html" } });
+          if (res.ok) el.innerHTML = await res.text();
+          return res.ok;
+        };
         const resync = async () => {
           ${nearBottomCheck}
-          const res = await fetch("/house/" + encodeURIComponent(${JSON.stringify(house.slug)}) + "/room", { headers: { accept: "text/html" } });
-          if (res.ok) {
-            room.innerHTML = await res.text();${scrollAfterSwap}
+          // The board first: when somebody has just moved, that is what the
+          // person watching is waiting to see. Both are fetched either way,
+          // because one event can change both.
+          //
+          // The pit you have picked up rides along, because it lives in the
+          // URL and the fragment has no other way to know about it. Without
+          // this, anyone else saying anything in the room — which is an
+          // event like any other — would put your stones back down
+          // mid-move, and you would never work out why.
+          if (table) {
+            const pit = new URLSearchParams(location.search).get("pit");
+            await swap(table, "/table" + (pit === null ? "" : "?pit=" + encodeURIComponent(pit)));
+          }
+          if (await swap(room, "/room")) {${scrollAfterSwap}
           }
         };
         stream.onmessage = resync;

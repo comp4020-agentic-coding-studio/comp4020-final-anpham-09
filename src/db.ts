@@ -102,6 +102,74 @@ db.exec(`
     house_id  INTEGER NOT NULL REFERENCES houses(id),
     last_seen INTEGER NOT NULL
   );
+
+  -- A game of ô ăn quan at the meeting house. Seating lives here rather than
+  -- in the presence table, deliberately: presence is keyed on the person alone and
+  -- expires after 45 seconds, and a chair that empties because somebody went
+  -- to make tea is the wrong model for a game. A seat is held until the
+  -- player stands up.
+  CREATE TABLE IF NOT EXISTS games (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    house_id    INTEGER NOT NULL REFERENCES houses(id),
+    bottom      TEXT    NOT NULL,
+    top         TEXT,
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    ended_at    TEXT,
+    -- 'finished' means both quan were captured and there is a real score.
+    -- 'stopped' means somebody ended it early: no score, no winner, and
+    -- nothing to put on a shelf. The two are different endings and the
+    -- interface must not offer to keep the second one.
+    ended       TEXT CHECK (ended IS NULL OR ended IN ('finished','stopped')),
+    -- The game's own keepings_not_own: a game needs two of you. Both columns
+    -- are on one row, so a CHECK says it without needing a trigger.
+    CHECK (top IS NULL OR top != bottom)
+  );
+
+  -- One game at a time per house, enforced here rather than in a code path
+  -- that can be forgotten. A partial index is the cheapest correct place for
+  -- it: two live games would give the room two boards and no way to say
+  -- which one "the table" means.
+  CREATE UNIQUE INDEX IF NOT EXISTS one_live_game_per_house
+    ON games(house_id) WHERE ended IS NULL;
+
+  -- The moves are the game. The board_after column beside them is derived, and the
+  -- exception is argued in CLAUDE.md rather than smuggled in: it has exactly
+  -- one writer (the engine, in the same INSERT as the move that produced it)
+  -- and no UPDATE path at all, so it cannot drift from the move list the way
+  -- a cached on-the-shelf boolean could drift from a keepings row. A test
+  -- replays the moves through the pure engine and checks it reproduces every
+  -- stored board, which makes the claim checkable rather than a habit.
+  CREATE TABLE IF NOT EXISTS moves (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    game_id       INTEGER NOT NULL REFERENCES games(id),
+    seq           INTEGER NOT NULL,
+    side          TEXT    NOT NULL CHECK (side IN ('bottom','top')),
+    kind          TEXT    NOT NULL CHECK (kind IN ('sow','refill')),
+    pit           INTEGER,
+    direction     TEXT CHECK (direction IS NULL OR direction IN ('left','right')),
+    board_after   TEXT    NOT NULL,
+    bottom_after  INTEGER NOT NULL,
+    top_after     INTEGER NOT NULL,
+    created_at    TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (game_id, seq)
+  );
+
+  -- "Never delete or expire anything anyone placed", put where no code path
+  -- can route around it. A played move is a thing that happened; rewriting
+  -- one would silently falsify the record the board is built from.
+  CREATE TRIGGER IF NOT EXISTS moves_never_change
+  BEFORE UPDATE ON moves
+  FOR EACH ROW
+  BEGIN
+    SELECT RAISE(ABORT, 'a move that has been played cannot be changed');
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS moves_never_vanish
+  BEFORE DELETE ON moves
+  FOR EACH ROW
+  BEGIN
+    SELECT RAISE(ABORT, 'a move that has been played cannot be taken back');
+  END;
 `);
 
 // Additive migration, post-crit-9: two nullable/defaulted columns on an

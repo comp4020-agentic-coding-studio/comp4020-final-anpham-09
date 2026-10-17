@@ -3,11 +3,12 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { publish, subscribe } from "./events.ts";
+import { gameAt, play, sitDown, standUp, type PlayRefusal, type SitRefusal } from "./games.ts";
 import { houseBySlug, listHouses } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
 import { ensurePerson, getPerson, nameOf, type Person, type PersonRefusal } from "./people.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
-import { housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage } from "./render.ts";
+import { housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage, tableFragment } from "./render.ts";
 import {
   addPerspective,
   countsFor,
@@ -69,16 +70,26 @@ const backTo = (slug: string): string =>
   houseBySlug(slug) ? `/house/${encodeURIComponent(slug)}` : "/";
 
 /** The pages an unjoined visitor is allowed to see the join page for: the
- *  map, the shelf, leaving, and any house (with or without its /room
- *  fragment). Everything else is not a page the app has, whether or not the
- *  visitor has said who they are — see the comment at the gate itself. */
+ *  map, the shelf, leaving, and any house — with or without one of its two
+ *  live fragments, /room and /table. The fragments belong here because a
+ *  stream that reconnects after the machine has slept resyncs immediately,
+ *  and a visitor whose cookie expired in the meantime should meet the join
+ *  page rather than a 404. Everything else is not a page the app has,
+ *  whether or not the visitor has said who they are — see the comment at
+ *  the gate itself. */
 const isJoinablePath = (p: string): boolean =>
-  p === "/" || p === "/shelf" || p === "/leave" || /^\/house\/[a-z-]+(\/room)?$/.test(p);
+  p === "/" || p === "/shelf" || p === "/leave" || /^\/house\/[a-z-]+(\/room|\/table)?$/.test(p);
 
 /** Every refusal gets words. A button that appears to do nothing teaches the
  *  user the system is broken; being told the rule teaches them the rule. */
 const REFUSALS: Record<
-  PersonRefusal | PlaceRefusal | PerspectiveRefusal | NonNullable<KeepRefusal>,
+  | PersonRefusal
+  | PlaceRefusal
+  | PerspectiveRefusal
+  | NonNullable<KeepRefusal>
+  | SitRefusal
+  | PlayRefusal
+  | "not-seated",
   string
 > = {
   "unknown-house": "There's no such house in this village.",
@@ -89,6 +100,23 @@ const REFUSALS: Record<
   "own-thing": "You put this down, so you can't be the one who keeps it together too. A memory is something two of you add to.",
   already: "You'd already kept this together. One person is one keeper, however many times they click.",
   "no-perspective": "Write a few words about this first — keeping something together starts with your own perspective on it.",
+  // The game. Every one of these is a sentence for the same reason the
+  // others are: being told the rule teaches it, and a board that refuses
+  // silently just looks broken.
+  "not-the-meeting-house": "Ô ăn quan is played at the meeting house. The three family houses are for putting things down.",
+  "chairs-taken": "Both chairs are taken. You can watch — everyone at the table sees every move.",
+  "already-seated": "You're already at this table. A game needs two of you.",
+  "no-game": "There's no game at the table right now. Anyone can set one out.",
+  "not-playing": "You're watching this game, not playing it. Only the two people in the chairs move the stones.",
+  "not-seated": "You're not in either chair, so there's nothing to stand up from.",
+  "not-your-turn": "It isn't your turn yet. The board updates on its own when they've moved.",
+  "not-your-pit": "That pit is on the other side of the board. You sow from your own five.",
+  "empty-pit": "There's nothing in that pit to pick up. Choose one with stones in it.",
+  "no-such-pit": "There's no pit there. Pick one of the ten small pits on the board.",
+  "no-direction": "Choose left or right — the stones have to travel one way.",
+  "must-refill": "Your five pits are empty, so your turn starts by paying five points to fill them again.",
+  "game-over": "That game is over. Its score stays on the table — set out a new one to play again.",
+  "game-finished": "That game is over. Its score stays on the table — set out a new one to play again.",
 };
 
 const server = createServer((req, res) => {
@@ -255,6 +283,29 @@ const server = createServer((req, res) => {
       return;
     }
 
+    // The board's counterpart to /room. Same shape, same reason: the live
+    // stream swaps one fragment rather than reloading the page, and a
+    // fragment route is the only way to render exactly what the full page
+    // would render without duplicating the decision of what to show.
+    const tableFrag = /^\/house\/([a-z-]+)\/table$/.exec(path);
+    if (method === "GET" && tableFrag) {
+      const house = houseBySlug(tableFrag[1]);
+      if (!house || house.kind !== "meeting") { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such table.</p></main>", me), setCookie); return; }
+      enter(token, house.slug);
+      const pit = Number(url.searchParams.get("pit"));
+      const others = whoIsIn(house.slug).filter((p) => p !== token).length;
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(
+        tableFragment(
+          gameAt(house.slug, token),
+          house.slug,
+          Number.isInteger(pit) ? pit : null,
+          others,
+        ),
+      );
+      return;
+    }
+
     const stream = method === "GET" && path === "/stream" ? url.searchParams.get("house") : null;
     if (stream) {
       const house = houseBySlug(stream);
@@ -298,8 +349,74 @@ const server = createServer((req, res) => {
       // still counts for the 45 seconds the app will admit to.
       enter(token, house.slug);
       const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameOf);
-      html(res, 200, housePage(house, me, others, inRoom(house.slug, token), message), setCookie);
+      // Which pit you have picked up is a cursor, not a fact: it lives in
+      // the URL, so it is per-tab for free and nothing is written until you
+      // choose a direction. A `selections` table would need a key per
+      // person per tab and a TTL, and would recreate the two-tab presence
+      // bug documented in src/presence.ts.
+      const picked = Number(url.searchParams.get("pit"));
+      html(
+        res,
+        200,
+        housePage(house, me, others, inRoom(house.slug, token), message, {
+          game: gameAt(house.slug, token),
+          picked: Number.isInteger(picked) ? picked : null,
+        }),
+        setCookie,
+      );
       publish(house.slug, "arrived");
+      return;
+    }
+
+    // The game. Three POSTs, all of them plain form submissions, and the
+    // pit you have picked rides on the house URL as ?pit= rather than being
+    // written anywhere — see the comment on the house GET above.
+    if (req.method === "POST" && path === "/game/sit") {
+      const form = await formData(req);
+      const slug = (form.get("house") ?? "").trim();
+      const result = sitDown(slug, token);
+      if (typeof result === "string") {
+        seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
+        return;
+      }
+      publish(slug, "sat");
+      seeOther(res, backTo(slug), setCookie);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/game/stand") {
+      const form = await formData(req);
+      const slug = (form.get("house") ?? "").trim();
+      const refusal = standUp(slug, token);
+      if (refusal) {
+        seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);
+        return;
+      }
+      publish(slug, "stood");
+      seeOther(res, backTo(slug), setCookie);
+      return;
+    }
+
+    if (req.method === "POST" && path === "/game/move") {
+      const form = await formData(req);
+      const slug = (form.get("house") ?? "").trim();
+      const pit = Number(form.get("pit"));
+      const direction = (form.get("dir") ?? "").trim();
+      if (!Number.isInteger(pit)) {
+        seeOther(res, said(backTo(slug), REFUSALS["no-such-pit"]), setCookie);
+        return;
+      }
+      if (direction !== "left" && direction !== "right") {
+        seeOther(res, said(backTo(slug), REFUSALS["no-direction"]), setCookie);
+        return;
+      }
+      const refusal = play(slug, token, pit, direction);
+      if (refusal) {
+        seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);
+        return;
+      }
+      publish(slug, "moved");
+      seeOther(res, backTo(slug), setCookie);
       return;
     }
 
