@@ -6,6 +6,7 @@
     "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
     "typecheck": "tsc --noEmit",
     "check": "pnpm typecheck && pnpm test",
+    "member-key": "node scripts/member-key.ts",
     "check:evidence": "node scripts/check-evidence.ts",
     "test": "vitest run",
     "dev": "node src/server.ts",
