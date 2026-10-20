@@ -1,6 +1,7 @@
 import { DESIGN_STYLE } from "./design.ts";
 import type { GameView } from "./games.ts";
 import { hasPicture, houseBySlug, type House } from "./houses.ts";
+import { keysCut } from "./members.ts";
 import { isQuanPit } from "./oanquan.ts";
 import { getPerson, type Person } from "./people.ts";
 import type { ThingView } from "./things.ts";
@@ -605,7 +606,7 @@ ${DESIGN_STYLE}
 /** Which nav link is the page you are on, so it can be marked. Pages that
  *  aren't one of the three (the README, a household room) pass nothing and
  *  no link is marked, which is honest — none of them is where you are. */
-export type NavKey = "map" | "shelf" | "meeting";
+export type NavKey = "map" | "shelf" | "meeting" | "key";
 
 export function page(
   title: string,
@@ -627,11 +628,22 @@ ${FONTS_HEAD}
     ${link("/", "map", "Village map")}
     ${link("/shelf", "shelf", "Memory shelf")}
     ${link("/house/meeting", "meeting", "The meeting house")}
+    ${
+      // Only worth offering when there is a lock to open and the person has
+      // not already opened it. In a village with no keys cut there is nothing
+      // to prove, and showing the link would imply a door that isn't there.
+      keysCut() > 0 && !me?.memberName ? link("/key", "key", "Your key") : ""
+    }
     <form class="leave" method="post" action="/leave"><button type="submit" aria-label="Leave the village"><span class="nav-full">Leave the village</span><span class="nav-short" aria-hidden="true">Leave</span></button></form>
   </nav>
   ${
     me
-      ? `<p class="whoami">You are <strong>${esc(me.name)}</strong> ${face(me.name)}</p>`
+      ? `<p class="whoami">You are <strong>${esc(me.name)}</strong>${
+          // Say which it is. Someone refused at a home should be able to see
+          // why from the top of the page rather than infer it from a missing
+          // form, and someone who used their key should see that it worked.
+          me.memberName ? ", and you live here" : keysCut() > 0 ? ", visiting" : ""
+        } ${face(me.name)}</p>`
       : ""
   }
 </header>

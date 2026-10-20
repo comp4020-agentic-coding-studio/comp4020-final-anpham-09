@@ -133,3 +133,41 @@ describe("a secret that parses but is not keys", () => {
     expect(members.keyProblems()).toEqual([]);
   });
 });
+
+describe("finding the way in", () => {
+  type Render = typeof import("../src/render.ts");
+
+  async function pageWith(secret?: Record<string, string>): Promise<Render> {
+    vi.resetModules();
+    if (secret) process.env.MEMBER_KEYS = JSON.stringify(secret);
+    else delete process.env.MEMBER_KEYS;
+    return (await import("../src/render.ts")) as Render;
+  }
+
+  const visitor = { token: "t", name: "Linh", homeSlug: "hanoi", memberName: null };
+  const member = { token: "t", name: "An", homeSlug: "canberra", memberName: "An" };
+
+  it("offers the key to someone who has not used one", async () => {
+    const { page } = await pageWith({ An: await hashOf("a key") });
+    const html = page("x", "<main></main>", visitor);
+    // The whole bug: the page existed and nothing linked to it, so there was
+    // no way to reach it by clicking.
+    expect(html).toContain('href="/key"');
+    expect(html).toContain("visiting");
+  });
+
+  it("says so, rather than offering the key again, once it has been used", async () => {
+    const { page } = await pageWith({ An: await hashOf("a key") });
+    const html = page("x", "<main></main>", member);
+    expect(html).not.toContain('href="/key"');
+    expect(html).toContain("you live here");
+  });
+
+  it("offers no key at all when none have been cut", async () => {
+    const { page } = await pageWith();
+    const html = page("x", "<main></main>", visitor);
+    // There is no lock, so a link implying one would be a lie about the app.
+    expect(html).not.toContain('href="/key"');
+    expect(html).not.toContain("visiting");
+  });
+});
