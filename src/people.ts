@@ -31,7 +31,11 @@ export function ensurePerson(
 
 export function getPerson(token: string): Person | undefined {
   const row = db
-    .prepare("SELECT token, name, home_slug AS homeSlug FROM people WHERE token = ?")
+    // member_name belongs in this list. It is read on every request to decide
+    // what a person may see and change, and leaving it out meant a key could
+    // be accepted, written, and then forgotten by the very next page load —
+    // the row said Mum, every page after it said visitor.
+    .prepare("SELECT token, name, home_slug AS homeSlug, member_name AS memberName FROM people WHERE token = ?")
     .get(token) as Person | undefined;
   return row;
 }

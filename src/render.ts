@@ -1,7 +1,7 @@
 import { DESIGN_STYLE } from "./design.ts";
 import type { GameView } from "./games.ts";
 import { hasPicture, houseBySlug, type House } from "./houses.ts";
-import { keysCut } from "./members.ts";
+import { keysCut, mayChange } from "./members.ts";
 import { isQuanPit } from "./oanquan.ts";
 import { getPerson, type Person } from "./people.ts";
 import type { ThingView } from "./things.ts";
@@ -1407,6 +1407,10 @@ export function housePage(
   table?: { game: GameView | null; picked: number | null },
 ): string {
   const isMeeting = house.slug === "meeting";
+  // The same rule the route uses, asked again here so the page offers only
+  // what the server would accept. Derived rather than passed in, so a caller
+  // cannot render a composer the route would refuse.
+  const mayPutDown = mayChange(house.kind, me.memberName ?? null, keysCut());
   const composeLabel = isMeeting ? "What do you want to say at the table?" : "What do you want to put down here?";
   // "Send" at the table, because that is the word for saying something to a
   // room. "Put this down" stays in the houses, where the verb really is
@@ -1500,6 +1504,17 @@ export function housePage(
                and asking for either would be a small lie about what is
                being written. In a household house, where a thing can reach
                the shelf under its own name, both still earn their place. -->
+          ${
+            // A visitor at a household house is shown no composer. The POST is
+            // refused server-side either way, so this is not the boundary —
+            // the boundary is in the route. This is about not offering someone
+            // a form that cannot work: the table is the household's own talk,
+            // and a visitor sees the house and its shelf, not this.
+            mayPutDown
+              ? ""
+              : `<p class="body-sm">You're visiting, so the table here is the household's own. The shelf below is what they've chosen to keep, and the meeting house is open to everyone.</p>`
+          }
+          ${mayPutDown ? `
           <form method="post" action="/place" id="compose" class="${isMeeting ? "say" : "memory-compose"}">
             ${isMeeting ? "" : '<h2>Add a note to the table</h2>'}
             <input type="hidden" name="house" value="${esc(house.slug)}">
@@ -1518,7 +1533,7 @@ export function housePage(
             <input id="event_date" name="event_date" maxlength="40" placeholder="March 2019, or any time you like"></details>`
             }
             <button class="primary">${esc(composeButton)}</button>
-          </form>
+          </form>` : ""}
           ${
             // Where "Alice is typing" appears. Empty and aria-live, so a
             // screen reader announces it when it fills and says nothing

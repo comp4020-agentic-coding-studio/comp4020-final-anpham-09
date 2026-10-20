@@ -47,6 +47,21 @@ describe("who is in the village", () => {
     expect(people.nameOf("tok-1")).toBe("An");
   });
 
+  it("remembers a key on the next request, not just the one that proved it", async () => {
+    const { people } = await boot();
+    people.ensurePerson("tok-k", "An", "canberra");
+    expect(people.getPerson("tok-k")?.memberName).toBe(null);
+
+    people.setMember("tok-k", "Mum");
+
+    // The bug this exists for: setMember wrote the row and getPerson did not
+    // select the column, so the key was accepted and then forgotten by the
+    // very next page load. Every request after unlocking saw a visitor, which
+    // with keys cut means locked out of your own house.
+    expect(people.getPerson("tok-k")?.memberName).toBe("Mum");
+    expect(people.isMember(people.getPerson("tok-k"))).toBe(true);
+  });
+
   it("refuses a blank name and an unknown house, with a reason", async () => {
     const { people } = await boot();
     expect(people.ensurePerson("tok-2", "   ", "canberra")).toBe("blank-name");
@@ -62,6 +77,8 @@ describe("who is in the village", () => {
       token: "tok-3",
       name: "An Pham",
       homeSlug: "meeting",
+      // Changing your name and moving house does not cost you your key.
+      memberName: null,
     });
   });
 
