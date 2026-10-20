@@ -33,22 +33,49 @@ function matches(key: string, stored: string): boolean {
   return expected.length === got.length && timingSafeEqual(expected, got);
 }
 
+/** An entry is a salt and a scrypt hash, both hex, as hashKey writes them.
+ *  Anything else cannot verify any key and never will, so it is not a key. */
+const WELL_FORMED = new RegExp(`^[0-9a-f]+:[0-9a-f]{${KEYLEN * 2}}$`);
+
+/** Entries that were present but unusable, for the server to say out loud at
+ *  boot. Collected rather than logged here so this module stays testable
+ *  without capturing console output. */
+const problems: string[] = [];
+
 /** name -> stored hash. Empty when MEMBER_KEYS is unset, which is the correct
  *  state for a fresh checkout and for CI: nobody is a member, everybody can
  *  still visit, and no test needs a secret to run. */
 function loadKeys(): Map<string, string> {
   const raw = process.env.MEMBER_KEYS;
   if (!raw) return new Map();
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") throw new Error("not an object");
-    return new Map(Object.entries(parsed as Record<string, string>));
+    parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object");
   } catch (err) {
     // Failing loudly here is right: a malformed secret would otherwise mean
     // every member silently becomes a visitor, which looks like the app
     // working rather than the app misconfigured.
     throw new Error(`MEMBER_KEYS is set but could not be read: ${String(err)}`);
   }
+  const good = new Map<string, string>();
+  for (const [name, stored] of Object.entries(parsed as Record<string, unknown>)) {
+    if (typeof stored === "string" && WELL_FORMED.test(stored)) {
+      good.set(name, stored);
+      continue;
+    }
+    // A value that parses but is not a hash — a placeholder left in, a hash
+    // truncated by a wrapped paste — would otherwise count towards keysCut()
+    // and close every home while opening for nobody, locking the family out
+    // of their own houses. It is dropped, and named, instead.
+    problems.push(name);
+  }
+  return good;
+}
+
+/** The names whose entries were unusable. Empty when the secret is good. */
+export function keyProblems(): string[] {
+  return [...problems];
 }
 
 const keys = loadKeys();

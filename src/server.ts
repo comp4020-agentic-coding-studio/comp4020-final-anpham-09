@@ -19,7 +19,7 @@ import {
 import { houseBySlug, listHouses, type House } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
 import { ensurePerson, getPerson, isMember, nameOf, setMember, type Person, type PersonRefusal } from "./people.ts";
-import { keysCut, mayChange, memberFor, memberNames } from "./members.ts";
+import { keyProblems, keysCut, mayChange, memberFor, memberNames } from "./members.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
 import { esc, housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage, tableFragment } from "./render.ts";
 import {
@@ -762,6 +762,21 @@ const server = createServer((req, res) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(JSON.stringify({ at: new Date().toISOString(), level: "info", msg: "listening", port: PORT }));
+  // An entry that parses but is not a hash is the worst case of the three:
+  // it counts as a key to anyone reading the secret, so the houses look
+  // locked, and it can never verify, so nobody can open them. Name the
+  // people affected — "the secret is wrong" is not actionable at 1am.
+  const broken = keyProblems();
+  if (broken.length > 0) {
+    console.warn(
+      JSON.stringify({
+        at: new Date().toISOString(),
+        level: "warn",
+        msg: "MEMBER_KEYS has entries that are not hashes — those people cannot use their key. Regenerate with `pnpm member-key`.",
+        names: broken,
+      }),
+    );
+  }
   if (keysCut() === 0) {
     // Not a crash, but never silent: an unlocked village looks exactly like a
     // working one until a stranger puts something in a bedroom.

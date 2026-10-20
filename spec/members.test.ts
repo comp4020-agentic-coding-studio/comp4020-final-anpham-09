@@ -91,3 +91,45 @@ describe("a key, which is not an account", () => {
     await expect(import("../src/members.ts")).rejects.toThrow(/could not be read/);
   });
 });
+
+describe("a secret that parses but is not keys", () => {
+  it("drops a placeholder left in the secret instead of counting it as a key", async () => {
+    // The real incident: the template was pasted with its "..." still in it.
+    // Valid JSON, five names, and not one of them a hash.
+    const members = await villageWith({
+      Mum: "...",
+      Dad: "...",
+      Brother: "...",
+    });
+    expect(members.keysCut()).toBe(0);
+    expect(members.keyProblems()).toEqual(["Mum", "Dad", "Brother"]);
+    // The point of dropping them: counting them would close every home while
+    // opening for nobody, which locks the family out of their own houses.
+    expect(members.mayChange("home", null, members.keysCut())).toBe(true);
+  });
+
+  it("keeps the good entries and names only the bad ones", async () => {
+    const members = await villageWith({
+      Mum: await hashOf("her key"),
+      Dad: "...",
+    });
+    expect(members.keysCut()).toBe(1);
+    expect(members.memberNames()).toEqual(["Mum"]);
+    expect(members.keyProblems()).toEqual(["Dad"]);
+    expect(members.memberFor("Mum", "her key")).toBe("Mum");
+    // One real key is still a key, so the village is genuinely closed.
+    expect(members.mayChange("home", null, members.keysCut())).toBe(false);
+  });
+
+  it("rejects a hash truncated by a wrapped paste, which still looks like one", async () => {
+    const full = await hashOf("her key");
+    const members = await villageWith({ Mum: full.slice(0, full.length - 8) });
+    expect(members.keysCut()).toBe(0);
+    expect(members.keyProblems()).toEqual(["Mum"]);
+  });
+
+  it("says nothing is wrong when every entry is a hash", async () => {
+    const members = await villageWith({ Mum: await hashOf("her key") });
+    expect(members.keyProblems()).toEqual([]);
+  });
+});
