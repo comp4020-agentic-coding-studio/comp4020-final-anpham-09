@@ -1,3 +1,4 @@
+import { DESIGN_STYLE } from "./design.ts";
 import type { GameView } from "./games.ts";
 import { hasPicture, houseBySlug, type House } from "./houses.ts";
 import { isQuanPit } from "./oanquan.ts";
@@ -33,6 +34,8 @@ const STYLE = `
   --hearth-fill:#B04E31;
   --sage:#647862; --sage-deep:#3E5343;
   --amber:#D9933B; --amber-deep:#8F5B19;
+  --board:#E9D5B6; --pit:#F5E7CF; --board-edge:#BEA17C; --pebble:#8E7E66;
+  --scene-shadow:#24150F;
   --shadow-1:0 2px 8px -2px rgba(56,27,19,.05), 0 4px 16px -4px rgba(56,27,19,.06);
   --shadow-2:0 4px 12px -2px rgba(56,27,19,.08), 0 8px 24px -4px rgba(56,27,19,.08);
   /* Cards that float over a photograph need a heavier shadow than cards on
@@ -55,6 +58,7 @@ const STYLE = `
     --hearth-fill:#E8927A;
     --sage:#A8C4AE; --sage-deep:#CBDCCF;
     --amber:#E8B877; --amber-deep:#FFD9A8;
+    --board:#493A2C; --pit:#372E25; --board-edge:#927859; --pebble:#D2B68F;
     --shadow-1:0 2px 8px -2px rgba(0,0,0,.35), 0 4px 16px -4px rgba(0,0,0,.40);
     --shadow-2:0 4px 12px -2px rgba(0,0,0,.45), 0 8px 24px -4px rgba(0,0,0,.50);
     --shadow-float:0 2px 6px -1px rgba(0,0,0,.5), 0 12px 32px -8px rgba(0,0,0,.6);
@@ -135,7 +139,7 @@ button { cursor: pointer; font-weight: 600; }
 button.primary { background: var(--hearth-fill); color: var(--on-hearth); border: none;
   box-shadow: 0 -2px 0 color-mix(in srgb, var(--ink) 15%, transparent) inset; }
 button.primary:hover { background: var(--hearth-deep); }
-:is(a, button, input, select, textarea):focus-visible {
+:is(a, button, input, select, textarea, summary):focus-visible {
   outline: none; border-radius: .5rem;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--hearth) 20%, transparent);
 }
@@ -595,6 +599,7 @@ li.card-shelf:nth-of-type(odd), li.card-shelf:nth-of-type(even) { transform: non
   .float-card { transition: transform .15s ease, border-color .15s ease; }
   .float-card:hover { transform: translateY(-2px); }
 }
+${DESIGN_STYLE}
 `;
 
 /** Which nav link is the page you are on, so it can be marked. Pages that
@@ -609,7 +614,7 @@ export function page(
   active?: NavKey,
 ): string {
   const link = (href: string, key: NavKey, label: string): string =>
-    `<a href="${href}"${active === key ? ' aria-current="page"' : ""}>${label}</a>`;
+    `<a href="${href}"${active === key ? ' aria-current="page"' : ""}${key === "meeting" ? ' aria-label="The meeting house"' : ""}>${key === "meeting" ? '<span class="nav-full">The meeting house</span><span class="nav-short" aria-hidden="true">Meeting room</span>' : label}</a>`;
   return `<!doctype html>
 <html lang="en-AU"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -617,12 +622,12 @@ ${FONTS_HEAD}
 <title>${esc(title)}</title><style>${STYLE}</style>
 </head><body>
 <header class="chrome">
-  <p class="brand">The village</p>
+  <a class="brand" href="/">The village</a>
   <nav class="site" aria-label="site">
     ${link("/", "map", "Village map")}
     ${link("/shelf", "shelf", "Memory shelf")}
     ${link("/house/meeting", "meeting", "The meeting house")}
-    <form class="leave" method="post" action="/leave"><button type="submit">Leave the village</button></form>
+    <form class="leave" method="post" action="/leave"><button type="submit" aria-label="Leave the village"><span class="nav-full">Leave the village</span><span class="nav-short" aria-hidden="true">Leave</span></button></form>
   </nav>
   ${
     me
@@ -743,7 +748,7 @@ function thingItem(t: ThingView, houseSlug: string): string {
     ${dateMeta(t)}
     ${stateRow(t)}
     ${perspectivesList(t)}
-    ${actionArea(t, houseSlug)}
+    <details class="memory-actions"><summary>${t.isOwn ? "About this note" : t.viewerHasKept ? "Kept together" : "Add your perspective"}</summary>${actionArea(t, houseSlug)}</details>
   </li>`;
 }
 
@@ -756,8 +761,7 @@ function thingItem(t: ThingView, houseSlug: string): string {
 function regularRoomFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
   const who = `<p class="lede" id="who">${otherNames.length ? names(otherNames) + (otherNames.length === 1 ? " was here in the last minute." : " were here in the last minute.") : "Nobody else has been here in the last minute."}</p>`;
   if (!things.length) {
-    return `${who}<div class="card"><p class="empty">Nothing in this room yet. Put something down — it stays
-      here either way, and goes on the shelf when somebody else is here for it.</p></div>`;
+    return `${who}<div class="room-empty"><svg viewBox="0 0 36 44" width="36" height="44" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M7 4h17l6 6v29H7zM23 4v8h7M12 20h12M12 25h12M12 30h7"/></svg><div><p class="hand">A little space for your day.</p><p class="note">Nothing in this room yet. Leave a note on the table; someone can add their own perspective and keep it together.</p><a href="#compose">Write the first note →</a></div></div>`;
   }
   return `${who}<ol>${things.map((t) => thingItem(t, houseSlug)).join("")}</ol>`;
 }
@@ -834,7 +838,7 @@ function threadMessage(t: ThingView, houseSlug: string): string {
       ${eventAndKeptMeta(t)}
       ${stateRow(t)}
       ${perspectivesList(t)}
-      ${actionArea(t, houseSlug)}
+      <details class="message-actions"><summary>${t.isOwn ? "About this message" : t.viewerHasKept ? "Kept together" : "Add to this memory"}</summary>${actionArea(t, houseSlug)}</details>
     </div>
   </li>`;
 }
@@ -850,8 +854,7 @@ function threadMessage(t: ThingView, houseSlug: string): string {
 function threadFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
   const strip = `<p class="lede" id="who">${otherNames.length ? "Around the table right now: " + names(otherNames) + "." : "Nobody is at the table right now."}</p>`;
   if (!things.length) {
-    return `${strip}<div class="card"><p class="empty">Nothing has been said at the table yet. Whatever you
-      place there stays in the room either way, and goes on the shelf once somebody else is here for it.</p></div>`;
+    return `${strip}<div class="conversation-empty"><svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M13 15h38v27H31L19 51v-9h-6z"/><circle cx="23" cy="29" r="1"/><circle cx="32" cy="29" r="1"/><circle cx="41" cy="29" r="1"/></svg><p class="hand">Pull up a chair.</p><p class="empty">Nothing has been said at the table yet.</p><p class="note">Leave a little of your day for whoever comes by.</p></div>`;
   }
   const oldestFirst = [...things].reverse();
   return `${strip}<ol class="thread">${oldestFirst.map((t) => threadMessage(t, houseSlug)).join("")}</ol>`;
@@ -872,7 +875,8 @@ export function joinPage(houses: House[], message: string | null): string {
     .join("");
   return page(
     "The village",
-    `<main class="measured">
+    `<main class="measured join-page">
+      <span class="eyebrow">Four places. One family.</span>
       <h1>The village</h1>
       <p class="lede">Four places and the people in them. Before you go in,
         say who you are — the app keeps a name and nothing else.</p>
@@ -1061,10 +1065,9 @@ export function mapPage(
       const yours = h.slug === me.homeSlug ? " · yours" : "";
       return `<li>
         <a class="float-card" href="/house/${esc(h.slug)}" data-kind="${h.kind === "meeting" ? "meeting" : "home"}">
-          ${faces(h.hereNames)}
           <span class="float-text">
             <span class="float-name">${esc(h.name)}</span>
-            <span class="float-meta">${esc(presence)}${yours} · ${h.counts.onShelf} kept</span>
+            <span class="float-meta">${faces(h.hereNames)}<span>${esc(presence)}${yours}<br>${h.counts.onShelf} kept memories</span></span>
           </span>
           <span class="float-go" aria-hidden="true">›</span>
         </a>
@@ -1080,9 +1083,8 @@ export function mapPage(
         `<span class="scene-eyebrow">Four places. One family.</span>
         <h1>The village</h1>
         <p class="lede">A place for our family memories, across distance.</p>
-        <p class="scene-sub">What you put down stays in the room you put it in. It reaches
-          a house's shelf once somebody else writes their own perspective on it and keeps
-          it together — a memory is something two of you were there for.</p>
+        <p class="scene-sub">Four homes, one shared story. Put down what you’re carrying, see what others
+          have left, and feel a little closer — wherever you are.</p>
         ${message ? `<p class="scene-notice" role="status">${esc(message)}</p>` : ""}`,
         `<ul class="scene-cards">${cards}</ul>
         <p class="hand scene-hint">Click a house<br>to step inside.</p>`,
@@ -1114,7 +1116,8 @@ function boardPanel(g: GameView, houseSlug: string, picked: number | null): stri
     const pit = g.board[i];
     const stones = pit.dan + pit.quan;
     const label = pit.quan > 0 ? `${pit.dan + pit.quan * 10}` : `${pit.dan}`;
-    const inner = `<span class="pit-count">${esc(label)}</span>
+    const pebbles = `<span class="pit-stones" aria-hidden="true">${Array.from({ length: Math.min(pit.dan, 9) }, () => '<span class="stone"></span>').join("")}</span>`;
+    const inner = `${pit.quan ? '<span class="quan-stone" aria-hidden="true">10</span>' : ""}${pebbles}<span class="pit-count${pit.quan && !pit.dan ? " count-on-quan" : ""}">${esc(label)}</span>${isQuanPit(i) ? '<span class="quan-label" aria-hidden="true">QUAN</span>' : ""}
       <span class="visually-hidden">${
         pit.quan > 0
           ? `a quan and ${pit.dan} ${pit.dan === 1 ? "stone" : "stones"}`
@@ -1128,7 +1131,7 @@ function boardPanel(g: GameView, houseSlug: string, picked: number | null): stri
       ? `/house/${esc(houseSlug)}`
       : `/house/${esc(houseSlug)}?pit=${i}`;
     return `<li class="pit${quanClass}" data-stones="${stones}">
-      <a class="pit-pick" href="${href}"${isPicked(i) ? ' aria-current="true"' : ""}>
+      <a class="pit-pick" href="${href}" aria-label="Pick pit ${i} · ${pit.dan} stones"${isPicked(i) ? ' aria-current="true"' : ""}>
         ${inner}
       </a>
     </li>`;
@@ -1162,7 +1165,8 @@ function boardPanel(g: GameView, houseSlug: string, picked: number | null): stri
       <div class="quan-end">${cell(6)}</div>
     </div>
     <p class="board-side-label">${esc(g.bottomName)}’s side</p>
-    ${directions}
+    <div class="move-guidance"><p class="hand">${g.ended ? "The final position, kept as it was played." : picked !== null && selectable.has(picked) ? `You picked ${g.board[picked].dan} stones. Which way?` : g.yourTurn ? "Start with a handful of stones." : "A little patience. A little strategy."}</p>
+    <p class="note">${selectable.size ? "Choose one of your pits, then sow left or right." : "Small stone (dân) = 1 point · Large stone (quan) = 10 points"}</p>${directions}</div>
   </div>`;
 }
 
@@ -1200,6 +1204,18 @@ function boardStatus(g: GameView, picked: number | null): string {
   return "Your turn. Choose any pit on your side with stones in it.";
 }
 
+/** A vector cover for the one game this app actually supports. */
+function gameIllustration(): string {
+  const pits = [0, 1].flatMap(row => Array.from({ length: 5 }, (_, i) => {
+    const x = 56 + i * 48;
+    const y = 32 + row * 60;
+    const stones = [[12, 15], [28, 12], [21, 28], [10, 39], [31, 37]]
+      .map(([dx, dy]) => `<ellipse cx="${x + dx}" cy="${y + dy}" rx="3.6" ry="3"/>`).join("");
+    return `<rect class="cover-pit" x="${x}" y="${y}" width="43" height="55" rx="5"/>${stones}`;
+  })).join("");
+  return `<svg class="game-illustration" viewBox="0 0 352 184" width="352" height="184" aria-hidden="true"><rect class="cover-board" x="8" y="18" width="336" height="148" rx="74"/>${pits}<path class="cover-end" d="M48 34a58 58 0 0 0 0 116zm256 0a58 58 0 0 1 0 116z"/><ellipse class="cover-quan" cx="31" cy="92" rx="10" ry="13"/><ellipse class="cover-quan" cx="321" cy="92" rx="10" ry="13"/></svg>`;
+}
+
 /** The panel beside the board: who is playing, the score, and the one
  *  action available to the viewer. */
 function tablePanel(g: GameView | null, houseSlug: string, watching: number): string {
@@ -1224,15 +1240,17 @@ function tablePanel(g: GameView | null, houseSlug: string, watching: number): st
           </form>
           <p class="note">It reaches the shelf when the other player adds their side of it.</p>`
         : "";
-    return `<div class="card">
+    return `<div class="card game-invitation">
+      <div class="game-invitation-copy"><span class="eyebrow">A game for two</span>
       <h3 class="rule-title">Ô ăn quan</h3>
-      <p class="body-sm">A little strategy. A lot of childhood.</p>
+      <p class="body-sm">Five little stones. A familiar way to spend time together.</p>
+      <p class="game-facts">2 players <span aria-hidden="true">·</span> No timer <span aria-hidden="true">·</span> Learn as you play</p>
       ${past}
       ${keep}
       <form method="post" action="/game/sit">
         <input type="hidden" name="house" value="${esc(houseSlug)}">
-        <button class="primary">Set out a board</button>
-      </form>
+        <button class="primary">Set out a board <span aria-hidden="true">→</span></button>
+      </form></div>${gameIllustration()}
     </div>`;
   }
 
@@ -1250,10 +1268,10 @@ function tablePanel(g: GameView | null, houseSlug: string, watching: number): st
         </form>
       </li>`;
     }
-    return `<li class="chair">
+    return `<li class="chair" data-turn="${!g.ended && g.turn === side && Boolean(g.top)}" data-yours="${g.yourSide === side}">
       ${face(name)}
-      <span class="chair-name">${esc(name)}${esc(yours)}${esc(toMove)}</span>
-      <span class="chair-score">${score}</span>
+      <span class="chair-name">${esc(name)}<small>${esc(yours)}${esc(toMove)}</small></span>
+      <span class="chair-score">${score}<small>points</small></span>
     </li>`;
   };
 
@@ -1286,11 +1304,11 @@ function tablePanel(g: GameView | null, houseSlug: string, watching: number): st
           </form>`;
 
   return `<div class="card">
-    <h3 class="rule-title">At the table</h3>
-    <p class="note">${g.top ? "2 playing" : "1 waiting"} · ${watching} ${watching === 1 ? "watching" : "watching"}</p>
+    <div class="game-title-row"><div><span class="eyebrow">At the table</span><h3 class="rule-title">Ô ăn quan</h3></div>
+    <p class="game-attendance">${g.top ? "2 seated" : "1 waiting"}<span aria-hidden="true"> · </span>${watching + 1} here</p></div>
     <ul class="chairs">${chair("bottom")}${chair("top")}</ul>
-    <p class="note">Dân 1 point · quan 10 · no timer</p>
-    ${action}
+    <p class="game-legend"><span><i class="legend-dan" aria-hidden="true"></i>Dân <strong>1</strong></span><span><i class="legend-quan" aria-hidden="true"></i>Quan <strong>10</strong></span><span>No timer</span></p>
+    ${action ? `<details class="game-options"><summary>Table options</summary><div>${action}</div></details>` : ""}
   </div>`;
 }
 
@@ -1303,11 +1321,14 @@ function rulesDrawer(): string {
   return `<details class="rules">
     <summary>How to play ô ăn quan</summary>
     <div class="rules-body">
+      <h3>How to play Ô ăn quan</h3>
+      <p class="rules-legend">2 players · Dân 1 point · Quan 10 points · No timer</p>
       <p class="lede">Collect the most points by sowing and capturing stones.</p>
       ${rule("01", "Set the table", "Ten small pits start with five dân each; the two end pits hold one quan each. You own the five small pits nearest you.")}
       ${rule("02", "Sow your stones", "Pick a non-empty small pit on your side. Sow all its stones, one per pit, left or right around the whole board, including both quan pits.")}
       ${rule("03", "Keep going — or stop", "After your last drop, look at the next pit. An occupied small pit: pick it up and keep sowing the same way. An occupied quan pit, or two empty pits: stop.")}
       ${rule("04", "Capture across a gap", "If the next pit is empty and the one beyond it holds stones, capture that second pit. Repeat across further empty-then-occupied pairs, then end your turn.")}
+      <div class="capture-example"><span>Last drop</span><span class="example-pit">Empty pit</span><span aria-hidden="true">→</span><span class="example-pit example-capture">4 stones</span><strong>Capture all 4</strong></div>
       ${rule("05", "Refill an empty side", "If your five pits are empty at the start of your turn, pay five captured points to put one dân in each. Fewer than five points and the game is lost.")}
       ${rule("06", "Finish and count", "When both quan pits are empty, each of you collects the dân left on your own side and adds it to what you captured. The higher score wins; equal scores are a draw.")}
       <p class="quiet">Our house rules: quan counts 10, no mature-quan restriction, no borrowing, no timer.</p>
@@ -1329,7 +1350,8 @@ export function tableFragment(
   picked: number | null,
   othersHere: number,
 ): string {
-  return `<div class="table-board">
+  return `<div class="table-side">${tablePanel(game, houseSlug, othersHere)}</div>
+    <div class="table-board">
       ${
         game
           ? // The board is drawn for a finished game too, not just a live
@@ -1345,9 +1367,6 @@ export function tableFragment(
           : `<p class="board-status">Nobody has set out a board. Ô ăn quan takes two.</p>`
       }
       ${rulesDrawer()}
-    </div>
-    <div class="table-side">
-      ${tablePanel(game, houseSlug, othersHere)}
     </div>`;
 }
 
@@ -1409,12 +1428,13 @@ export function housePage(
   const scrollAfterSwap = isMeeting ? "\n            if (wasNearBottom) scrollToNewestMessage();" : "";
   return page(
     house.name,
-    `<main>
+    `<main class="house-page ${isMeeting ? "meeting-page" : "home-page"}">
       ${roomScene(
         house.slug,
         `<a class="scene-back" href="/">← Back to the village</a>
-        <h1>${esc(house.name)}</h1>
-        <p class="lede">${esc(eyebrowFor(house.slug))}.</p>
+        <span class="scene-eyebrow">${isMeeting ? "The meeting house" : "A place to leave a little of your day"}</span>
+        <h1>${isMeeting ? '<span class="meeting-name">The meeting house</span><span class="meeting-welcome" aria-hidden="true">Together feels<br>different here.</span>' : esc(house.name)}</h1>
+        <p class="lede">${isMeeting ? "Games, stories, and good company — wherever we are." : "A place for our family memories, across distance."}</p>
         <p class="scene-presence">
           ${faces(otherNames)}
           <span>${
@@ -1426,6 +1446,7 @@ export function housePage(
           }</span>
         </p>
         ${message ? `<p class="scene-notice" role="status">${esc(message)}</p>` : ""}`,
+        isMeeting ? "" : `<div class="room-hotspots"><a href="#compose" class="room-hotspot"><span class="hotspot-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4v16M4 12h16"/></svg></span><span><strong>Add a note</strong><small>Place on the table</small></span><span aria-hidden="true">›</span></a><a href="/shelf?house=${esc(house.slug)}" class="room-hotspot album-hotspot"><span class="hotspot-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5Q6 2 3 5v15q5-3 9 0 4-3 9 0V5q-3-3-9 0zM12 5v15"/></svg></span><span><strong>Open the shelf</strong><small>Read your shared stories</small></span><span aria-hidden="true">›</span></a></div>`,
       )}
       ${
         // The board sits above the conversation, because it is the thing
@@ -1446,11 +1467,14 @@ export function housePage(
           : ""
       }
       <div class="layout-house measured">
-        <div>
+        <div class="room-collection">
+          <h2>${isMeeting ? "Family chat" : "Recent memories"}</h2>
           <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
         </div>
         <div class="panel-stack">
-          <div class="card">
+          <details class="memory-guide">
+            <summary>How memories are kept</summary>
+            <div class="card">
             <h3 class="rule-title">The two-state rule</h3>
             <p class="body-sm"><strong>In the room</strong> — nobody has kept this together yet.</p>
             <p class="body-sm"><strong>On the shelf</strong> — someone wrote their own perspective and chose to keep it together, and it stays.</p>
@@ -1458,12 +1482,14 @@ export function housePage(
           <div class="card-raised">
             <p class="consequence">${esc(consequenceLine(otherNames))}</p>
           </div>
+          </details>
           <!-- At the table this is one box, because a remark is not an
                artefact: it has no title and no "when did this happen",
                and asking for either would be a small lie about what is
                being written. In a household house, where a thing can reach
                the shelf under its own name, both still earn their place. -->
-          <form method="post" action="/place"${isMeeting ? ' class="say"' : ""}>
+          <form method="post" action="/place" id="compose" class="${isMeeting ? "say" : "memory-compose"}">
+            ${isMeeting ? "" : '<h2>Add a note to the table</h2>'}
             <input type="hidden" name="house" value="${esc(house.slug)}">
             ${
               isMeeting
@@ -1472,13 +1498,12 @@ export function housePage(
             <input id="title" name="title" required maxlength="120" placeholder="His first steps">`
             }
             <label for="body"${isMeeting ? ' class="visually-hidden"' : ""}>${esc(composeLabel)}</label>
-            <input id="body" name="body" required maxlength="280"
-              placeholder="${isMeeting ? "Send a message…" : "He stood up on his own today"}">
+            ${isMeeting ? '<input id="body" name="body" required maxlength="280" placeholder="Send a message…">' : '<textarea id="body" name="body" required maxlength="280" rows="4" placeholder="What do you want to remember?"></textarea>'}
             ${
               isMeeting
                 ? ""
-                : `<label for="event_date">When did this happen? <span class="note">(optional)</span></label>
-            <input id="event_date" name="event_date" maxlength="40" placeholder="March 2019, or any time you like">`
+                : `<details class="optional-date"><summary>Add a date <span class="note">(optional)</span></summary><label for="event_date">When did this happen?</label>
+            <input id="event_date" name="event_date" maxlength="40" placeholder="March 2019, or any time you like"></details>`
             }
             <button class="primary">${esc(composeButton)}</button>
           </form>
@@ -1498,6 +1523,11 @@ export function housePage(
         // Live updating is the only thing JavaScript adds. Without it the page
         // still renders, and every action is still a form POST.
         const room = document.getElementById("room");
+        document.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape") return;
+          const rules = document.querySelector("details.rules[open]");
+          if (rules) { rules.removeAttribute("open"); rules.querySelector("summary")?.focus(); }
+        });
         // Null in the three household houses, which have no table.
         const table = document.getElementById("table");
         ${scrollHelper}
@@ -1505,7 +1535,13 @@ export function housePage(
         const slug = encodeURIComponent(${JSON.stringify(house.slug)});
         const swap = async (el, path) => {
           const res = await fetch("/house/" + slug + path, { headers: { accept: "text/html" } });
-          if (res.ok) el.innerHTML = await res.text();
+          if (res.ok) {
+            const openRules = el.querySelector("details.rules[open]") !== null;
+            const openOptions = el.querySelector("details.game-options[open]") !== null;
+            el.innerHTML = await res.text();
+            if (openRules) el.querySelector("details.rules")?.setAttribute("open", "");
+            if (openOptions) el.querySelector("details.game-options")?.setAttribute("open", "");
+          }
           return res.ok;
         };
         const resync = async () => {
@@ -1649,11 +1685,11 @@ export function shelfPage(
   );
   const wall = everything.length
     ? `<ol class="wall">${everything.join("")}</ol>`
-    : `<p class="empty">${
+    : `<div class="shelf-empty"><svg viewBox="0 0 56 48" width="56" height="48" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><path d="M28 10Q15 2 5 9v31q13-8 23 0 10-8 23 0V9q-10-7-23 1zM28 10v30M10 15q7-3 12 0M10 21q7-3 12 0M34 15q6-3 12 0M34 21q6-3 12 0"/></svg><h2>${isFilteredFrom(filters) ? "No matching memories" : "Nothing kept here yet."}</h2><p class="empty">${
         isFilteredFrom(filters)
-          ? "Nothing on the shelf matches those filters."
-          : "Nothing is on the shelf yet. A thing reaches it once someone other than whoever put it down writes their own perspective and keeps it together."
-      }</p>`;
+          ? "Nothing on the shelf matches those filters. Try another house, year, or word."
+          : "Nothing is on the shelf yet. Leave a note in a house, then add a perspective and keep it together with someone else."
+      }</p><a href="${isFilteredFrom(filters) ? "/shelf" : "/"}">${isFilteredFrom(filters) ? "Clear the filters" : "Visit the village"} →</a></div>`;
   const houseOptions = houses
     .map(
       (h) =>
@@ -1666,15 +1702,15 @@ export function shelfPage(
   const isFiltered = isFilteredFrom(filters);
   return page(
     "The memory shelf",
-    `<main class="measured">
+    `<main class="measured shelf-page">
       <div class="shelf-head">
         <div class="shelf-head-copy">
-          <h1>The memory shelf</h1>
-          <p class="lede">Only the things more than one of you were there for.</p>
-          <p class="note">No compose box here — the shelf is for looking at. Everything
-            on it carries two names and the day it was kept.</p>
+          <span class="eyebrow">Kept together. Here to stay.</span>
+          <h1>Memory shelf</h1>
+          <p class="lede">Our stories, kept together.</p>
+          <p class="note">Little moments from different homes, with both names and the day they were kept.</p>
         </div>
-        <p class="hand shelf-aside">Same people.<br>Different places.<br>A fuller story.</p>
+        <div class="shelf-decoration"><p class="hand shelf-aside">Same people.<br>Different places.<br>A fuller story.</p><figure><img src="/img/polaroid.webp" width="271" height="177" alt="" aria-hidden="true"><figcaption>Our illustrated village</figcaption></figure></div>
       </div>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
       <form method="get" action="/shelf" class="shelf-filters">
@@ -1700,7 +1736,7 @@ export function shelfPage(
         ${isFiltered ? `<a href="/shelf">Clear</a>` : ""}
       </form>
       <p class="note shelf-count">${totalShown} ${totalShown === 1 ? "memory" : "memories"} shown${isFiltered ? " for these filters" : ""}.</p>
-      ${wall}
+      <div class="shelf-layout"><aside class="house-albums" aria-label="House albums">${visibleHouses.map(h => `<a class="house-album" data-house="${esc(h.slug)}" href="/shelf?${new URLSearchParams({ house: h.slug, year: filters.year, q: filters.q }).toString()}"><span class="album-name">${esc(h.name)}</span><svg width="76" height="96" viewBox="0 0 32 36" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M10 33L23 5M13 25Q2 23 7 17Q13 17 13 25M17 18Q9 13 13 9Q19 11 17 18M18 15Q28 19 28 12Q24 10 18 15M15 24Q25 27 25 21Q20 18 15 24M22 9Q29 8 26 3Q21 4 22 9"/></svg><span>${h.shelved.length} ${h.shelved.length === 1 ? "memory" : "memories"}</span></a>`).join("")}</aside><section class="shelf-memories" aria-label="Kept memories">${wall}</section></div>
     </main>`,
     me,
     "shelf",

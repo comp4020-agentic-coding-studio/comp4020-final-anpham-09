@@ -41,15 +41,10 @@ for pair in "background0 village" "background1 room-nghe-an" "background2 room-m
   done
 done
 
-# The Figma also supplies content crops (board games, a pier, a dog) and six
-# avatars. They belong to screens this app has not built — the games table,
-# the chat panel, photo memories — and the Dockerfile copies all of img/ into
-# a 256MB machine, so shipping them now is weight for nothing. They stay as
-# PNG in assets/ and get converted when a route actually serves one: add the
-# name below and re-run.
-#
-# crops=(catan ticket cards)
-crops=()
+# The shelf uses the village crop as a decorative album cover, explicitly
+# captioned as an illustration. Real memory cards remain text records.
+# Sample portraits and memory photographs are not assigned to real people.
+crops=(polaroid)
 if [ ${#crops[@]} -gt 0 ]; then
   echo "crops"
   for name in "${crops[@]}"; do
