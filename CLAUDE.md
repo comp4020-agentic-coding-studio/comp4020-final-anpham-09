@@ -17,8 +17,12 @@ change would make any line here false, the change is wrong, not the line.
 - **Never drop an action silently.** Every refusal gets words explaining the
   rule. A button that appears to do nothing teaches the user the system is
   broken; being told the rule teaches them the rule.
-- **Collect nothing beyond a chosen name in a cookie.** No accounts, no
-  passwords, no email, no analytics.
+- **Collect nothing beyond a chosen name and, for the family, a key.** No
+  email, no profile, no analytics, nothing to recover. A key is not an
+  account: no sign-up, no reset, no record of anyone beyond the name they
+  chose. This rule said "no passwords" until C10, when the homes needed a
+  server-side answer to who may change them. What it was protecting was
+  collecting nothing, and that still holds.
 - **Never claim privacy the app does not have.** The deployment is a public
   URL. The README says so plainly rather than implying the village is sealed.
 

@@ -252,3 +252,14 @@ export function countsFor(houseSlug: string): HouseCounts {
     .get(house.id) as { onShelf: number; inRoom: number };
   return { inRoom: row.inRoom, onShelf: row.onShelf };
 }
+
+/** The house a thing actually sits in, from the row itself. The form that
+ *  asks to change a thing also carries a house slug, but that is the page the
+ *  request came from and a caller can say anything — the permission question
+ *  has to be answered from the thing, not from the request. */
+export function houseOfThing(thingId: number): string | undefined {
+  const row = db
+    .prepare("SELECT h.slug AS slug FROM things t JOIN houses h ON h.id = t.house_id WHERE t.id = ?")
+    .get(thingId) as { slug: string } | undefined;
+  return row?.slug;
+}

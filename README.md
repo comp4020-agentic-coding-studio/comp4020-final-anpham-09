@@ -69,10 +69,19 @@ each end. A finished game is a score, not a memory, so it reaches the shelf
 the same way everything else does. A game somebody walks away from has no
 score, and the app doesn't offer to keep it.
 
-No accounts, no notifications, no *private* messages — the meeting house is a
-group conversation and always was. Privacy comes from where you are, not a
+No notifications, no *private* messages — the meeting house is a group
+conversation and always was. Privacy comes from where you are, not a
 recipient field. Nothing can be deleted or edited. Still cut: photo uploads,
 likes, tags, the other games the mockups drew.
+
+This file said "no accounts" until C10, and the app still has none — but it
+now has keys. Each of the five adults has their own; a visitor needs nothing
+and is never asked for anything. A key is not an account: no sign-up, no
+email, no reset, no profile, and nothing kept about anyone beyond the name
+they chose. It exists because a home needed a server-side answer to who may
+put something down in it, and "whoever has the URL" was the wrong answer.
+An Duy is eleven months old and has no key — he is who the village is for,
+not someone who uses it.
 
 One concession to JavaScript: the line saying somebody is typing. With a
 script blocked it never appears and nothing else changes — every action here

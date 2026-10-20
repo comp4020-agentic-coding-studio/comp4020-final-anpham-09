@@ -35,6 +35,10 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- member_name is the household name a person proved with a key, or NULL for
+  -- a visitor. It is not an account: there is no sign-up and nothing to
+  -- recover, and a visitor is never asked for one.
+
   CREATE TABLE IF NOT EXISTS things (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     house_id   INTEGER NOT NULL REFERENCES houses(id),
@@ -205,3 +209,13 @@ const SEED: Array<[slug: string, name: string, kind: "home" | "meeting"]> = [
 ];
 const seed = db.prepare("INSERT OR IGNORE INTO houses (slug, name, kind) VALUES (?, ?, ?)");
 for (const [slug, name, kind] of SEED) seed.run(slug, name, kind);
+
+// Added after the first deploy, so the column cannot be part of CREATE TABLE
+// for a volume that already has the table. SQLite has no ADD COLUMN IF NOT
+// EXISTS, so the table is asked what it already has.
+const peopleColumns = db
+  .prepare("SELECT name FROM pragma_table_info('people')")
+  .all() as Array<{ name: string }>;
+if (!peopleColumns.some((c) => c.name === "member_name")) {
+  db.exec("ALTER TABLE people ADD COLUMN member_name TEXT");
+}

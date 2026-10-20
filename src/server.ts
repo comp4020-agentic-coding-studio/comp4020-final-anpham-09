@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MAX_LISTENERS, publish, subscribe } from "./events.ts";
+import { actor, logAction } from "./log.ts";
 import {
   concede,
   endGame,
@@ -15,14 +16,16 @@ import {
   type PlayRefusal,
   type SitRefusal,
 } from "./games.ts";
-import { houseBySlug, listHouses } from "./houses.ts";
+import { houseBySlug, listHouses, type House } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
-import { ensurePerson, getPerson, nameOf, type Person, type PersonRefusal } from "./people.ts";
+import { ensurePerson, getPerson, isMember, nameOf, setMember, type Person, type PersonRefusal } from "./people.ts";
+import { keysCut, mayChange, memberFor, memberNames } from "./members.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
-import { housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage, tableFragment } from "./render.ts";
+import { esc, housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage, tableFragment } from "./render.ts";
 import {
   addPerspective,
   countsFor,
+  houseOfThing,
   inRoom,
   keepTogether,
   place,
@@ -138,10 +141,12 @@ const REFUSALS: Record<
   | PlayRefusal
   | PlaceGameRefusal
   | "not-stuck"
-  | "not-seated",
+  | "not-seated"
+  | "visitors-cannot-change",
   string
 > = {
-  "unknown-house": "There's no such house in this village.",
+  "unknown-house": "There\'s no such house in this village.",
+  "visitors-cannot-change": "Only the people who live here can put something down or keep it. The meeting house is open to everyone.",
   "blank-name": "The app needs something to call you.",
   "blank-title": "A thing in a house needs something to call it. At the table, a line on its own is enough.",
   "blank-body": "There's nothing there to put down.",
@@ -196,6 +201,11 @@ const server = createServer((req, res) => {
       setCookie = `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000`;
     }
     const me: Person | undefined = getPerson(token);
+    // Who lives here decides what may be changed, and what of a home may be
+    // read. A visitor sees a home and its shelf — what the family chose to
+    // keep — but not the room, which is the unfinished talk of a household.
+    // The meeting house belongs to nobody and is open to everyone.
+    const belongsIn = (house: House): boolean => mayChange(house.kind, me?.memberName ?? null, keysCut());
 
     // The README is published whether or not you've said who you are.
     if (method === "GET" && path === "/readme") {
@@ -246,12 +256,104 @@ const server = createServer((req, res) => {
       const form = await formData(req);
       const result = ensurePerson(token, form.get("name") ?? "", form.get("home") ?? "");
       if (typeof result === "string") {
+        logAction("join-refused", actor(undefined, token), { reason: result });
         seeOther(res, said("/", REFUSALS[result]), setCookie);
         return;
       }
+      logAction("join", actor(result, token), { home: result.homeSlug });
       seeOther(res, "/", setCookie);
       return;
     }
+
+    // A key says you live here. It is not an account: no sign-up, no email, no
+
+    // profile, nothing to recover. The names come from the keys the village
+
+    // was given, so this page can never leak a name that has no key.
+
+    if (method === "GET" && path === "/key") {
+
+      const names = memberNames();
+
+      const options = names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+
+      html(res, 200, page("Your key", `<main class="measured">
+
+        <h1>Your key</h1>
+
+        <p>Visiting is enough to look around the village and read what each house
+
+          has kept. A key is for the people who live here: it lets you put something
+
+          down in a home and keep what someone else put there. The meeting house
+
+          needs no key.</p>
+
+        ${names.length === 0
+
+          ? `<p>No keys have been cut for this village yet, so everyone here is visiting.</p>`
+
+          : `<form method="post" action="/key">
+
+              <label for="who">Who are you?</label>
+
+              <select id="who" name="who" required>${options}</select>
+
+              <label for="key">Your key</label>
+
+              <input id="key" name="key" type="password" required autocomplete="current-password">
+
+              <button>Unlock</button>
+
+            </form>`}
+
+      </main>`, me), setCookie);
+
+      return;
+
+    }
+
+
+    if (req.method === "POST" && path === "/key") {
+
+      const form = await formData(req);
+
+      const who = (form.get("who") ?? "").trim();
+
+      const proved = memberFor(who, form.get("key") ?? "");
+
+      if (!me) {
+
+        seeOther(res, said("/", "Say who you are first — a key belongs to somebody."), setCookie);
+
+        return;
+
+      }
+
+      if (!proved) {
+
+        // The log records the attempt and never the key. A refused unlock is
+
+        // the server check doing its job, so it is worth a line.
+
+        logAction("key-refused", actor(me, token), { claimed: who });
+
+        seeOther(res, said("/key", "That key doesn't open anything here."), setCookie);
+
+        return;
+
+      }
+
+      setMember(token, proved);
+
+      logAction("key-accepted", actor(me, token), { member: proved });
+
+      seeOther(res, said("/", `Welcome home, ${proved}.`), setCookie);
+
+      return;
+
+    }
+
 
     if (!me) {
       if (req.method === "POST") {
@@ -316,6 +418,7 @@ const server = createServer((req, res) => {
     }
 
     if (req.method === "POST" && path === "/leave") {
+      logAction("leave", actor(me, token), {});
       leave(token);
       // Clearing presence but not the cookie would still resolve this token
       // to a person on the next request — the app would say "you've left"
@@ -335,7 +438,7 @@ const server = createServer((req, res) => {
       // stream's resync carries the same who-line the full page would.
       const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameOf);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      res.end(roomFragment(others, inRoom(house.slug, token), house.slug));
+      res.end(roomFragment(others, belongsIn(house) ? inRoom(house.slug, token) : [], house.slug));
       return;
     }
 
@@ -414,7 +517,7 @@ const server = createServer((req, res) => {
       html(
         res,
         200,
-        housePage(house, me, others, inRoom(house.slug, token), message, {
+        housePage(house, me, others, belongsIn(house) ? inRoom(house.slug, token) : [], message, {
           game: gameAt(house.slug, token),
           picked: Number.isInteger(picked) ? picked : null,
         }),
@@ -432,9 +535,11 @@ const server = createServer((req, res) => {
       const slug = (form.get("house") ?? "").trim();
       const result = sitDown(slug, token);
       if (typeof result === "string") {
+        logAction("sit-refused", actor(me, token), { house: slug, reason: result });
         seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
         return;
       }
+      logAction("sit", actor(me, token), { house: slug });
       publish(slug, "sat");
       seeOther(res, backTo(slug), setCookie);
       return;
@@ -566,11 +671,19 @@ const server = createServer((req, res) => {
     if (req.method === "POST" && path === "/place") {
       const form = await formData(req);
       const slug = (form.get("house") ?? "").trim();
+      const placeHouse = houseBySlug(slug);
+      if (placeHouse && !belongsIn(placeHouse)) {
+        logAction("place-refused", actor(me, token), { house: slug, reason: "visitors-cannot-change" });
+        seeOther(res, said(backTo(slug), REFUSALS["visitors-cannot-change"]), setCookie);
+        return;
+      }
       const result = place(slug, token, form.get("title") ?? "", form.get("body") ?? "", form.get("event_date") ?? undefined);
       if (typeof result === "string") {
+        logAction("place-refused", actor(me, token), { house: slug, reason: result });
         seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
         return;
       }
+      logAction("place", actor(me, token), { house: slug, thing: result });
       publish(slug, "placed");
       seeOther(res, backTo(slug), setCookie);
       return;
@@ -584,11 +697,19 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(back), REFUSALS["unknown-thing"]), setCookie);
         return;
       }
+      const perspectiveHouse = houseBySlug(houseOfThing(thingId) ?? "");
+      if (perspectiveHouse && !belongsIn(perspectiveHouse)) {
+        logAction("perspective-refused", actor(me, token), { house: perspectiveHouse.slug, thing: thingId, reason: "visitors-cannot-change" });
+        seeOther(res, said(backTo(back), REFUSALS["visitors-cannot-change"]), setCookie);
+        return;
+      }
       const refusal = addPerspective(thingId, token, form.get("body") ?? "");
       if (typeof refusal === "string") {
+        logAction("perspective-refused", actor(me, token), { house: back, thing: thingId, reason: refusal });
         seeOther(res, said(backTo(back), REFUSALS[refusal]), setCookie);
         return;
       }
+      logAction("perspective", actor(me, token), { house: back, thing: thingId });
       if (houseBySlug(back)) publish(back, "perspective");
       seeOther(res, backTo(back), setCookie);
       return;
@@ -602,8 +723,19 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(back), REFUSALS["unknown-thing"]), setCookie);
         return;
       }
+      const keepHouse = houseBySlug(houseOfThing(thingId) ?? "");
+      if (keepHouse && !belongsIn(keepHouse)) {
+        logAction("keep-refused", actor(me, token), { house: keepHouse.slug, thing: thingId, reason: "visitors-cannot-change" });
+        seeOther(res, said(backTo(back), REFUSALS["visitors-cannot-change"]), setCookie);
+        return;
+      }
       const refusal = keepTogether(thingId, token);
-      if (refusal) { seeOther(res, said(backTo(back), REFUSALS[refusal]), setCookie); return; }
+      if (refusal) {
+        logAction("keep-refused", actor(me, token), { house: back, thing: thingId, reason: refusal });
+        seeOther(res, said(backTo(back), REFUSALS[refusal]), setCookie);
+        return;
+      }
+      logAction("keep", actor(me, token), { house: back, thing: thingId });
       // Only nudge the room that actually changed. A guessed destination
       // would publish to the wrong house's event stream.
       if (houseBySlug(back)) publish(back, "kept");
@@ -630,4 +762,9 @@ const server = createServer((req, res) => {
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(JSON.stringify({ at: new Date().toISOString(), level: "info", msg: "listening", port: PORT }));
+  if (keysCut() === 0) {
+    // Not a crash, but never silent: an unlocked village looks exactly like a
+    // working one until a stranger puts something in a bedroom.
+    console.warn(JSON.stringify({ at: new Date().toISOString(), level: "warn", msg: "no keys cut — every house is open to everyone", keys: 0 }));
+  }
 });

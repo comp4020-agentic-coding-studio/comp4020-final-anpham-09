@@ -5,6 +5,9 @@ export interface Person {
   token: string;
   name: string;
   homeSlug: string;
+  /** The household name this person proved with a key, or null if visiting.
+   *  Membership is about what you may change, never what you may see. */
+  memberName: string | null;
 }
 
 /** Why a person could not be recorded, or the person. Corroborated's habit:
@@ -23,7 +26,7 @@ export function ensurePerson(
     `INSERT INTO people (token, name, home_slug) VALUES (?, ?, ?)
      ON CONFLICT(token) DO UPDATE SET name = excluded.name, home_slug = excluded.home_slug`,
   ).run(token, trimmed, homeSlug);
-  return { token, name: trimmed, homeSlug };
+  return { token, name: trimmed, homeSlug, memberName: getPerson(token)?.memberName ?? null };
 }
 
 export function getPerson(token: string): Person | undefined {
@@ -37,4 +40,14 @@ export function getPerson(token: string): Person | undefined {
  *  who has not given one. */
 export function nameOf(token: string): string {
   return getPerson(token)?.name ?? "someone";
+}
+
+/** Record that this token proved a household key. Idempotent: proving the
+ *  same key twice changes nothing. */
+export function setMember(token: string, memberName: string): void {
+  db.prepare("UPDATE people SET member_name = ? WHERE token = ?").run(memberName, token);
+}
+
+export function isMember(person: Person | undefined): boolean {
+  return Boolean(person?.memberName);
 }

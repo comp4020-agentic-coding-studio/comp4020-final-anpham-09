@@ -20,7 +20,7 @@ import { housePage } from "../src/render.ts";
 // part with a decision in it.
 
 const house = { id: 4, slug: "meeting", name: "The meeting house", kind: "meeting" as const };
-const me = { token: "an", name: "An", homeSlug: "nghe-an" };
+const me = { token: "an", name: "An", homeSlug: "nghe-an", memberName: null };
 
 /** The page, as a DOM, with the live script pulled out rather than run:
  *  jsdom has no EventSource, and the point is to drive the handler by hand

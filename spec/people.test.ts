@@ -37,7 +37,13 @@ describe("who is in the village", () => {
   it("records a person by the name they chose, not one it made up", async () => {
     const { people } = await boot();
     const person = people.ensurePerson("tok-1", "An", "canberra");
-    expect(person).toEqual({ token: "tok-1", name: "An", homeSlug: "canberra" });
+    expect(person).toEqual({
+      token: "tok-1",
+      name: "An",
+      homeSlug: "canberra",
+      // A chosen name makes you a person, not a member. No key used here.
+      memberName: null,
+    });
     expect(people.nameOf("tok-1")).toBe("An");
   });
 
