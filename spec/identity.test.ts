@@ -95,3 +95,40 @@ describe("rows written before accounts existed", () => {
     expect(again.map((r) => r.placed_by)).toEqual(["v:raw-token", "m:Mum"]);
   });
 });
+
+describe("the shelf rule, now true of humans", () => {
+  it("refuses to let one member keep their own thing from a second device", async () => {
+    const { people, things } = await boot();
+    people.ensurePerson("tok-laptop", "Mum", "nghe-an");
+    people.ensurePerson("tok-phone", "Mum", "nghe-an");
+    people.setMember("tok-laptop", "Mum");
+    people.setMember("tok-phone", "Mum");
+
+    const laptop = people.personId(people.getPerson("tok-laptop"), "tok-laptop");
+    const phone = people.personId(people.getPerson("tok-phone"), "tok-phone");
+
+    const id = things.place("nghe-an", laptop, "An Duy walked", "first steps today");
+    expect(typeof id).toBe("number");
+
+    things.addPerspective(id as number, phone, "I was there too");
+
+    // Before person ids these were two tokens, the trigger saw two people,
+    // and the thing reached the shelf with Mum's name on both sides.
+    expect(things.keepTogether(id as number, phone)).toBe("own-thing");
+  });
+
+  it("still lets two different people keep a thing together", async () => {
+    const { people, things } = await boot();
+    people.ensurePerson("tok-mum", "Mum", "nghe-an");
+    people.ensurePerson("tok-dad", "Dad", "nghe-an");
+    people.setMember("tok-mum", "Mum");
+    people.setMember("tok-dad", "Dad");
+
+    const mum = people.personId(people.getPerson("tok-mum"), "tok-mum");
+    const dad = people.personId(people.getPerson("tok-dad"), "tok-dad");
+
+    const id = things.place("nghe-an", mum, "An Duy walked", "first steps today") as number;
+    things.addPerspective(id, dad, "I saw it too");
+    expect(things.keepTogether(id, dad)).toBe(null);
+  });
+});

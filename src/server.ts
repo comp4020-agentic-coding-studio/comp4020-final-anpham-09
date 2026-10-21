@@ -18,7 +18,7 @@ import {
 } from "./games.ts";
 import { houseBySlug, listHouses, type House } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
-import { ensurePerson, getPerson, isMember, nameForPersonId, setMember, type Person, type PersonRefusal } from "./people.ts";
+import { ensurePerson, getPerson, isMember, nameForPersonId, personId, setMember, type Person, type PersonRefusal } from "./people.ts";
 import { keyProblems, keysCut, mayChange, memberFor, memberNames } from "./members.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
 import { esc, housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage, tableFragment } from "./render.ts";
@@ -201,6 +201,10 @@ const server = createServer((req, res) => {
       setCookie = `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000`;
     }
     const me: Person | undefined = getPerson(token);
+    // The cookie says which session; this says which person. A member is the
+    // same person on every device, so the not-own trigger and the game's two
+    // chairs are about humans rather than browsers.
+    const who = personId(me, token);
     // Who lives here decides what may be changed, and what of a home may be
     // read. A visitor sees a home and its shelf — what the family chose to
     // keep — but not the room, which is the unfinished talk of a household.
@@ -411,7 +415,7 @@ const server = createServer((req, res) => {
       };
       const houses = listHouses().map((h) => ({
         ...h,
-        shelved: shelfFor(h.slug, token, { year: filters.year, q: filters.q }),
+        shelved: shelfFor(h.slug, who, { year: filters.year, q: filters.q }),
       }));
       html(res, 200, shelfPage(houses, me, message, filters, shelfYears()), setCookie);
       return;
@@ -419,7 +423,7 @@ const server = createServer((req, res) => {
 
     if (req.method === "POST" && path === "/leave") {
       logAction("leave", actor(me, token), {});
-      leave(token);
+      leave(who);
       // Clearing presence but not the cookie would still resolve this token
       // to a person on the next request — the app would say "you've left"
       // and then render the map as you. Leaving means both, and landing on
@@ -433,12 +437,12 @@ const server = createServer((req, res) => {
     if (method === "GET" && room) {
       const house = houseBySlug(room[1]);
       if (!house) { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
-      enter(token, house.slug);
+      enter(who, house.slug);
       // Computed exactly as the /house/:slug route does, so a reconnecting
       // stream's resync carries the same who-line the full page would.
-      const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameForPersonId);
+      const others = whoIsIn(house.slug).filter((p) => p !== who).map(nameForPersonId);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      res.end(roomFragment(others, belongsIn(house) ? inRoom(house.slug, token) : [], house.slug));
+      res.end(roomFragment(others, belongsIn(house) ? inRoom(house.slug, who) : [], house.slug));
       return;
     }
 
@@ -450,9 +454,9 @@ const server = createServer((req, res) => {
     if (method === "GET" && tableFrag) {
       const house = houseBySlug(tableFrag[1]);
       if (!house || house.kind !== "meeting") { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such table.</p></main>", me), setCookie); return; }
-      enter(token, house.slug);
+      enter(who, house.slug);
       const pit = Number(url.searchParams.get("pit"));
-      const others = whoIsIn(house.slug).filter((p) => p !== token).length;
+      const others = whoIsIn(house.slug).filter((p) => p !== who).length;
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(
         tableFragment(
@@ -490,7 +494,7 @@ const server = createServer((req, res) => {
       // An open stream is what keeps someone present: the heartbeat refreshes
       // their 45 seconds and keeps intermediaries from closing the socket.
       const ping = setInterval(() => {
-        enter(token, house.slug);
+        enter(who, house.slug);
         res.write(": ping\n\n");
       }, PING_MS);
       req.on("close", () => {
@@ -506,8 +510,8 @@ const server = createServer((req, res) => {
       if (!house) { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
       // Arriving is what makes you present, so a reader with JavaScript off
       // still counts for the 45 seconds the app will admit to.
-      enter(token, house.slug);
-      const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameForPersonId);
+      enter(who, house.slug);
+      const others = whoIsIn(house.slug).filter((p) => p !== who).map(nameForPersonId);
       // Which pit you have picked up is a cursor, not a fact: it lives in
       // the URL, so it is per-tab for free and nothing is written until you
       // choose a direction. A `selections` table would need a key per
@@ -517,7 +521,7 @@ const server = createServer((req, res) => {
       html(
         res,
         200,
-        housePage(house, me, others, belongsIn(house) ? inRoom(house.slug, token) : [], message, {
+        housePage(house, me, others, belongsIn(house) ? inRoom(house.slug, who) : [], message, {
           game: gameAt(house.slug, token),
           picked: Number.isInteger(picked) ? picked : null,
         }),
@@ -677,7 +681,7 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(slug), REFUSALS["visitors-cannot-change"]), setCookie);
         return;
       }
-      const result = place(slug, token, form.get("title") ?? "", form.get("body") ?? "", form.get("event_date") ?? undefined);
+      const result = place(slug, who, form.get("title") ?? "", form.get("body") ?? "", form.get("event_date") ?? undefined);
       if (typeof result === "string") {
         logAction("place-refused", actor(me, token), { house: slug, reason: result });
         seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
@@ -703,7 +707,7 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(back), REFUSALS["visitors-cannot-change"]), setCookie);
         return;
       }
-      const refusal = addPerspective(thingId, token, form.get("body") ?? "");
+      const refusal = addPerspective(thingId, who, form.get("body") ?? "");
       if (typeof refusal === "string") {
         logAction("perspective-refused", actor(me, token), { house: back, thing: thingId, reason: refusal });
         seeOther(res, said(backTo(back), REFUSALS[refusal]), setCookie);
@@ -729,7 +733,7 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(back), REFUSALS["visitors-cannot-change"]), setCookie);
         return;
       }
-      const refusal = keepTogether(thingId, token);
+      const refusal = keepTogether(thingId, who);
       if (refusal) {
         logAction("keep-refused", actor(me, token), { house: back, thing: thingId, reason: refusal });
         seeOther(res, said(backTo(back), REFUSALS[refusal]), setCookie);

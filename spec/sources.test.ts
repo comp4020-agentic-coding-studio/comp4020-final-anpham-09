@@ -85,3 +85,32 @@ describe("the source files", () => {
     expect(events).not.toContain("node:http");
   });
 });
+
+describe("the routes act as a person, never as a browser", () => {
+  // These tests above read the source because the hazard lives in its shape.
+  // So does this one: the route tests run against a server in another
+  // process with no keys cut, so they cannot tell a token from a person id.
+  // A route that slipped back to passing `token` would record a browser as
+  // the actor and nothing else would notice.
+  it("hands no raw cookie token to anything that records who acted", () => {
+    const server = readFileSync(new URL("../src/server.ts", import.meta.url), "utf8");
+    const forbidden: Array<[name: string, pattern: RegExp]> = [
+      ["place", /\bplace\(\s*\w+,\s*token\b/],
+      ["addPerspective", /\baddPerspective\(\s*\w+,\s*token\b/],
+      ["keepTogether", /\bkeepTogether\(\s*\w+,\s*token\s*\)/],
+      ["enter", /\benter\(\s*token\b/],
+      ["leave", /\bleave\(\s*token\s*\)/],
+      ["inRoom", /\binRoom\(\s*[\w.]+,\s*token\s*\)/],
+      ["shelfFor", /\bshelfFor\(\s*[\w.]+,\s*token\b/],
+      ["sitDown", /\bsitDown\(\s*\w+,\s*token\s*\)/],
+      ["standUp", /\bstandUp\(\s*\w+,\s*token\s*\)/],
+      ["play", /\bplay\(\s*\w+,\s*token\b/],
+      ["endGame", /\bendGame\(\s*\w+,\s*token\s*\)/],
+      ["concede", /\bconcede\(\s*\w+,\s*token\s*\)/],
+      ["placeGame", /\bplaceGame\(\s*\w+,\s*token\s*\)/],
+      ["gameAt", /\bgameAt\(\s*[\w.]+,\s*token\s*\)/],
+    ];
+    const slipped = forbidden.filter(([, re]) => re.test(server)).map(([name]) => name);
+    expect(slipped).toEqual([]);
+  });
+});
