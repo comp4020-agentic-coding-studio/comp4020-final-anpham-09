@@ -460,7 +460,7 @@ const server = createServer((req, res) => {
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(
         tableFragment(
-          gameAt(house.slug, token),
+          gameAt(house.slug, who),
           house.slug,
           Number.isInteger(pit) ? pit : null,
           others,
@@ -522,7 +522,7 @@ const server = createServer((req, res) => {
         res,
         200,
         housePage(house, me, others, belongsIn(house) ? inRoom(house.slug, who) : [], message, {
-          game: gameAt(house.slug, token),
+          game: gameAt(house.slug, who),
           picked: Number.isInteger(picked) ? picked : null,
         }),
         setCookie,
@@ -537,7 +537,7 @@ const server = createServer((req, res) => {
     if (req.method === "POST" && path === "/game/sit") {
       const form = await formData(req);
       const slug = (form.get("house") ?? "").trim();
-      const result = sitDown(slug, token);
+      const result = sitDown(slug, who);
       if (typeof result === "string") {
         logAction("sit-refused", actor(me, token), { house: slug, reason: result });
         seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
@@ -552,7 +552,7 @@ const server = createServer((req, res) => {
     if (req.method === "POST" && path === "/game/stand") {
       const form = await formData(req);
       const slug = (form.get("house") ?? "").trim();
-      const refusal = standUp(slug, token);
+      const refusal = standUp(slug, who);
       if (refusal) {
         seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);
         return;
@@ -575,7 +575,7 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(slug), REFUSALS["no-direction"]), setCookie);
         return;
       }
-      const refusal = play(slug, token, pit, direction);
+      const refusal = play(slug, who, pit, direction);
       if (refusal) {
         seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);
         return;
@@ -622,7 +622,7 @@ const server = createServer((req, res) => {
     if (req.method === "POST" && path === "/game/end") {
       const form = await formData(req);
       const slug = (form.get("house") ?? "").trim();
-      const refusal = endGame(slug, token);
+      const refusal = endGame(slug, who);
       if (refusal) {
         seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);
         return;
@@ -642,7 +642,7 @@ const server = createServer((req, res) => {
     if (req.method === "POST" && path === "/game/concede") {
       const form = await formData(req);
       const slug = (form.get("house") ?? "").trim();
-      const refusal = concede(slug, token);
+      const refusal = concede(slug, who);
       if (refusal) {
         seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);
         return;
@@ -658,7 +658,7 @@ const server = createServer((req, res) => {
     if (req.method === "POST" && path === "/game/place") {
       const form = await formData(req);
       const slug = (form.get("house") ?? "").trim();
-      const result = placeGame(slug, token);
+      const result = placeGame(slug, who);
       if (typeof result === "string") {
         seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
         return;

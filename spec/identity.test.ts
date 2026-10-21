@@ -132,3 +132,27 @@ describe("the shelf rule, now true of humans", () => {
     expect(things.keepTogether(id, dad)).toBe(null);
   });
 });
+
+describe("a game needs two of you", () => {
+  type Games = typeof import("../src/games.ts");
+
+  it("refuses the same member both chairs from two devices", async () => {
+    vi.resetModules();
+    process.env.DATABASE_PATH = dbPath;
+    const people = (await import("../src/people.ts")) as People;
+    const games = (await import("../src/games.ts")) as Games;
+
+    people.ensurePerson("tok-laptop", "Mum", "nghe-an");
+    people.ensurePerson("tok-phone", "Mum", "nghe-an");
+    people.setMember("tok-laptop", "Mum");
+    people.setMember("tok-phone", "Mum");
+
+    const laptop = people.personId(people.getPerson("tok-laptop"), "tok-laptop");
+    const phone = people.personId(people.getPerson("tok-phone"), "tok-phone");
+
+    expect(typeof games.sitDown("meeting", laptop)).toBe("number");
+    // The CHECK compared tokens, so one person in two browsers could take
+    // both chairs and play themselves.
+    expect(games.sitDown("meeting", phone)).toBe("already-seated");
+  });
+});
