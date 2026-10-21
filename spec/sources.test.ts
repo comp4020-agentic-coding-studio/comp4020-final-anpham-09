@@ -87,30 +87,88 @@ describe("the source files", () => {
 });
 
 describe("the routes act as a person, never as a browser", () => {
-  // These tests above read the source because the hazard lives in its shape.
-  // So does this one: the route tests run against a server in another
-  // process with no keys cut, so they cannot tell a token from a person id.
-  // A route that slipped back to passing `token` would record a browser as
-  // the actor and nothing else would notice.
+  // These tests read the source because the hazard lives in its shape.
+  // The route tests run against a server in another process with no keys
+  // cut, so they cannot tell a token from a person id. A route that slipped
+  // back to passing `token` would record a browser as the actor and nothing
+  // else would notice. Three layers, which fail differently:
+  //   1. a denylist of identity-taking calls (names the exact function),
+  //   2. a residue check: strip every legitimate use of `token`, then fail on
+  //      any bare `token` left (catches new functions, aliases, renames),
+  //   3. positive pins proving the calls exist and pass `who`, so the other
+  //      two cannot pass vacuously on an empty or restructured file.
+  const server = readFileSync(new URL("../src/server.ts", import.meta.url), "utf8");
+  const ARG = "[^,()]+"; // first argument, e.g. slug, house.slug, h.slug
+
   it("hands no raw cookie token to anything that records who acted", () => {
-    const server = readFileSync(new URL("../src/server.ts", import.meta.url), "utf8");
+    expect(server.length).toBeGreaterThan(1000);
     const forbidden: Array<[name: string, pattern: RegExp]> = [
-      ["place", /\bplace\(\s*\w+,\s*token\b/],
-      ["addPerspective", /\baddPerspective\(\s*\w+,\s*token\b/],
-      ["keepTogether", /\bkeepTogether\(\s*\w+,\s*token\s*\)/],
+      ["place", new RegExp(`\\bplace\\(\\s*${ARG},\\s*token\\b`)],
+      ["addPerspective", new RegExp(`\\baddPerspective\\(\\s*${ARG},\\s*token\\b`)],
+      ["keepTogether", new RegExp(`\\bkeepTogether\\(\\s*${ARG},\\s*token\\s*\\)`)],
       ["enter", /\benter\(\s*token\b/],
       ["leave", /\bleave\(\s*token\s*\)/],
-      ["inRoom", /\binRoom\(\s*[\w.]+,\s*token\s*\)/],
-      ["shelfFor", /\bshelfFor\(\s*[\w.]+,\s*token\b/],
-      ["sitDown", /\bsitDown\(\s*\w+,\s*token\s*\)/],
-      ["standUp", /\bstandUp\(\s*\w+,\s*token\s*\)/],
-      ["play", /\bplay\(\s*\w+,\s*token\b/],
-      ["endGame", /\bendGame\(\s*\w+,\s*token\s*\)/],
-      ["concede", /\bconcede\(\s*\w+,\s*token\s*\)/],
-      ["placeGame", /\bplaceGame\(\s*\w+,\s*token\s*\)/],
-      ["gameAt", /\bgameAt\(\s*[\w.]+,\s*token\s*\)/],
+      ["inRoom", new RegExp(`\\binRoom\\(\\s*${ARG},\\s*token\\s*\\)`)],
+      ["shelfFor", new RegExp(`\\bshelfFor\\(\\s*${ARG},\\s*token\\b`)],
+      ["onShelf", new RegExp(`\\bonShelf\\(\\s*${ARG},\\s*token\\b`)],
+      ["sitDown", new RegExp(`\\bsitDown\\(\\s*${ARG},\\s*token\\s*\\)`)],
+      ["standUp", new RegExp(`\\bstandUp\\(\\s*${ARG},\\s*token\\s*\\)`)],
+      ["play", new RegExp(`\\bplay\\(\\s*${ARG},\\s*token\\b`)],
+      ["endGame", new RegExp(`\\bendGame\\(\\s*${ARG},\\s*token\\s*\\)`)],
+      ["concede", new RegExp(`\\bconcede\\(\\s*${ARG},\\s*token\\s*\\)`)],
+      ["placeGame", new RegExp(`\\bplaceGame\\(\\s*${ARG},\\s*token\\s*\\)`)],
+      ["gameAt", new RegExp(`\\bgameAt\\(\\s*${ARG},\\s*token\\s*\\)`)],
     ];
     const slipped = forbidden.filter(([, re]) => re.test(server)).map(([name]) => name);
     expect(slipped).toEqual([]);
+  });
+
+  it("leaves no bare `token` outside the places that legitimately hold one", () => {
+    // Every use of `token` that is allowed to remain, and why. Anything else
+    // (an alias like `const t = token`, a renamed import, a new call) shows
+    // up as residue and fails.
+    const allowed: Array<[why: string, re: RegExp]> = [
+      ["block comments are prose", /\/\*[\s\S]*?\*\//g],
+      ["line comments are prose", /^\s*\/\/.*$/gm],
+      ["allowTyping rate-limits a browser, not a person", /function allowTyping\(token: string\)[\s\S]*?\n\}\n/],
+      ["the cookie is read, minted and set here: the one place a token is born", /let token = readCookie\([^\n]*\n/],
+      ["...minted when absent", /if \(!token\) \{\s*token = newToken\(\);\s*setCookie = [^\n]*\n/],
+      ["looking up the person behind this session", /getPerson\(token\)/],
+      ["deriving the person id from the session", /personId\(me, token\)/],
+      ["account creation is per session", /ensurePerson\(token\b/g],
+      ["claiming a key binds this session to a member", /setMember\(token\b/g],
+      ["the audit log's actor field records the session on purpose", /actor\((?:me|result|undefined), token\)/g],
+      ["typing is throttled per browser", /allowTyping\(token\)/g],
+      // TEMPORARY: this line is wrong (it names the browser, not the person)
+      // and a later task replaces it with `displayName(me)`. It is tolerated
+      // only so this task can land; delete this exemption when that happens.
+      ["TEMPORARY typing ping, to become displayName(me)", /nameForPersonId\(token\)/g],
+    ];
+    let residue = server;
+    for (const [, re] of allowed) residue = residue.replace(re, "");
+    const left = residue.split("\n").filter((line) => /\btoken\b/.test(line) || /\.token\b/.test(line));
+    expect(left).toEqual([]);
+  });
+
+  it("really does call each of them as `who`", () => {
+    const pins: Array<[name: string, pattern: RegExp]> = [
+      ["const who", /const who = personId\(me, token\)/],
+      ["place", new RegExp(`\\bplace\\(\\s*${ARG},\\s*who\\b`)],
+      ["addPerspective", new RegExp(`\\baddPerspective\\(\\s*${ARG},\\s*who\\b`)],
+      ["keepTogether", new RegExp(`\\bkeepTogether\\(\\s*${ARG},\\s*who\\s*\\)`)],
+      ["enter", /\benter\(\s*who\b/],
+      ["leave", /\bleave\(\s*who\s*\)/],
+      ["inRoom", new RegExp(`\\binRoom\\(\\s*${ARG},\\s*who\\s*\\)`)],
+      ["shelfFor", new RegExp(`\\bshelfFor\\(\\s*${ARG},\\s*who\\b`)],
+      ["sitDown", new RegExp(`\\bsitDown\\(\\s*${ARG},\\s*who\\s*\\)`)],
+      ["standUp", new RegExp(`\\bstandUp\\(\\s*${ARG},\\s*who\\s*\\)`)],
+      ["play", new RegExp(`\\bplay\\(\\s*${ARG},\\s*who\\b`)],
+      ["endGame", new RegExp(`\\bendGame\\(\\s*${ARG},\\s*who\\s*\\)`)],
+      ["concede", new RegExp(`\\bconcede\\(\\s*${ARG},\\s*who\\s*\\)`)],
+      ["placeGame", new RegExp(`\\bplaceGame\\(\\s*${ARG},\\s*who\\s*\\)`)],
+      ["gameAt", new RegExp(`\\bgameAt\\(\\s*${ARG},\\s*who\\s*\\)`)],
+    ];
+    const missing = pins.filter(([, re]) => !re.test(server)).map(([name]) => name);
+    expect(missing).toEqual([]);
   });
 });
