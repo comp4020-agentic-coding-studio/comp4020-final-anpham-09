@@ -156,3 +156,20 @@ describe("a game needs two of you", () => {
     expect(games.sitDown("meeting", phone)).toBe("already-seated");
   });
 });
+
+describe("the name on a thing", () => {
+  it("is the account name, even when the person typed another", async () => {
+    const { people, things } = await boot();
+    people.ensurePerson("tok-x", "Tester", "nghe-an");
+    people.setMember("tok-x", "Mum");
+    const mum = people.personId(people.getPerson("tok-x"), "tok-x");
+
+    const id = things.place("nghe-an", mum, "An Duy walked", "first steps") as number;
+    expect(typeof id).toBe("number");
+
+    const room = things.inRoom("nghe-an", mum);
+    const placed = room.find((t) => t.id === id);
+    // Holding Mum's key and being shown as Tester was the hole.
+    expect(placed?.placedByName).toBe("Mum");
+  });
+});

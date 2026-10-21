@@ -139,10 +139,6 @@ describe("the routes act as a person, never as a browser", () => {
       ["claiming a key binds this session to a member", /setMember\(token\b/g],
       ["the audit log's actor field records the session on purpose", /actor\((?:me|result|undefined), token\)/g],
       ["typing is throttled per browser", /allowTyping\(token\)/g],
-      // TEMPORARY: this line is wrong (it names the browser, not the person)
-      // and a later task replaces it with `displayName(me)`. It is tolerated
-      // only so this task can land; delete this exemption when that happens.
-      ["TEMPORARY typing ping, to become displayName(me)", /nameForPersonId\(token\)/g],
     ];
     let residue = server;
     for (const [, re] of allowed) residue = residue.replace(re, "");

@@ -3,7 +3,7 @@ import type { GameView } from "./games.ts";
 import { hasPicture, houseBySlug, type House } from "./houses.ts";
 import { keysCut, mayChange } from "./members.ts";
 import { isQuanPit } from "./oanquan.ts";
-import { getPerson, type Person } from "./people.ts";
+import { displayName, getPerson, type Person } from "./people.ts";
 import type { ThingView } from "./things.ts";
 
 export const esc = (s: string): string =>
@@ -638,7 +638,7 @@ ${FONTS_HEAD}
   </nav>
   ${
     me
-      ? `<p class="whoami">You are <strong>${esc(me.name)}</strong>${
+      ? `<p class="whoami">You are <strong>${esc(displayName(me))}</strong>${
           // Say which it is. Someone refused at a home should be able to see
           // why from the top of the page rather than infer it from a missing
           // form, and someone who used their key should see that it worked.

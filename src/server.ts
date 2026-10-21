@@ -18,7 +18,7 @@ import {
 } from "./games.ts";
 import { houseBySlug, listHouses, type House } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
-import { ensurePerson, getPerson, isMember, nameForPersonId, personId, setMember, type Person, type PersonRefusal } from "./people.ts";
+import { displayName, ensurePerson, getPerson, isMember, nameForPersonId, personId, setMember, type Person, type PersonRefusal } from "./people.ts";
 import { keyProblems, keysCut, mayChange, memberFor, memberNames } from "./members.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
 import { esc, housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage, tableFragment } from "./render.ts";
@@ -610,7 +610,7 @@ const server = createServer((req, res) => {
       // The name is the only user-controlled payload this app publishes.
       // events.ts sanitises it, which is where that belongs; see the note
       // on publish().
-      publish(house.slug, `typing:${nameForPersonId(token)}`);
+      publish(house.slug, `typing:${displayName(me)}`);
       res.writeHead(204).end();
       return;
     }
