@@ -67,3 +67,31 @@ describe("who a request acts as", () => {
     expect(people.nameForPersonId("v:nobody")).toBe("someone");
   });
 });
+
+describe("rows written before accounts existed", () => {
+  type Db = typeof import("../src/db.ts");
+
+  it("reads them as visitors, once, without touching anything already migrated", async () => {
+    vi.resetModules();
+    process.env.DATABASE_PATH = dbPath;
+    const { db, migrateIdentities } = (await import("../src/db.ts")) as Db;
+
+    const house = db.prepare("SELECT id FROM houses WHERE slug = ?").get("nghe-an") as { id: number };
+    // A bare token, as every row held before this change.
+    db.prepare("INSERT INTO things (house_id, placed_by, title, body) VALUES (?, ?, ?, ?)")
+      .run(house.id, "raw-token", "An old thing", "placed before accounts");
+    // And one already migrated, which must not be prefixed twice.
+    db.prepare("INSERT INTO things (house_id, placed_by, title, body) VALUES (?, ?, ?, ?)")
+      .run(house.id, "m:Mum", "A new thing", "placed after");
+
+    migrateIdentities();
+
+    const rows = db.prepare("SELECT placed_by FROM things ORDER BY id").all() as Array<{ placed_by: string }>;
+    expect(rows.map((r) => r.placed_by)).toEqual(["v:raw-token", "m:Mum"]);
+
+    // Idempotent: running it again changes nothing.
+    migrateIdentities();
+    const again = db.prepare("SELECT placed_by FROM things ORDER BY id").all() as Array<{ placed_by: string }>;
+    expect(again.map((r) => r.placed_by)).toEqual(["v:raw-token", "m:Mum"]);
+  });
+});

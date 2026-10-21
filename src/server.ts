@@ -18,7 +18,7 @@ import {
 } from "./games.ts";
 import { houseBySlug, listHouses, type House } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
-import { ensurePerson, getPerson, isMember, nameOf, setMember, type Person, type PersonRefusal } from "./people.ts";
+import { ensurePerson, getPerson, isMember, nameForPersonId, setMember, type Person, type PersonRefusal } from "./people.ts";
 import { keyProblems, keysCut, mayChange, memberFor, memberNames } from "./members.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
 import { esc, housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage, tableFragment } from "./render.ts";
@@ -396,7 +396,7 @@ const server = createServer((req, res) => {
       const everywhere = whereEveryoneIs();
       const houses = listHouses().map((h) => ({
         ...h,
-        hereNames: (everywhere[h.slug] ?? []).map(nameOf),
+        hereNames: (everywhere[h.slug] ?? []).map(nameForPersonId),
         counts: countsFor(h.slug),
       }));
       html(res, 200, mapPage(houses, me, message), setCookie);
@@ -436,7 +436,7 @@ const server = createServer((req, res) => {
       enter(token, house.slug);
       // Computed exactly as the /house/:slug route does, so a reconnecting
       // stream's resync carries the same who-line the full page would.
-      const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameOf);
+      const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameForPersonId);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
       res.end(roomFragment(others, belongsIn(house) ? inRoom(house.slug, token) : [], house.slug));
       return;
@@ -507,7 +507,7 @@ const server = createServer((req, res) => {
       // Arriving is what makes you present, so a reader with JavaScript off
       // still counts for the 45 seconds the app will admit to.
       enter(token, house.slug);
-      const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameOf);
+      const others = whoIsIn(house.slug).filter((p) => p !== token).map(nameForPersonId);
       // Which pit you have picked up is a cursor, not a fact: it lives in
       // the URL, so it is per-tab for free and nothing is written until you
       // choose a direction. A `selections` table would need a key per
@@ -606,7 +606,7 @@ const server = createServer((req, res) => {
       // The name is the only user-controlled payload this app publishes.
       // events.ts sanitises it, which is where that belongs; see the note
       // on publish().
-      publish(house.slug, `typing:${nameOf(token)}`);
+      publish(house.slug, `typing:${nameForPersonId(token)}`);
       res.writeHead(204).end();
       return;
     }

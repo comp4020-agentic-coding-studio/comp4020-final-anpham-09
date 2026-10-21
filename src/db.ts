@@ -219,3 +219,34 @@ const peopleColumns = db
 if (!peopleColumns.some((c) => c.name === "member_name")) {
   db.exec("ALTER TABLE people ADD COLUMN member_name TEXT");
 }
+
+/** Identity used to be the cookie token, written bare into these columns.
+ *  It is now a person id. Rows written before that change are visitors by
+ *  definition — nobody had an account yet — so they take the "v:" prefix.
+ *
+ *  Idempotent, because it only touches a value carrying neither prefix, and
+ *  safe for `keepings`, whose UNIQUE (thing_id, person) survives a rewrite
+ *  that is the same for every row. No row is deleted and no column is
+ *  dropped: the only thing that changes is how an identity is spelled. */
+const IDENTITY_COLUMNS: ReadonlyArray<readonly [table: string, column: string]> = [
+  ["things", "placed_by"],
+  ["perspectives", "author"],
+  ["keepings", "person"],
+  ["presence", "person"],
+  ["games", "bottom"],
+  ["games", "top"],
+];
+
+export function migrateIdentities(): void {
+  for (const [table, column] of IDENTITY_COLUMNS) {
+    // Table and column names are literals from the list above, never input.
+    db.exec(
+      `UPDATE ${table} SET ${column} = 'v:' || ${column}
+        WHERE ${column} IS NOT NULL
+          AND ${column} NOT LIKE 'v:%'
+          AND ${column} NOT LIKE 'm:%'`,
+    );
+  }
+}
+
+migrateIdentities();

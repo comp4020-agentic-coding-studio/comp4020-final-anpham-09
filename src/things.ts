@@ -1,6 +1,6 @@
 import { db } from "./db.ts";
 import { houseBySlug } from "./houses.ts";
-import { nameOf } from "./people.ts";
+import { nameForPersonId } from "./people.ts";
 
 export interface Perspective {
   author: string;
@@ -157,17 +157,17 @@ function viewsFor(houseSlug: string, viewer: string, shelfOnly: boolean): ThingV
     const people = keepers.all(r.id) as Array<{ person: string; keptAt: string }>;
     const perspectives = (
       perspectivesFor.all(r.id) as Array<{ author: string; body: string; createdAt: string }>
-    ).map((p) => ({ ...p, authorName: nameOf(p.author) }));
+    ).map((p) => ({ ...p, authorName: nameForPersonId(p.author) }));
     return {
       id: r.id,
       title: r.title,
       body: r.body,
       eventDate: r.eventDate,
       placedBy: r.placedBy,
-      placedByName: nameOf(r.placedBy),
+      placedByName: nameForPersonId(r.placedBy),
       createdAt: r.createdAt,
       perspectives,
-      keeperNames: people.map((p) => nameOf(p.person)),
+      keeperNames: people.map((p) => nameForPersonId(p.person)),
       // Derived, never stored: a thing is kept iff somebody else's name is
       // on it, so the label cannot drift from the fact underneath it.
       onShelf: people.length > 0,

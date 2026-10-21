@@ -1,6 +1,6 @@
 import { db } from "./db.ts";
 import { houseBySlug } from "./houses.ts";
-import { nameOf } from "./people.ts";
+import { nameForPersonId } from "./people.ts";
 import {
   type Board,
   type Direction,
@@ -171,9 +171,9 @@ function viewOf(row: GameRow, viewer: string): GameView {
     id: row.id,
     board,
     bottom: row.bottom,
-    bottomName: nameOf(row.bottom),
+    bottomName: nameForPersonId(row.bottom),
     top: row.top,
-    topName: row.top ? nameOf(row.top) : null,
+    topName: row.top ? nameForPersonId(row.top) : null,
     scores,
     turn,
     yourSide,
