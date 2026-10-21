@@ -133,3 +133,43 @@ stylesheet and the CSS names the same classes as the markup, so
 the first event off a stream shared with a parallel spec file. Same shape
 every time — including the restyle above: a check that passes identically
 whether the thing works or not.
+
+## 2026-10-20 — keys, a log, and five checks that checked nothing
+
+C10 wants the running app readable from outside, and what each person may see
+and change decided on the server. Both were missing: any URL-holder could put
+something down in any home, and the only record of an action was the row it
+created. A key is not an account — no sign-up, no email, no reset, no profile
+— so `README.md` and `CLAUDE.md` were rewritten rather than quietly
+contradicted, the same rule as the game ([`95d9e06`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/95d9e06)).
+
+**The rule was shipped unexercised.** 150 tests passed with no keys cut, so
+`mayChange` returned on its first line and the branch refusing a visitor
+never ran. Tested properly with a secret loaded, and both halves broken on
+purpose first ([`1e35aec`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/1e35aec)). The log had the same hole: nothing
+asserted it said anything, so every call site could have been deleted
+silently. The assertion that earned its place is that no line may ever
+contain the cookie token, checked against the whole serialised line
+([`8197d7d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/8197d7d)).
+
+**Setting the secret for real found the worst one.** The guard checked that
+`MEMBER_KEYS` parsed, not that its values were hashes, so the template pasted
+with placeholders still in it counted five keys that could never verify:
+every home closed, nobody able to open one. Entries are now validated and the
+unusable ones named at boot, because "the secret is wrong" is not actionable
+and "Dad's entry is not a hash" is ([`18e564b`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/18e564b)). The same attempt
+showed the key was being passed as a command-line argument, visible through
+`ps` and echoed by pnpm — moved to stdin ([`560bda6`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/560bda6)).
+
+**Then the feature that existed and could not be used.** `/key` answered 200
+from the first commit and nothing linked to it ([`2fabb73`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/2fabb73)).
+Underneath it, `getPerson` never selected `member_name`: the key was accepted,
+logged, and forgotten by the next request, so unlocking had no effect at all.
+One existing test was passing *because* of that bug ([`c5c70ef`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/c5c70ef)).
+Walking the flow in a browser found both; reading my own HTML checks found
+neither.
+
+**Test files now run one at a time.** They share one app, one database and one
+table with two chairs, and in parallel they raced: four runs gave 3 failures,
+0, 1, 0, against 170 passed four times sequential. The suite gates the deploy,
+so a flake there eventually fails a push at the worst moment.
