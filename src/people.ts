@@ -55,3 +55,34 @@ export function setMember(token: string, memberName: string): void {
 export function isMember(person: Person | undefined): boolean {
   return Boolean(person?.memberName);
 }
+
+/** Who a request acts as. The cookie is a session; this is the person.
+ *
+ *  A member is the same person on every device they sign in on, which is
+ *  what makes the shelf rule and the game's two chairs true of humans
+ *  rather than of browsers. A visitor is still their own browser, which is
+ *  the honest answer for somebody who has not said who they are: two
+ *  strangers who both typed "Linh" are not one person.
+ *
+ *  The prefixes matter. Without them a visitor whose cookie happened to read
+ *  "Mum" would be the member Mum, and a bare value could not be told apart
+ *  from a row written before accounts existed. */
+export function personId(person: Person | undefined, token: string): string {
+  return person?.memberName ? `m:${person.memberName}` : `v:${token}`;
+}
+
+/** The name to show for a person id, from either kind. An id with no
+ *  prefix is a row written before accounts existed and is read as a
+ *  visitor, so an un-migrated database shows names rather than ids. */
+export function nameForPersonId(id: string): string {
+  if (id.startsWith("m:")) return id.slice(2);
+  const token = id.startsWith("v:") ? id.slice(2) : id;
+  return getPerson(token)?.name ?? "someone";
+}
+
+/** What to call somebody on their own screen. A member is their account
+ *  name: the key says who you are, so the page must not call you something
+ *  else on the strength of a text box. */
+export function displayName(person: Person | undefined): string {
+  return person?.memberName ?? person?.name ?? "someone";
+}
