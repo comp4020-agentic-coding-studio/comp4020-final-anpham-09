@@ -248,7 +248,37 @@ li.thing:has(.state[data-state="in-the-room"]) { border-left: 3px solid var(--am
   width: 2.25rem; height: 2.25rem; min-width: 2.25rem; border-radius: 50%;
   background: color-mix(in srgb, var(--sage) 22%, var(--card)); color: var(--sage-deep);
   font-family: var(--display); font-weight: 700; font-size: 1.0625rem; }
+/* The table reads as a chat window: the messages scroll inside their own
+   panel and the composer sits under them, always reachable, instead of
+   across the page in the side panel. Capped by viewport height so the
+   composer is on screen without scrolling the document to find it.
+
+   The min-height:0 on the scroller is load-bearing — a grid child defaults
+   to min-content and refuses to shrink, so without it the panel grows to
+   fit every message and nothing scrolls. */
+.room-collection.conversation { display: grid; grid-template-rows: auto 1fr auto;
+  max-height: min(72vh, 46rem); gap: .75rem; }
+.room-collection.conversation > #room { overflow-y: auto; min-height: 0;
+  padding-right: .35rem; scrollbar-gutter: stable; }
+.room-collection.conversation .composer { border-top: 1px solid var(--rule);
+  padding-top: .75rem; background: var(--bg); }
+.room-collection.conversation .composer .say { margin: 0; }
+/* On a narrow screen the viewport cap fights the on-screen keyboard, so
+   the panel goes back to growing with the page. */
+@media (max-width: 768px) {
+  .room-collection.conversation { max-height: none; }
+  .room-collection.conversation > #room { overflow-y: visible; }
+}
+
 li.thread-msg { display: flex; gap: .75rem; align-items: flex-start; }
+/* Consecutive messages from one person read as one turn in the
+   conversation: the monogram and the name line appear once, and the
+   messages under them tuck in. Pure CSS off an attribute the server
+   already knows, so it needs no script and survives a live swap. */
+li.thread-msg[data-same-sender="true"] { margin-top: -.35rem; }
+li.thread-msg[data-same-sender="true"] > .face { visibility: hidden; }
+li.thread-msg[data-same-sender="true"] .thread-meta strong,
+li.thread-msg[data-same-sender="true"] .thread-meta .chip { display: none; }
 li.thread-msg .thread-body { flex: 1; min-width: 0; }
 .thread-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
   margin: 0 0 .3rem; font-size: .9375rem; }
@@ -861,8 +891,12 @@ function eventAndKeptMeta(t: ThingView): string {
   return bits.length ? `<p class="meta">${bits.join(" · ")}</p>` : "";
 }
 
-function threadMessage(t: ThingView, houseSlug: string): string {
-  return `<li class="thing thread-msg">
+/** `sameSender` groups a run of messages from one person: the monogram and
+ *  name show once for the run, the rest tuck under it. Decided here rather
+ *  than in CSS because `:has()` on a previous sibling does not exist, and
+ *  the server already knows who said what. */
+function threadMessage(t: ThingView, houseSlug: string, sameSender = false): string {
+  return `<li class="thing thread-msg" data-same-sender="${sameSender}">
     ${monogram(t.placedByName)}
     <div class="thread-body">
       <p class="thread-meta"><strong>${esc(t.placedByName)}</strong> ${homeChip(t.placedBy)}
@@ -891,7 +925,9 @@ function threadFragment(otherNames: string[], things: ThingView[], houseSlug: st
     return `${strip}<div class="conversation-empty"><svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M13 15h38v27H31L19 51v-9h-6z"/><circle cx="23" cy="29" r="1"/><circle cx="32" cy="29" r="1"/><circle cx="41" cy="29" r="1"/></svg><p class="hand">Pull up a chair.</p><p class="empty">Nothing has been said at the table yet.</p><p class="note">Leave a little of your day for whoever comes by.</p></div>`;
   }
   const oldestFirst = [...things].reverse();
-  return `${strip}<ol class="thread">${oldestFirst.map((t) => threadMessage(t, houseSlug)).join("")}</ol>`;
+  return `${strip}<ol class="thread">${oldestFirst
+    .map((t, i) => threadMessage(t, houseSlug, i > 0 && oldestFirst[i - 1]!.placedBy === t.placedBy))
+    .join("")}</ol>`;
 }
 
 /** The village's one room-list renderer, with the meeting house's single
@@ -1504,6 +1540,39 @@ export function housePage(
   const quietLine = isMeeting
     ? "Whatever is said here reaches everyone in the room. No alerts, no unread marks."
     : "No notifications, no alerts. You find out by visiting.";
+
+  // The composer, built once and placed differently by house: under the
+  // messages at the table, in the side panel everywhere else. Same form
+  // either way — a plain POST to /place that works with JavaScript off.
+  const composerBlock = mayPutDown
+    ? `<form method="post" action="/place" id="compose" class="${isMeeting ? "say" : "memory-compose"}">
+            ${isMeeting ? "" : '<h2>Add a note to the table</h2>'}
+            <input type="hidden" name="house" value="${esc(house.slug)}">
+            ${
+              isMeeting
+                ? ""
+                : `<label for="title">Give it a title</label>
+            <input id="title" name="title" required maxlength="120" placeholder="His first steps">`
+            }
+            <label for="body"${isMeeting ? ' class="visually-hidden"' : ""}>${esc(composeLabel)}</label>
+            ${isMeeting ? '<input id="body" name="body" required maxlength="280" placeholder="Send a message…" autocomplete="off">' : '<textarea id="body" name="body" required maxlength="280" rows="4" placeholder="What do you want to remember?"></textarea>'}
+            ${
+              isMeeting
+                ? ""
+                : `<details class="optional-date"><summary>Add a date <span class="note">(optional)</span></summary><label for="event_date">When did this happen?</label>
+            <input id="event_date" name="event_date" maxlength="40" placeholder="March 2019, or any time you like"></details>`
+            }
+            <button class="primary">${esc(composeButton)}</button>
+          </form>`
+    : "";
+
+  // Where "Alice is typing" appears. Empty and aria-live, so a screen
+  // reader announces it when it fills and says nothing the rest of the
+  // time. With JavaScript off it stays empty forever, which is exactly
+  // right: nothing is sending.
+  const typingLine = isMeeting
+    ? `<p id="typing" class="typing" role="status" aria-live="polite"></p>`
+    : "";
   // The meeting house's thread has no height limit or scrollbar of its own —
   // it grows with the page, oldest message at the top. The page loads at the
   // top, same as any other page; no initial jump to the bottom is needed,
@@ -1523,10 +1592,25 @@ export function housePage(
           last.scrollIntoView({ block: "nearest", behavior });
         };`
     : "";
+  // "Was the reader already at the newest message?" — asked of whichever
+  // thing is actually scrolling. The messages now scroll inside #room on a
+  // wide screen, and the document still scrolls on a narrow one where that
+  // cap is lifted. Measuring the document either way would report
+  // "near the bottom" for a reader scrolled up through old messages in a
+  // short page, and yank them back down on every arrival.
   const nearBottomCheck = isMeeting
-    ? `const wasNearBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 200);`
+    ? `const scroller = room.scrollHeight > room.clientHeight ? room : document.documentElement;
+          const wasNearBottom = scroller === room
+            ? (room.scrollTop + room.clientHeight) >= (room.scrollHeight - 200)
+            : (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 200);`
     : "";
   const scrollAfterSwap = isMeeting ? "\n            if (wasNearBottom) scrollToNewestMessage();" : "";
+  // A chat opens at the newest message, not the oldest. Only meaningful
+  // once the messages have their own scroller; on a narrow screen the
+  // page is already at the top and jumping would hide the room's heading.
+  const scrollOnLoad = isMeeting
+    ? `if (room.scrollHeight > room.clientHeight) room.scrollTop = room.scrollHeight;`
+    : "";
   return page(
     house.name,
     `<main class="house-page ${isMeeting ? "meeting-page" : "home-page"}">
@@ -1568,9 +1652,16 @@ export function housePage(
           : ""
       }
       <div class="layout-house measured">
-        <div class="room-collection">
+        <div class="room-collection${isMeeting ? " conversation" : ""}">
           <h2>${isMeeting ? "Family chat" : "Recent memories"}</h2>
           <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
+          ${
+            // At the table the composer belongs UNDER what was said, where
+            // a conversation puts it, not in the side panel beside it. Every
+            // other house keeps it in the panel: there you are filing a
+            // thing, not answering somebody.
+            isMeeting ? `<div class="composer">${composerBlock}${typingLine}</div>` : ""
+          }
         </div>
         <div class="panel-stack">
           <details class="memory-guide">
@@ -1603,35 +1694,7 @@ export function housePage(
               ? ""
               : `<p class="body-sm">You're a guest here, so starting something new is for the people who live in this house. You can still write your side of anything below and keep it together — that's how it reaches their shelf.</p>`
           }
-          ${mayPutDown ? `
-          <form method="post" action="/place" id="compose" class="${isMeeting ? "say" : "memory-compose"}">
-            ${isMeeting ? "" : '<h2>Add a note to the table</h2>'}
-            <input type="hidden" name="house" value="${esc(house.slug)}">
-            ${
-              isMeeting
-                ? ""
-                : `<label for="title">Give it a title</label>
-            <input id="title" name="title" required maxlength="120" placeholder="His first steps">`
-            }
-            <label for="body"${isMeeting ? ' class="visually-hidden"' : ""}>${esc(composeLabel)}</label>
-            ${isMeeting ? '<input id="body" name="body" required maxlength="280" placeholder="Send a message…">' : '<textarea id="body" name="body" required maxlength="280" rows="4" placeholder="What do you want to remember?"></textarea>'}
-            ${
-              isMeeting
-                ? ""
-                : `<details class="optional-date"><summary>Add a date <span class="note">(optional)</span></summary><label for="event_date">When did this happen?</label>
-            <input id="event_date" name="event_date" maxlength="40" placeholder="March 2019, or any time you like"></details>`
-            }
-            <button class="primary">${esc(composeButton)}</button>
-          </form>` : ""}
-          ${
-            // Where "Alice is typing" appears. Empty and aria-live, so a
-            // screen reader announces it when it fills and says nothing
-            // the rest of the time. With JavaScript off it stays empty
-            // forever, which is exactly right: nothing is sending.
-            isMeeting
-              ? `<p id="typing" class="typing" role="status" aria-live="polite"></p>`
-              : ""
-          }
+          ${isMeeting ? "" : composerBlock}
           <p class="quiet">${esc(quietLine)}</p>
         </div>
       </div>
@@ -1647,6 +1710,7 @@ export function housePage(
         // Null in the three household houses, which have no table.
         const table = document.getElementById("table");
         ${scrollHelper}
+        ${scrollOnLoad}
         const stream = new EventSource("/stream?house=" + encodeURIComponent(${JSON.stringify(house.slug)}));
         const slug = encodeURIComponent(${JSON.stringify(house.slug)});
         const swap = async (el, path) => {

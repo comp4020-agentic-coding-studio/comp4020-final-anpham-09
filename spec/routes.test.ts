@@ -973,3 +973,72 @@ describe("a table nobody can get back to", () => {
     }
   });
 });
+
+describe("the table reads as a conversation", () => {
+  // The composer used to sit in the side panel, across the page from what
+  // had been said. A chat puts it under the messages, where you are
+  // looking. These assert the STRUCTURE that makes that true, since the
+  // stylesheet is inlined into every page and asserting on class names
+  // alone would pass on the CSS text — see `markup` at the top of this file.
+  it("puts the composer inside the conversation, under the messages", async () => {
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Chat Shape", "canberra");
+    try {
+      const page = markup(await (await s.get("/house/meeting")).text());
+      const room = page.indexOf('<div id="room">');
+      const composer = page.indexOf('<div class="composer">');
+      const collection = page.indexOf('class="room-collection conversation"');
+
+      expect(collection, "the meeting house is not marked as a conversation").toBeGreaterThan(-1);
+      expect(composer, "no composer under the messages").toBeGreaterThan(-1);
+      // Order is the assertion: messages first, composer after, and both
+      // inside the collection rather than off in the panel.
+      expect(collection).toBeLessThan(room);
+      expect(room).toBeLessThan(composer);
+      expect(page.indexOf('class="panel-stack"')).toBeGreaterThan(composer);
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("leaves every other house's composer where it was", async () => {
+    // The other three houses are not conversations: you are filing a thing
+    // there, not answering somebody, and the composer stays in the panel.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Chat Shape Home", "canberra");
+    try {
+      const page = markup(await (await s.get("/house/canberra")).text());
+      expect(page).not.toContain("room-collection conversation");
+      expect(page).not.toContain('<div class="composer">');
+      // Still has one, just in the panel: the composer comes after the
+      // panel opens, not inside the message list.
+      expect(page).toContain('id="compose"');
+      expect(page.indexOf('class="panel-stack"')).toBeLessThan(page.indexOf('id="compose"'));
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("marks a run of messages from one person so they group", async () => {
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Grouper", "canberra");
+    try {
+      const stamp = Date.now();
+      await s.post("/place", { house: "meeting", title: "", body: `grouping one ${stamp}` });
+      await s.post("/place", { house: "meeting", title: "", body: `grouping two ${stamp}` });
+      const page = markup(await (await s.get("/house/meeting")).text());
+
+      // The second of two consecutive messages from one person is marked,
+      // which is what hides the repeated monogram and name.
+      const second = page.indexOf(`grouping two ${stamp}`);
+      expect(second).toBeGreaterThan(-1);
+      const itsRow = page.lastIndexOf('<li class="thing thread-msg"', second);
+      expect(page.slice(itsRow, second)).toContain('data-same-sender="true"');
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+});
