@@ -2,38 +2,34 @@
 
 Coding agents have made writing a test as cheap as writing the code it guards.
 The practitioner literature treats this as straightforwardly good: if
-verification is what makes generated code safe, cheaper verification should mean
-safer code. I want to argue the opposite is as likely. A test that cannot fail is indistinguishable, at a glance, from one
-that can — and agentic workflows produce both at the same rate, in the same
-idiom, under the same green tick. The field's current advice is sound about
-building verification loops and nearly silent about auditing them, and that
-silence is where the next class of failure lives.
+verification makes generated code safe, cheaper verification should mean safer
+code. I want to argue the opposite is as likely. A test that cannot fail is
+indistinguishable, at a glance, from one that can — and agentic workflows
+produce both at the same rate, in the same idiom, under the same green tick.
+The field's advice is sound about building verification loops and nearly
+silent about auditing them, and that silence is where the next class of
+failure lives.
 
-Simon Willison has written the clearest statement of the loop position. In
-*Designing agentic loops* (30 September 2025) he argues that agents are "a
-genuine step change" precisely because they "can now directly exercise the code
-they are writing, correct errors, dig through existing implementation details,
-and even run experiments." The advice that follows is to seek "problems with
-clear success criteria where finding a good solution is likely to involve
-(potentially slightly tedious) trial and error." Three months later, in *Your
-job is to deliver code you have proven to work* (18 December 2025), he states
-the standard directly: "get the system into an initial known state, exercise
-the change, assert that it worked correctly."
+Simon Willison states the loop position most clearly. In *Designing agentic
+loops* (30 September 2025) agents are "a genuine step change" because they
+"can now directly exercise the code they are writing, correct errors" and "run
+experiments"; the advice is to seek "problems with clear success criteria."
+Three months later, in *Your job is to deliver code you have proven to work*
+(18 December 2025), he gives the standard: "get the system into an initial
+known state, exercise the change, assert that it worked correctly."
 
 That is good practice, and I have followed it. But the loop closes only if the
-assertion is real. Willison writes as a practitioner with decades of judgement
-about what proof looks like, working mostly alone and publishing as he goes;
-that judgement is doing load-bearing work his advice does not describe how to
-acquire. "Assert that it worked correctly" presumes a developer who can tell a
-vacuous assertion from a substantive one — exactly the skill the older
-literature says erodes.
+assertion is real, and "assert that it worked correctly" presumes a developer
+who can tell a vacuous assertion from a substantive one. Willison has decades
+of that judgement; his advice never says how to acquire it. It is exactly the
+skill the older literature says erodes.
 
 Bainbridge's *Ironies of Automation* (1983) made the structural case: automate
 the routine part and you leave the human the part that cannot be automated —
 monitoring — which humans perform worst, and now without the practice that kept
-them competent at it. The irony transfers. The agent writes the code and the
-test; the developer judges whether the test means anything, using judgement
-built from years of writing tests by hand and now exercised less often.
+them competent at it. The irony transfers exactly. The agent writes the code and
+the test; the developer judges whether the test means anything, on judgement
+built by writing tests by hand and now exercised less often.
 
 Parasuraman and Manzey (2010) close the obvious escape route. Reviewing
 automation bias across aviation, medicine and process control, they distinguish
@@ -61,17 +57,23 @@ refuses to fail, the reason is often not the test. Chasing one such refusal in
 my own project surfaced a defect three layers away from what the test was
 nominally checking.
 
-The empirical picture is thinner than either camp admits. Becker et al.'s 2025 randomised
-trial for METR found sixteen experienced open-source developers 19% slower with
-AI tools across 246 real tasks on their own repositories, while estimating they
-had been faster — a striking result, and one that must be cited carefully:
-sixteen participants, early-2025 tooling, and METR's own page now states that
-"these historical results no longer reflect the current impact of AI models on
-open-source developer productivity."
- GitHub's Copilot study found large speed-ups on defined tasks.
-The reconcilable claim is narrow but sufficient: self-report is unreliable about
-verification cost. Developers do not notice how much checking they are doing, or
-failing to do.
+But the procedure is not self-verifying, and that is what the loop
+literature omits. Breaking a rule in my own project to confirm its test
+caught it, I recorded a pass: the edit had silently failed to apply, so
+nothing was ever broken and the green tick attested to nothing. The audit
+reproduced the exact failure it was built to detect. Each procedure closes
+the gap below it and opens a smaller one above, so the standard must be
+observed rather than claimed — assert the break landed before trusting
+what the suite says next.
+
+The empirical picture is thinner than either camp admits. Becker et al.'s 2025
+randomised trial for METR found sixteen experienced developers 19% slower with
+AI tools on their own repositories while estimating they had been faster —
+though METR now says those results "no longer reflect the current impact of AI
+models," and GitHub's Copilot study found large speed-ups on defined tasks. The
+durable claim is the narrow one: self-report is unreliable about verification
+cost. Developers do not notice how much checking they are doing, or failing to
+do.
 
 That is the argument for making the checking visible and procedural rather than
 trusting that it happened.
