@@ -22,7 +22,10 @@ export function hashKey(key: string, salt = randomBytes(16).toString("hex")): st
   return `${salt}:${scryptSync(key, salt, KEYLEN).toString("hex")}`;
 }
 
-function matches(key: string, stored: string): boolean {
+/** Whether a secret matches a stored salt-and-hash. Exported because
+ *  accounts.ts verifies passwords with exactly this comparison, and a second
+ *  copy of a timing-safe check is a second chance to get one subtly wrong. */
+export function matches(key: string, stored: string): boolean {
   const [salt, want] = stored.split(":");
   if (!salt || !want) return false;
   const got = scryptSync(key, salt, KEYLEN);

@@ -35,9 +35,27 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
-  -- member_name is the household name a person proved with a key, or NULL for
-  -- a visitor. It is not an account: there is no sign-up and nothing to
-  -- recover, and a visitor is never asked for one.
+  -- member_name is the account this session is signed into, or NULL when
+  -- nobody has signed in on it yet. The account itself lives in the accounts
+  -- table; this column only says which one is holding this browser now.
+
+  -- An account is a name, a password and the household you belong to. The
+  -- name is the primary key because the name IS the identity — it is what
+  -- everyone calls you, what appears on a thing you place, and half of what
+  -- the shelf rule counts. Making it the key means the database refuses a
+  -- second An rather than leaving it to a check that could be forgotten.
+  --
+  -- The password column holds a scrypt hash and a per-account salt, never a
+  -- password. The household column is NULL for somebody who registered
+  -- without a code: a real account, a guest in every house. It references
+  -- houses(slug), so a household that is not a house in this village cannot
+  -- be stored at all.
+  CREATE TABLE IF NOT EXISTS accounts (
+    name       TEXT PRIMARY KEY,
+    password   TEXT NOT NULL,
+    household  TEXT REFERENCES houses(slug),
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 
   CREATE TABLE IF NOT EXISTS things (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
