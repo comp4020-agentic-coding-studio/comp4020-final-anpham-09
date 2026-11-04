@@ -12,16 +12,46 @@ import { expect, inject, it, describe } from "vitest";
 
 const baseUrl = inject("baseUrl");
 
+const PASSWORD = "a good long passphrase";
+
+/** A signed-in cookie for `name`, belonging to `home`.
+ *
+ *  Registers, falling back to signing in when the name already exists: an
+ *  account name is unique for ever and this file runs against a persistent
+ *  database, so without the fallback every run after the first would be
+ *  refused and these tests would assert against a signed-out session. */
 async function join(name: string, home: string): Promise<string> {
+  // The house is part of the account name: a name is unique for ever and
+  // its household is fixed when it is made, so the same name wanting two
+  // different houses across two files would be one account with whichever
+  // ran first. See the longer note on signIn in spec/routes.test.ts.
+  const account = `${name} of ${home}`;
   const first = await fetch(new URL("/", baseUrl), { redirect: "manual" });
   const cookie = (first.headers.get("set-cookie") ?? "").split(";")[0];
-  await fetch(new URL("/join", baseUrl), {
-    method: "POST",
-    headers: { "content-type": "application/x-www-form-urlencoded", cookie },
-    body: new URLSearchParams({ name, home }).toString(),
-    redirect: "manual",
-  });
+  const send = async (path: string, body: Record<string, string>): Promise<string> => {
+    const res = await fetch(new URL(path, baseUrl), {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", cookie },
+      body: new URLSearchParams(body).toString(),
+      redirect: "manual",
+    });
+    const to = res.headers.get("location") ?? "";
+    return new URL(to, baseUrl).searchParams.get("said") ?? "";
+  };
+  const said = await send("/register", { name: account, password: PASSWORD, household: home, code: "" });
+  if (said.includes("already goes by that name")) {
+    const back = await send("/login", { name: account, password: PASSWORD });
+    if (!back.includes("Welcome back")) throw new Error(`could not sign in as ${account}: ${back}`);
+  } else if (!said.startsWith("Welcome")) {
+    throw new Error(`could not register ${account}: ${said}`);
+  }
   return cookie;
+}
+
+/** The account name join() actually registers, for a test asserting on a
+ *  displayed name. Kept next to join so the two cannot drift apart. */
+function accountName(name: string, home: string): string {
+  return `${name} of ${home}`;
 }
 
 /** Resolves with the first `data:` line the stream sends, or rejects on the
@@ -108,7 +138,7 @@ async function firstEventMatching(
 
 describe("real-time, by the brief's definition", () => {
   it("shows one person's change in another open session in under a second", async () => {
-    const alice = await join("Alice", "canberra");
+    const alice = await join("Alice", "nghe-an");
     const bob = await join("Bob", "nghe-an");
 
     try {
@@ -144,7 +174,7 @@ describe("real-time, by the brief's definition", () => {
     // replaces the old auto-keep-from-presence assertion this test used to
     // make — confirmed red against the unmodified `src/things.ts` before this
     // rewrite, since that code used to insert a keeping for every witness.
-    const alice = await join("Alice", "canberra");
+    const alice = await join("Alice", "nghe-an");
     // Brief said `canberra` for this test's house; `canberra` is spec/routes.test.ts's
     // form-POST house, and running in parallel the two would fight over the
     // same presence row, so this uses `nghe-an` instead (reserved for Task 8).
@@ -192,7 +222,7 @@ describe("the typing indicator, over the real stream", () => {
     //
     // So the payload format is a contract, and this is where it is
     // checked over a real socket rather than in the renderer's string.
-    const alice = await join("Alice", "canberra");
+    const alice = await join("Alice", "nghe-an");
     const bob = await join("Bob", "nghe-an");
     try {
       await fetch(new URL("/house/meeting", baseUrl), { headers: { cookie: bob } });
@@ -208,7 +238,7 @@ describe("the typing indicator, over the real stream", () => {
       const payload = await waiting;
       // The prefix the client branches on, and the name after it.
       expect(payload.startsWith("typing:")).toBe(true);
-      expect(payload.slice(7)).toBe("Alice");
+      expect(payload.slice(7)).toBe(accountName("Alice", "nghe-an"));
       // One line. If a name could carry a newline this would be two
       // events, the second of them forged — see spec/events.test.ts.
       expect(payload).not.toContain("\n");
@@ -224,7 +254,7 @@ describe("the typing indicator, over the real stream", () => {
     // worked before may start looking like a typing event. If "placed"
     // ever gained that prefix the room would stop updating entirely, and
     // the failure would be silent — a page that quietly never changes.
-    const alice = await join("Alice", "canberra");
+    const alice = await join("Alice", "nghe-an");
     const bob = await join("Bob", "nghe-an");
     try {
       await fetch(new URL("/house/meeting", baseUrl), { headers: { cookie: bob } });

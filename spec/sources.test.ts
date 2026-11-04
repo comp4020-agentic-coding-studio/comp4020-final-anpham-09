@@ -136,8 +136,11 @@ describe("the routes act as a person, never as a browser", () => {
       ["looking up the person behind this session", /getPerson\(token\)/],
       ["deriving the person id from the session", /personId\(me, token\)/],
       ["account creation is per session", /ensurePerson\(token\b/g],
-      ["claiming a key binds this session to a member", /setMember\(token\b/g],
-      ["the audit log's actor field records the session on purpose", /actor\((?:me|result|undefined), token\)/g],
+      ["signing in binds this session to an account", /setMember\(token\b/g],
+      // The actor field is the session on purpose: it is how two requests
+      // are known to come from one browser, which is the question a log is
+      // asked. The person id is recorded alongside it by log.ts.
+      ["the audit log's actor field records the session on purpose", /actor\((?:me|result|undefined|getPerson\(token\)), token\)/g],
       ["typing is throttled per browser", /allowTyping\(token\)/g],
     ];
     let residue = server;

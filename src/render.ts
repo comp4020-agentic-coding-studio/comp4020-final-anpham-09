@@ -1,9 +1,10 @@
 import { DESIGN_STYLE } from "./design.ts";
 import type { GameView } from "./games.ts";
 import { hasPicture, houseBySlug, type House } from "./houses.ts";
-import { keysCut, mayChange } from "./members.ts";
+import { mayPlace } from "./members.ts";
 import { isQuanPit } from "./oanquan.ts";
 import { displayName, getPerson, type Person } from "./people.ts";
+import { householdOf } from "./accounts.ts";
 import type { ThingView } from "./things.ts";
 
 export const esc = (s: string): string =>
@@ -606,7 +607,19 @@ ${DESIGN_STYLE}
 /** Which nav link is the page you are on, so it can be marked. Pages that
  *  aren't one of the three (the README, a household room) pass nothing and
  *  no link is marked, which is honest — none of them is where you are. */
-export type NavKey = "map" | "shelf" | "meeting" | "key";
+export type NavKey = "map" | "shelf" | "meeting" | "signin";
+
+/** The words after your name at the top of every page: which house is
+ *  yours, or that none is. A guest is told so plainly rather than left to
+ *  work it out from a composer that isn't there — being told the rule
+ *  teaches it, and the app refuses nothing silently. */
+function whereYouLive(me: Person): string {
+  if (!me.memberName) return "";
+  const household = householdOf(me.memberName);
+  if (!household) return ", a guest in every house";
+  const house = houseBySlug(household);
+  return house ? `, and ${esc(house.name)} is yours` : "";
+}
 
 export function page(
   title: string,
@@ -629,20 +642,20 @@ ${FONTS_HEAD}
     ${link("/shelf", "shelf", "Memory shelf")}
     ${link("/house/meeting", "meeting", "The meeting house")}
     ${
-      // Only worth offering when there is a lock to open and the person has
-      // not already opened it. In a village with no keys cut there is nothing
-      // to prove, and showing the link would imply a door that isn't there.
-      keysCut() > 0 && !me?.memberName ? link("/key", "key", "Your key") : ""
+      // Offered to anybody not signed in. The last version of this link was
+      // the bug: /key answered 200 from its first commit and nothing pointed
+      // at it, so the only way to reach it was to type the URL.
+      me?.memberName ? "" : link("/login", "signin", "Sign in")
     }
     <form class="leave" method="post" action="/leave"><button type="submit" aria-label="Leave the village"><span class="nav-full">Leave the village</span><span class="nav-short" aria-hidden="true">Leave</span></button></form>
   </nav>
   ${
     me
       ? `<p class="whoami">You are <strong>${esc(displayName(me))}</strong>${
-          // Say which it is. Someone refused at a home should be able to see
-          // why from the top of the page rather than infer it from a missing
-          // form, and someone who used their key should see that it worked.
-          me.memberName ? ", and you live here" : keysCut() > 0 ? ", visiting" : ""
+          // Say which house is yours, or that none is. Somebody refused at a
+          // home should be able to see why from the top of the page rather
+          // than infer it from a missing form.
+          whereYouLive(me)
         } ${face(me.name)}</p>`
       : ""
   }
@@ -881,28 +894,78 @@ export function roomFragment(otherNames: string[], things: ThingView[], houseSlu
     : regularRoomFragment(otherNames, things, houseSlug);
 }
 
-export function joinPage(houses: House[], message: string | null): string {
-  const options = houses
-    .map((h) => `<option value="${esc(h.slug)}">${esc(h.name)}</option>`)
-    .join("");
+export function loginPage(message: string | null): string {
   return page(
     "The village",
     `<main class="measured join-page">
       <span class="eyebrow">Four places. One family.</span>
       <h1>The village</h1>
-      <p class="lede">Four places and the people in them. Before you go in,
-        say who you are — the app keeps a name and nothing else.</p>
-      <p class="note">One browser is one person — the app knows you by a
-        cookie, not a face. To be two of you, use a second browser or a
-        private window, not a second tab.</p>
+      <p class="lede">Four places and the people in them. Sign in to go in.</p>
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
-      <form method="post" action="/join">
-        <label for="name">What should everyone call you?</label>
-        <input id="name" name="name" required maxlength="40" placeholder="An">
-        <label for="home">Which house is yours?</label>
-        <select id="home" name="home" required>${options}</select>
-        <button class="primary">Go in</button>
+      <form method="post" action="/login">
+        <label for="name">Your name</label>
+        <input id="name" name="name" required maxlength="40" autocomplete="username">
+        <label for="password">Your password</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password">
+        <button class="primary">Sign in</button>
       </form>
+      <p class="note">No account yet? <a href="/register">Make one</a>.</p>
+    </main>`,
+  );
+}
+
+/** Registering. The household select carries a "just visiting" option as its
+ *  first entry, so belonging to no house is something you can choose rather
+ *  than something that happens when you leave a field alone.
+ *
+ *  `chosen` keeps the household picked across a refusal, so somebody told
+ *  their code was wrong does not have to find their house in the list again. */
+export function registerPage(
+  houses: House[],
+  message: string | null,
+  chosen: string | null,
+): string {
+  const options = houses
+    .filter((h) => h.kind === "home")
+    .map(
+      (h) =>
+        `<option value="${esc(h.slug)}"${chosen === h.slug ? " selected" : ""}>${esc(h.name)}</option>`,
+    )
+    .join("");
+  return page(
+    "Join the village",
+    `<main class="measured join-page">
+      <span class="eyebrow">Four places. One family.</span>
+      <h1>Join the village</h1>
+      <p class="lede">A name, a password, and where you live. The app keeps
+        those three things and nothing else — no email, no profile, nothing
+        to recover.</p>
+      ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
+      <form method="post" action="/register">
+        <label for="name">What should everyone call you?</label>
+        <input id="name" name="name" required maxlength="40" placeholder="An" autocomplete="username">
+
+        <label for="password">A password</label>
+        <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password">
+        <p class="note">Eight characters or more. There is no way to reset it,
+          because resetting one needs somewhere to send it and this app has
+          no addresses.</p>
+
+        <label for="household">Which house is yours?</label>
+        <select id="household" name="household">
+          <option value=""${chosen === null ? " selected" : ""}>Just visiting — no house is mine</option>
+          ${options}
+        </select>
+
+        <label for="code">Your household's code</label>
+        <input id="code" name="code" type="password" autocomplete="off">
+        <p class="note">Only needed to claim a house. Leave it blank to visit:
+          you can still look around every house, write your side of anything
+          you find, and keep things together with whoever put them down.</p>
+
+        <button class="primary">Create account</button>
+      </form>
+      <p class="note">Already have an account? <a href="/login">Sign in</a>.</p>
     </main>`,
   );
 }
@@ -1410,7 +1473,7 @@ export function housePage(
   // The same rule the route uses, asked again here so the page offers only
   // what the server would accept. Derived rather than passed in, so a caller
   // cannot render a composer the route would refuse.
-  const mayPutDown = mayChange(house.kind, me.memberName ?? null, keysCut());
+  const mayPutDown = mayPlace(house.kind, me.memberName ? householdOf(me.memberName) : null, house.slug);
   const composeLabel = isMeeting ? "What do you want to say at the table?" : "What do you want to put down here?";
   // "Send" at the table, because that is the word for saying something to a
   // room. "Put this down" stays in the houses, where the verb really is
@@ -1505,14 +1568,18 @@ export function housePage(
                being written. In a household house, where a thing can reach
                the shelf under its own name, both still earn their place. -->
           ${
-            // A visitor at a household house is shown no composer. The POST is
+            // A guest at a household house is shown no composer. The POST is
             // refused server-side either way, so this is not the boundary —
-            // the boundary is in the route. This is about not offering someone
-            // a form that cannot work: the table is the household's own talk,
-            // and a visitor sees the house and its shelf, not this.
+            // the boundary is in the route. This is about not offering
+            // somebody a form that cannot work.
+            //
+            // It says what a guest MAY do, because that is the useful half.
+            // A guest can see everything in this room and write their side
+            // of any of it: that is how anything here ever reaches a shelf,
+            // and in a household of one it is the only way.
             mayPutDown
               ? ""
-              : `<p class="body-sm">You're visiting, so the table here is the household's own. The shelf below is what they've chosen to keep, and the meeting house is open to everyone.</p>`
+              : `<p class="body-sm">You're a guest here, so starting something new is for the people who live in this house. You can still write your side of anything below and keep it together — that's how it reaches their shelf.</p>`
           }
           ${mayPutDown ? `
           <form method="post" action="/place" id="compose" class="${isMeeting ? "say" : "memory-compose"}">

@@ -19,9 +19,10 @@ import {
 import { houseBySlug, listHouses, type House } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
 import { displayName, ensurePerson, getPerson, isMember, nameForPersonId, personId, setMember, type Person, type PersonRefusal } from "./people.ts";
-import { keyProblems, keysCut, mayChange, memberFor, memberNames } from "./members.ts";
+import { codeOpens, codeProblems, householdNeedsCode, mayPlace, mayRespond } from "./members.ts";
+import { accountExists, createAccount, householdOf, verifyPassword, type RegisterRefusal } from "./accounts.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
-import { esc, housePage, joinPage, mapPage, markdown, page, roomFragment, shelfPage, tableFragment } from "./render.ts";
+import { esc, housePage, loginPage, mapPage, markdown, page, registerPage, roomFragment, shelfPage, tableFragment } from "./render.ts";
 import {
   addPerspective,
   countsFor,
@@ -74,6 +75,46 @@ function allowTyping(token: string): boolean {
   }
   lastTyped.set(token, now);
   return true;
+}
+
+/** Signing in guesses a password, and nothing here used to slow that down:
+ *  the key route had no throttle at all, which mattered less when a key was
+ *  one of five long strings nobody could enumerate. A password somebody
+ *  chose is guessable, so attempts are rationed.
+ *
+ *  Counted per account NAME rather than per cookie, because a cookie is
+ *  free — the attacker clears it between attempts and the limit never
+ *  bites. The name is what they have to keep constant to break into it.
+ *
+ *  Ten tries, then a minute's wait. Generous enough that a person mistyping
+ *  their own password never meets it, and slow enough that guessing a weak
+ *  password takes months rather than an afternoon. Same in-memory, swept-on-
+ *  growth shape as allowTyping above, for the same reasons. */
+const SIGNIN_TRIES = 10;
+const SIGNIN_WINDOW_MS = 60_000;
+const signInTries = new Map<string, { n: number; first: number }>();
+function allowSignIn(name: string): boolean {
+  const now = Date.now();
+  const key = name.trim().toLowerCase();
+  const seen = signInTries.get(key);
+  if (!seen || now - seen.first >= SIGNIN_WINDOW_MS) {
+    if (signInTries.size > MAX_LISTENERS) {
+      for (const [who, when] of signInTries) {
+        if (now - when.first >= SIGNIN_WINDOW_MS) signInTries.delete(who);
+      }
+    }
+    signInTries.set(key, { n: 1, first: now });
+    return true;
+  }
+  if (seen.n >= SIGNIN_TRIES) return false;
+  seen.n += 1;
+  return true;
+}
+
+/** A successful sign-in clears the count, so somebody who mistyped nine
+ *  times and then got it right is not left one attempt from a lockout. */
+function signedInOk(name: string): void {
+  signInTries.delete(name.trim().toLowerCase());
 }
 
 /** Past this, the app stops reading rather than buffer the rest: a 64MB POST
@@ -142,11 +183,26 @@ const REFUSALS: Record<
   | PlaceGameRefusal
   | "not-stuck"
   | "not-seated"
-  | "visitors-cannot-change",
+  | RegisterRefusal
+  | "guests-cannot-start"
+  | "wrong-password"
+  | "wrong-code"
+  | "too-many-tries"
+  | "not-signed-in",
   string
 > = {
   "unknown-house": "There\'s no such house in this village.",
-  "visitors-cannot-change": "Only the people who live here can put something down or keep it. The meeting house is open to everyone.",
+  // Names what a guest MAY do, not only what they may not. The old wording
+  // said visitors could not keep things either, which is no longer true and
+  // would have sent somebody away from the one action they came to do.
+  "guests-cannot-start": "You're a guest in this house, so starting something new here is for the people who live in it. You can still write your side of anything already here and keep it together.",
+  "name-taken": "Somebody already goes by that name here. Choose another.",
+  "blank-password": "A password is what proves it's you. The app needs one.",
+  "password-too-short": "That password is too short to be worth much — eight characters or more.",
+  "wrong-password": "That name and password don't go together.",
+  "wrong-code": "That isn't the code for that house. Ask whoever lives there.",
+  "too-many-tries": "Too many tries just now. Wait a minute and try again.",
+  "not-signed-in": "Sign in first — the app needs to know who you are.",
   "blank-name": "The app needs something to call you.",
   "blank-title": "A thing in a house needs something to call it. At the table, a line on its own is enough.",
   "blank-body": "There's nothing there to put down.",
@@ -205,11 +261,14 @@ const server = createServer((req, res) => {
     // same person on every device, so the not-own trigger and the game's two
     // chairs are about humans rather than browsers.
     const who = personId(me, token);
-    // Who lives here decides what may be changed, and what of a home may be
-    // read. A visitor sees a home and its shelf — what the family chose to
-    // keep — but not the room, which is the unfinished talk of a household.
-    // The meeting house belongs to nobody and is open to everyone.
-    const belongsIn = (house: House): boolean => mayChange(house.kind, me?.memberName ?? null, keysCut());
+    // The household this session's account belongs to, or null for somebody
+    // signed in without one — a guest in every house.
+    const myHousehold = me?.memberName ? householdOf(me.memberName) : null;
+    // Two questions, not one. Starting something in a home is for the people
+    // who live in it; responding to what is already there is for anybody
+    // signed in, which is what lets a household of one ever reach its shelf.
+    const mayStartIn = (house: House): boolean => mayPlace(house.kind, myHousehold, house.slug);
+    const mayRespondHere = (): boolean => mayRespond(Boolean(me?.memberName));
 
     // The README is published whether or not you've said who you are.
     if (method === "GET" && path === "/readme") {
@@ -256,121 +315,107 @@ const server = createServer((req, res) => {
       return;
     }
 
-    if (req.method === "POST" && path === "/join") {
-      const form = await formData(req);
-      const result = ensurePerson(token, form.get("name") ?? "", form.get("home") ?? "");
-      if (typeof result === "string") {
-        logAction("join-refused", actor(undefined, token), { reason: result });
-        seeOther(res, said("/", REFUSALS[result]), setCookie);
-        return;
-      }
-      logAction("join", actor(result, token), { home: result.homeSlug });
-      seeOther(res, "/", setCookie);
+    // Registering: a name, a password, where you live, and the code for it.
+    //
+    // The code is asked for exactly here and never again. It is not a second
+    // password: it decides whether this account may claim that household, and
+    // after that the account carries the household on its own. Leaving it
+    // blank is a real choice, not a failure — you get a real account that
+    // belongs to no house and is a guest in all of them.
+    if (method === "GET" && path === "/register") {
+      html(res, 200, registerPage(listHouses(), message, null), setCookie);
       return;
     }
 
-    // A key says you live here. It is not an account: no sign-up, no email, no
+    if (req.method === "POST" && path === "/register") {
+      const form = await formData(req);
+      const name = (form.get("name") ?? "").trim();
+      const password = form.get("password") ?? "";
+      // "" means "no household" — the select's first option. A guest
+      // everywhere is a deliberate state, so it is spelled as one.
+      const wanted = (form.get("household") ?? "").trim();
+      const household = wanted === "" ? null : wanted;
+      const code = form.get("code") ?? "";
 
-    // profile, nothing to recover. The names come from the keys the village
+      // Claiming a household you have no code for is refused before the
+      // account is made, so a wrong code never leaves a half-made account
+      // behind for the name to be stuck on.
+      if (household !== null && householdNeedsCode(household) && !codeOpens(household, code)) {
+        logAction("register-refused", actor(undefined, token), { house: household, reason: "wrong-code" });
+        seeOther(res, said("/register", REFUSALS["wrong-code"]), setCookie);
+        return;
+      }
 
-    // was given, so this page can never leak a name that has no key.
+      const refusal = createAccount(name, password, household);
+      if (refusal) {
+        // The reason is logged; the password never is, and neither is the
+        // code. What went wrong is a fact about the attempt, not a secret.
+        logAction("register-refused", actor(undefined, token), { reason: refusal });
+        seeOther(res, said("/register", REFUSALS[refusal]), setCookie);
+        return;
+      }
 
-    if (method === "GET" && path === "/key") {
-
-      const names = memberNames();
-
-      const options = names.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
-
-      html(res, 200, page("Your key", `<main class="measured">
-
-        <h1>Your key</h1>
-
-        <p>Visiting is enough to look around the village and read what each house
-
-          has kept. A key is for the people who live here: it lets you put something
-
-          down in a home and keep what someone else put there. The meeting house
-
-          needs no key.</p>
-
-        ${names.length === 0
-
-          ? `<p>No keys have been cut for this village yet, so everyone here is visiting.</p>`
-
-          : `<form method="post" action="/key">
-
-              <label for="who">Who are you?</label>
-
-              <select id="who" name="who" required>${options}</select>
-
-              <label for="key">Your key</label>
-
-              <input id="key" name="key" type="password" required autocomplete="current-password">
-
-              <button>Unlock</button>
-
-            </form>`}
-
-      </main>`, me, "key"), setCookie);
-
+      // Registering signs you in, because being made to type it again
+      // immediately teaches nothing and reads as the app not having worked.
+      // The account name is the trimmed one createAccount stored.
+      const stored = name.trim().slice(0, 40);
+      ensurePerson(token, stored, household ?? "meeting");
+      setMember(token, stored);
+      signedInOk(stored);
+      logAction("register", actor(getPerson(token), token), { house: household });
+      seeOther(res, said("/", household ? `Welcome home, ${stored}.` : `Welcome, ${stored}.`), setCookie);
       return;
-
     }
 
-
-    if (req.method === "POST" && path === "/key") {
-
-      const form = await formData(req);
-
-      const who = (form.get("who") ?? "").trim();
-
-      const proved = memberFor(who, form.get("key") ?? "");
-
-      if (!me) {
-
-        seeOther(res, said("/", "Say who you are first — a key belongs to somebody."), setCookie);
-
-        return;
-
-      }
-
-      if (!proved) {
-
-        // The log records the attempt and never the key. A refused unlock is
-
-        // the server check doing its job, so it is worth a line.
-
-        logAction("key-refused", actor(me, token), { claimed: who });
-
-        seeOther(res, said("/key", "That key doesn't open anything here."), setCookie);
-
-        return;
-
-      }
-
-      setMember(token, proved);
-
-      logAction("key-accepted", actor(me, token), { member: proved });
-
-      seeOther(res, said("/", `Welcome home, ${proved}.`), setCookie);
-
+    if (method === "GET" && path === "/login") {
+      html(res, 200, loginPage(message), setCookie);
       return;
+    }
 
+    if (req.method === "POST" && path === "/login") {
+      const form = await formData(req);
+      const name = (form.get("name") ?? "").trim();
+      const password = form.get("password") ?? "";
+
+      // Rationed before the password is checked, so a flood of guesses costs
+      // the attacker a refusal rather than this box a scrypt hash each time.
+      if (!allowSignIn(name)) {
+        logAction("login-refused", actor(undefined, token), { reason: "too-many-tries" });
+        seeOther(res, said("/login", REFUSALS["too-many-tries"]), setCookie);
+        return;
+      }
+
+      if (!verifyPassword(name, password)) {
+        // One message for a wrong name and a wrong password alike. Saying
+        // which was wrong tells somebody guessing which names are real.
+        logAction("login-refused", actor(undefined, token), { reason: "wrong-password" });
+        seeOther(res, said("/login", REFUSALS["wrong-password"]), setCookie);
+        return;
+      }
+
+      const household = householdOf(name);
+      // The name as the account stores it, not as it was typed in the box.
+      ensurePerson(token, name, household ?? "meeting");
+      setMember(token, name);
+      signedInOk(name);
+      logAction("login", actor(getPerson(token), token), { house: household });
+      seeOther(res, said("/", `Welcome back, ${name}.`), setCookie);
+      return;
     }
 
 
     if (!me) {
       if (req.method === "POST") {
-        // A POST from an unjoined visitor (a stale tab, say) must still be
-        // told something — answering with the join page at 200 would read
+        // A POST from a signed-out tab (a stale one, say) must still be
+        // told something — answering with the login page at 200 would read
         // the body never, silently.
-        seeOther(res, said("/", "Say who you are first — the app needs a name before you can put anything down."), setCookie);
+        seeOther(res, said("/login", REFUSALS["not-signed-in"]), setCookie);
         return;
       }
       if (method === "GET" && path === "/stream") {
         // EventSource isn't a page a person reads, so there are no words to
-        // give it. Answering 200 with the join page would make it retry
-        // forever, every ~3 seconds, with nobody ever joining from here.
+        // give it. Answering 200 with the login page would make it retry
+        // forever, every ~3 seconds, with nobody ever signing in from here.
         const headers: Record<string, string> = {};
         if (setCookie) headers["set-cookie"] = setCookie;
         res.writeHead(204, headers);
@@ -378,15 +423,14 @@ const server = createServer((req, res) => {
         return;
       }
       // A 404 is a fact about the path, not about who is asking. Someone
-      // following a link to a house should be asked who they are, not
+      // following a link to a house should be asked to sign in, not
       // 404'd — but a path the app does not recognise is not a page just
       // because nobody has signed in, and every crawler, hotlink and the
       // marker's first `curl` arrives exactly like that, with no cookie at
-      // all. Without this check every unmatched path fell into the join
-      // page at 200, so the app could never 404 for anyone who hadn't
-      // already joined.
+      // all. Without this check every unmatched path fell into the login
+      // page at 200, so the app could never 404 for anyone signed out.
       if (method === "GET" && isJoinablePath(path)) {
-        html(res, 200, joinPage(listHouses(), message), setCookie);
+        html(res, 200, loginPage(message), setCookie);
         return;
       }
       // Nothing else is a page this visitor can see without joining — the
@@ -442,7 +486,7 @@ const server = createServer((req, res) => {
       // stream's resync carries the same who-line the full page would.
       const others = whoIsIn(house.slug).filter((p) => p !== who).map(nameForPersonId);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      res.end(roomFragment(others, belongsIn(house) ? inRoom(house.slug, who) : [], house.slug));
+      res.end(roomFragment(others, inRoom(house.slug, who), house.slug));
       return;
     }
 
@@ -521,7 +565,7 @@ const server = createServer((req, res) => {
       html(
         res,
         200,
-        housePage(house, me, others, belongsIn(house) ? inRoom(house.slug, who) : [], message, {
+        housePage(house, me, others, inRoom(house.slug, who), message, {
           game: gameAt(house.slug, who),
           picked: Number.isInteger(picked) ? picked : null,
         }),
@@ -676,9 +720,9 @@ const server = createServer((req, res) => {
       const form = await formData(req);
       const slug = (form.get("house") ?? "").trim();
       const placeHouse = houseBySlug(slug);
-      if (placeHouse && !belongsIn(placeHouse)) {
-        logAction("place-refused", actor(me, token), { house: slug, reason: "visitors-cannot-change" });
-        seeOther(res, said(backTo(slug), REFUSALS["visitors-cannot-change"]), setCookie);
+      if (placeHouse && !mayStartIn(placeHouse)) {
+        logAction("place-refused", actor(me, token), { house: slug, reason: "guests-cannot-start" });
+        seeOther(res, said(backTo(slug), REFUSALS["guests-cannot-start"]), setCookie);
         return;
       }
       const result = place(slug, who, form.get("title") ?? "", form.get("body") ?? "", form.get("event_date") ?? undefined);
@@ -702,9 +746,11 @@ const server = createServer((req, res) => {
         return;
       }
       const perspectiveHouse = houseBySlug(houseOfThing(thingId) ?? "");
-      if (perspectiveHouse && !belongsIn(perspectiveHouse)) {
-        logAction("perspective-refused", actor(me, token), { house: perspectiveHouse.slug, thing: thingId, reason: "visitors-cannot-change" });
-        seeOther(res, said(backTo(back), REFUSALS["visitors-cannot-change"]), setCookie);
+      // Any house, not just your own: writing your side of somebody else's
+      // thing is the whole of how anything reaches a shelf.
+      if (perspectiveHouse && !mayRespondHere()) {
+        logAction("perspective-refused", actor(me, token), { house: perspectiveHouse.slug, thing: thingId, reason: "guests-cannot-start" });
+        seeOther(res, said(backTo(back), REFUSALS["guests-cannot-start"]), setCookie);
         return;
       }
       const refusal = addPerspective(thingId, who, form.get("body") ?? "");
@@ -728,9 +774,12 @@ const server = createServer((req, res) => {
         return;
       }
       const keepHouse = houseBySlug(houseOfThing(thingId) ?? "");
-      if (keepHouse && !belongsIn(keepHouse)) {
-        logAction("keep-refused", actor(me, token), { house: keepHouse.slug, thing: thingId, reason: "visitors-cannot-change" });
-        seeOther(res, said(backTo(back), REFUSALS["visitors-cannot-change"]), setCookie);
+      // Same rule as a perspective, and for the same reason: An lives alone
+      // in Canberra, so if only the household could keep, nothing he placed
+      // at home could ever reach his own shelf.
+      if (keepHouse && !mayRespondHere()) {
+        logAction("keep-refused", actor(me, token), { house: keepHouse.slug, thing: thingId, reason: "guests-cannot-start" });
+        seeOther(res, said(backTo(back), REFUSALS["guests-cannot-start"]), setCookie);
         return;
       }
       const refusal = keepTogether(thingId, who);
@@ -767,23 +816,36 @@ const server = createServer((req, res) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(JSON.stringify({ at: new Date().toISOString(), level: "info", msg: "listening", port: PORT }));
   // An entry that parses but is not a hash is the worst case of the three:
-  // it counts as a key to anyone reading the secret, so the houses look
-  // locked, and it can never verify, so nobody can open them. Name the
-  // people affected — "the secret is wrong" is not actionable at 1am.
-  const broken = keyProblems();
+  // it counts as a code to anyone reading the secret, so the house looks
+  // guarded, and it can never verify, so nobody can claim it. Name the
+  // houses affected — "the secret is wrong" is not actionable at 1am.
+  const broken = codeProblems();
   if (broken.length > 0) {
     console.warn(
       JSON.stringify({
         at: new Date().toISOString(),
         level: "warn",
-        msg: "MEMBER_KEYS has entries that are not hashes — those people cannot use their key. Regenerate with `pnpm member-key`.",
-        names: broken,
+        msg: "HOUSEHOLD_CODES has entries that are not hashes — those houses cannot be claimed with a code. Regenerate with `pnpm household-code`.",
+        houses: broken,
       }),
     );
   }
-  if (keysCut() === 0) {
-    // Not a crash, but never silent: an unlocked village looks exactly like a
-    // working one until a stranger puts something in a bedroom.
-    console.warn(JSON.stringify({ at: new Date().toISOString(), level: "warn", msg: "no keys cut — every house is open to everyone", keys: 0 }));
+  // Which houses can be claimed by anyone who finds the URL. This is the
+  // setting that decides whether the app is the family's or the internet's,
+  // so it is named at every boot rather than only when it is wrong.
+  const unguarded = listHouses()
+    .filter((h) => h.kind === "home" && !householdNeedsCode(h.slug))
+    .map((h) => h.slug);
+  if (unguarded.length > 0) {
+    // Not a crash, but never silent: an unguarded village looks exactly like
+    // a working one until a stranger registers into a bedroom.
+    console.warn(
+      JSON.stringify({
+        at: new Date().toISOString(),
+        level: "warn",
+        msg: "these houses have no code, so anyone who registers can claim them",
+        houses: unguarded,
+      }),
+    );
   }
 });
