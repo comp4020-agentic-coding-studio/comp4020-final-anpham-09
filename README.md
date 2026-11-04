@@ -42,15 +42,21 @@ interface.
 
 `spec/` enforces: nothing reaches a shelf with one name on it; nobody keeps
 their own thing, by any path; one person counts once; a thing placed alone
-stays visible; placing and playing work with JavaScript off; points are
-conserved across every move of a game; and a change reaches another session in
-under a second, measured at five milliseconds. All 150 tests were checked by
-breaking what they guard and confirming red. Several didn't, so they were
-asserting nothing, and were rewritten.
+stays visible; a guest may write their side of anything and keep it, but may
+not start something in a house that is not theirs; a password is never
+stored, only a salted hash of one; placing and playing work with JavaScript
+off; points are conserved across every move of a game; and a change reaches
+another session in under a second, measured at five milliseconds. All 195
+tests were checked by breaking what they guard and confirming red. Several
+didn't, so they were asserting nothing, and were rewritten.
 
 Not enforced:
 
-- One browser is one person. Nothing proves who holds it.
+- A password proves who holds a browser; nothing proves who is at the
+  keyboard. Somebody who hands over their password hands over their name.
+- Ten wrong passwords in a minute, per name, is as far as the app slows
+  guessing down. There is no lockout, because locking an account needs a
+  way to unlock it and this app has no addresses to send one to.
 - A room shows its two hundred newest things; nothing reaches the older ones.
 - A body over 280 characters is trimmed, not refused — the one place the app
   acts without words.
@@ -80,13 +86,25 @@ laptop were two people: she could place a thing and then keep it together
 with herself, and the shelf would show her name on both sides. The rule that
 a memory needs two of you was true of browsers, not of people.
 
-So the five adults have accounts — a name and a key, and nothing else. No
-sign-up, no email, no reset, no profile, nothing kept beyond those two
-things. The account is who you are, the same on every device. A visitor
-needs nothing, is never asked for anything, and is still only their browser,
-which is the honest answer for somebody who has not said who they are.
-An Duy is eleven months old and has no key — he is who the village is for,
-not somebody who uses it.
+So you register: a name, a password, and which house is yours. Nothing else
+— no email, no reset, no profile. The account is who you are, the same on
+every device, and that is what makes the shelf rule a rule about people.
+
+Claiming a house needs that household's code, because this is a public URL
+and without one anybody who found it could put something in my parents'
+room. One code per house rather than per person: two people who live
+somewhere share a front door. Registering without a code is a real account
+that belongs to no house.
+
+Belonging to a house decides one thing only: whether you can **start**
+something there. Anybody signed in can write their side of what is already
+in any room and keep it together — and that is deliberate, not a loose end.
+I live alone in Canberra. If responding were also the household's own,
+nothing I put down at home could ever be corroborated, and the one rule
+this whole app is built on would work for everyone except me.
+
+An Duy is eleven months old and has no account — he is who the village is
+for, not somebody who uses it.
 
 One concession to JavaScript: the line saying somebody is typing. With a
 script blocked it never appears and nothing else changes — every action here

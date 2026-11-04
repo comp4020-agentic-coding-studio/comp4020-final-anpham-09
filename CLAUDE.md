@@ -17,14 +17,25 @@ change would make any line here false, the change is wrong, not the line.
 - **Never drop an action silently.** Every refusal gets words explaining the
   rule. A button that appears to do nothing teaches the user the system is
   broken; being told the rule teaches them the rule.
-- **The five have accounts; visitors have none.** An account is a name and a
-  key, and nothing else: no email, no profile, no analytics, no reset, and
-  nothing kept about anyone beyond those two things. It is an account
-  because it is who you are — the same person on every device you sign in
-  on — not merely permission to act. This file said "no accounts, no
+- **Anyone may register; only a household code claims a house.** An account
+  is a name, a password and the household you belong to — nothing else. No
+  email, no profile, no analytics, no reset, nothing kept about anyone
+  beyond those three. Registering without a code is a real account that
+  belongs to no house: a guest everywhere, which is the honest shape for
+  somebody the family sent the URL to. This file said "no accounts, no
   passwords" until the cookie turned out to be the identity, which made one
   person with two browsers into two people and let Mum keep her own thing.
-  A visitor is still only their browser, and is never asked for anything.
+- **Never store a password.** Only a scrypt hash of one, with a per-account
+  salt, so two people who choose the same password do not share a row that
+  says so. There is no reset, because resetting one needs an address to
+  send it to and this app collects no addresses.
+- **A guest may respond, never start.** Starting something in a home is for
+  the people who live in it. Writing your side of what is already there and
+  keeping it together is for anybody signed in, in any house. These are two
+  rules, not one, and they must not be collapsed back together: An lives
+  alone in Canberra, so if responding were also the household's own, nothing
+  he placed at home could ever reach his own shelf and the rule this app is
+  built on would hold for everyone except him.
 - **Never claim privacy the app does not have.** The deployment is a public
   URL. The README says so plainly rather than implying the village is sealed.
 
