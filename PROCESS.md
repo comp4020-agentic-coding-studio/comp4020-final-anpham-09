@@ -173,3 +173,48 @@ neither.
 table with two chairs, and in parallel they raced: four runs gave 3 failures,
 0, 1, 0, against 170 passed four times sequential. The suite gates the deploy,
 so a flake there eventually fails a push at the worst moment.
+
+## 2026-10-22 — the cookie was standing in for a person
+
+A key proves permission, not identity. Logged in with Mum's key on two
+browsers, `placed_by` and `keepings.person` still held the raw cookie token —
+so Mum on her phone and Mum on her laptop were two different actors, and Mum
+could place a thing, then switch devices and keep it together with herself.
+`keepings_not_own` compares tokens, so the trigger that exists specifically to
+forbid that could not see it happen. Demonstrated against a running app before
+any fix, the same discipline as the security review above
+([`35e84ba`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/35e84ba)).
+
+**The fix is a format, not a schema.** `placed_by`, `author`, `person` and the
+two game-chair columns were already bare `TEXT` with no foreign key, so a
+`person_id` — `m:<account name>` for a key-holder, `v:<cookie token>`
+otherwise — slots into the same column with no migration of structure, only
+of values ([`67f7ee5`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/67f7ee5)). Rows written before accounts existed are
+visitors by definition, so they take the `v:` prefix once, idempotently —
+tested by inserting one unprefixed row and one already-migrated row, running
+the migration twice, and asserting the second run changed nothing
+([`3cc44ee`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/3cc44ee)).
+
+**A source guard, because the hazard is a call site slipping back, not a
+behaviour a route test can see.** The route tests hit a server with no keys
+cut, so every request is a visitor and a route that quietly passed the
+cookie token instead of the person id would look identical from outside.
+The guard reads `server.ts` itself, in three layers that fail differently: a
+denylist naming the exact functions that must never see a raw token, a
+residue check that strips every legitimated use of `token` and fails on
+anything left over (so a renamed alias or a new call site is still caught),
+and a positive pin proving each call site passes `who` rather than merely
+not-`token` — otherwise the first two could pass vacuously against an empty
+file ([`cb79db4`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/cb79db4), [`a670846`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/a670846)). The game's two chairs
+got the same treatment, since `CHECK (top != bottom)` is exactly
+`keepings_not_own` with the same blind spot ([`0b82d6c`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/0b82d6c)).
+
+**One exemption, written down and dated for deletion.** The typing indicator
+kept publishing a name resolved from the raw token for one task's duration,
+because routing it through the person id was Task 5's job, not Task 3's. The
+residue check carries a `TEMPORARY` comment naming the exact line and the
+task that removes it, rather than widening the guard to let it through
+unnoticed — and it was removed on schedule
+([`dab8ad7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/dab8ad7)). `README.md` and `CLAUDE.md` both still said "no
+accounts" after this shipped; rewritten rather than left contradicted, the
+same rule as the game and the keys.
