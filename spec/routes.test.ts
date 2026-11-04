@@ -73,7 +73,13 @@ function stonesOnBoard(html: string): number[] {
 }
 
 /** A session is a cookie jar. Two of these is two people. */
-function session(): { get: (p: string) => Promise<Response>; post: (p: string, body: Record<string, string>) => Promise<Response> } {
+function session(): {
+  get: (p: string) => Promise<Response>;
+  post: (p: string, body: Record<string, string>) => Promise<Response>;
+  /** The cookie this session is currently sending, for a test that needs to
+   *  replay it by hand after signing out. */
+  cookie: () => string;
+} {
   let cookie = "";
   const remember = (res: Response): Response => {
     const set = res.headers.get("set-cookie");
@@ -94,7 +100,7 @@ function session(): { get: (p: string) => Promise<Response>; post: (p: string, b
         redirect: "manual",
       }),
     );
-  return { get, post };
+  return { get, post, cookie: () => cookie };
 }
 
 type Session = ReturnType<typeof session>;
@@ -801,5 +807,50 @@ describe("a household of one, which is the case this design exists for", () => {
     } finally {
       await mum.post("/leave", {});
     }
+  });
+});
+
+describe("the sign-in wall", () => {
+  // Found in a browser, not by a test: the page let me into the village
+  // while the nav still offered "Sign in". The gate asked whether there was
+  // a `people` row for this cookie, which is a SESSION, when the question
+  // is whether that session is signed in to an ACCOUNT. Every row left by
+  // the old /join flow — 2148 of them on the dev database — walked straight
+  // through. A fresh cookie never does, which is why no test caught it.
+  it("does not let a session that signed out back in without a password", async () => {
+    // The stale row, reproduced through the app alone. Signing out clears
+    // the cookie but deliberately keeps the `people` row — so replaying
+    // that cookie is exactly the case the old gate waved through: a
+    // session the app has seen before, belonging to no account.
+    const s = session();
+    await s.get("/");
+    const name = await signIn(s, "Replayed", "canberra");
+    // Captured BEFORE signing out, because /leave clears it.
+    const held = s.cookie();
+    expect(held).toBeTruthy();
+    const stale = await s.post("/leave", {});
+    expect(stale.status).toBe(303);
+
+    const replayed = await fetch(new URL("/", baseUrl), {
+      headers: { cookie: held },
+      redirect: "manual",
+    });
+    const html = markup(await replayed.text());
+    // Must meet the sign-in page, not the village.
+    expect(html).toContain('action="/login"');
+    expect(html).not.toContain(`You are <strong>${name}`);
+  });
+
+  it("refuses to write for a session that is not signed in", async () => {
+    const s = session();
+    await s.get("/");
+    const tried = await s.post("/place", {
+      house: "meeting",
+      title: "",
+      body: `a signed-out session should not be able to place this ${Date.now()}`,
+    });
+    expect(tried.status).toBe(303);
+    const said = new URL(tried.headers.get("location") ?? "", baseUrl).searchParams.get("said") ?? "";
+    expect(said).toContain("Sign in first");
   });
 });

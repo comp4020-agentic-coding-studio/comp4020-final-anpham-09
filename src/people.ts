@@ -52,6 +52,21 @@ export function setMember(token: string, memberName: string): void {
   db.prepare("UPDATE people SET member_name = ? WHERE token = ?").run(memberName, token);
 }
 
+/** Sign this session out: the account lets go of the browser.
+ *
+ *  Clearing the cookie is not enough on its own. The row keeps the token as
+ *  its primary key, so anybody replaying the old cookie value — a copy in a
+ *  log, a shared machine, a browser's history — lands back on a row that
+ *  still names an account and is signed straight back in, with no password
+ *  asked for. That was invisible while a key was per-browser; with accounts
+ *  it is the difference between signing out and appearing to.
+ *
+ *  The row itself stays. It carries the name and home this session chose,
+ *  and nothing anybody placed may be deleted. */
+export function clearMember(token: string): void {
+  db.prepare("UPDATE people SET member_name = NULL WHERE token = ?").run(token);
+}
+
 export function isMember(person: Person | undefined): boolean {
   return Boolean(person?.memberName);
 }

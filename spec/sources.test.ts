@@ -137,6 +137,10 @@ describe("the routes act as a person, never as a browser", () => {
       ["deriving the person id from the session", /personId\(me, token\)/],
       ["account creation is per session", /ensurePerson\(token\b/g],
       ["signing in binds this session to an account", /setMember\(token\b/g],
+      // Signing out is per SESSION on purpose: it releases this browser,
+      // not every browser the account is signed in on. Clearing it by
+      // person id would sign you out of your phone from your laptop.
+      ["signing out releases this session, not the account everywhere", /clearMember\(token\)/g],
       // The actor field is the session on purpose: it is how two requests
       // are known to come from one browser, which is the question a log is
       // asked. The person id is recorded alongside it by log.ts.

@@ -18,7 +18,7 @@ import {
 } from "./games.ts";
 import { houseBySlug, listHouses, type House } from "./houses.ts";
 import { newToken, readCookie } from "./identity.ts";
-import { displayName, ensurePerson, getPerson, isMember, nameForPersonId, personId, setMember, type Person, type PersonRefusal } from "./people.ts";
+import { clearMember, displayName, ensurePerson, getPerson, isMember, nameForPersonId, personId, setMember, type Person, type PersonRefusal } from "./people.ts";
 import { codeOpens, codeProblems, householdNeedsCode, mayPlace, mayRespond } from "./members.ts";
 import { accountExists, createAccount, householdOf, verifyPassword, type RegisterRefusal } from "./accounts.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
@@ -404,7 +404,14 @@ const server = createServer((req, res) => {
     }
 
 
-    if (!me) {
+    // Signed in means signed in to an ACCOUNT, not merely holding a cookie
+    // the app has seen before. Asking `!me` here asked whether a `people`
+    // row exists for this session, and every row the old /join flow left
+    // behind has one with no account attached — 2148 of them on the dev
+    // database, each walking straight past this gate while the nav still
+    // offered them "Sign in". A fresh cookie never does, which is why no
+    // test caught it and a browser did.
+    if (!me?.memberName) {
       if (req.method === "POST") {
         // A POST from a signed-out tab (a stale one, say) must still be
         // told something — answering with the login page at 200 would read
@@ -468,6 +475,11 @@ const server = createServer((req, res) => {
     if (req.method === "POST" && path === "/leave") {
       logAction("leave", actor(me, token), {});
       leave(who);
+      // The account lets go of this browser, not just the browser of the
+      // cookie. See clearMember: clearing only the cookie leaves the row
+      // still naming an account, so replaying the old value signs you back
+      // in with no password.
+      clearMember(token);
       // Clearing presence but not the cookie would still resolve this token
       // to a person on the next request — the app would say "you've left"
       // and then render the map as you. Leaving means both, and landing on
