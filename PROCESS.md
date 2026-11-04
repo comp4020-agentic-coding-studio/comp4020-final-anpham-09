@@ -292,3 +292,49 @@ answer the question you thought to ask. None of these needed a debugger or a
 log — they needed one person loading the page as somebody who is not the
 developer. The permission rules were right the whole time; what was wrong
 was who the app thought was asking.
+
+## 2026-11-04 — a chair nobody could leave
+
+Reported with a screenshot rather than a stack trace: *2 seated · 1 here*,
+both chairs held, no control anywhere that frees one. A seat stored a
+person id and nothing tied that to whether the person was still around, and
+`standUp` only ever freed your *own* chair — correct while you are there to
+press it, useless the moment you are not. Two people closing a tab bricked
+the table permanently.
+
+**The fix was already in the database.** Presence knows who is in a room
+and forgets them after 45 seconds; the game had simply never asked. So a
+chair may be freed by anybody, but only once its occupant has gone, which
+keeps it from being a way to eject somebody mid-move. Nothing played is
+deleted: a game with moves in it is *stopped*, the same as standing up from
+one, and its score stays on the table ([`21f1b2d`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/21f1b2d)).
+
+**My cleanup was the bug this time.** The new HTTP tests passed, then
+failed on the second run. The `finally` posted `/game/stand` with no
+`house` field, so it was refused silently and left the table occupied for
+whatever ran next — and the meeting house has exactly one table that every
+game test shares. The file's own comment warns about this. Caught by
+re-running, not by reading: a test that passes once and fails after is the
+same false green as one that never checked anything.
+
+**And the chat.** The table already updated live and already showed who was
+typing; what it lacked was furniture. The composer sat in the side panel,
+across the page from the messages, drifting further away the more anybody
+said. Moving it under the thread meant the near-bottom guard had to move
+too — it measured the *document* scroll, which is no longer what scrolls,
+so a reader part-way up the history would have been dragged to the bottom
+on every arrival ([`56f4a55`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/56f4a55)).
+
+**What I did not do is the part worth recording.** Making it look like
+Messenger would mean bubbles, and a bubble has no room for the two-state
+label or the keep-together control that every message here carries. A
+remark at this table can still become a memory, and hiding that to look
+more like a chat app would make the app's own argument harder to see. The
+furniture changed; the argument did not.
+
+I also guessed twice at CSS before reading it — widening a grid column that
+turned out to be the wrong one, in a container that was `display: flex` and
+ignoring my rule entirely. The layout was already a deliberate chat sidebar
+from the Figma screens. Both guesses were reverted, and the thing that
+settled it was asking the live page what it computed rather than reasoning
+about the stylesheet.
