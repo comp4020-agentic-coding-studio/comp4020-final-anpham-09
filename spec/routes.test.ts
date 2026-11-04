@@ -854,3 +854,44 @@ describe("the sign-in wall", () => {
     expect(said).toContain("Sign in first");
   });
 });
+
+describe("what a guest is offered", () => {
+  // Found by looking at the page, not by a test. The room's hotspot panel
+  // offered "Add a note — Place on the table", anchored at #compose, to a
+  // guest who has no composer: a link to a form that is not on the page,
+  // for the one action the house refuses them. Every HTML assertion passed
+  // while it was there, because none of them knew to look.
+  it("offers a guest no shortcut to a composer they do not have", async () => {
+    const guest = session();
+    await guest.get("/");
+    await signIn(guest, "Hotspot Guest", "nghe-an");
+    try {
+      const page = markup(await (await guest.get("/house/canberra")).text());
+      // The composer really is absent...
+      expect(page).not.toContain('id="compose"');
+      // ...so nothing may point at it.
+      expect(page).not.toContain('href="#compose"');
+      expect(page).not.toContain("Add a note");
+      // What they MAY do is still offered.
+      expect(page).toContain("Add your perspective");
+    } finally {
+      await guest.post("/leave", {});
+    }
+  });
+
+  it("still offers the household their own composer and its shortcut", async () => {
+    // The other half: removing the hotspot for everybody would be a
+    // different bug, and one this test would have caught.
+    const host = session();
+    await host.get("/");
+    await signIn(host, "Hotspot Host", "canberra");
+    try {
+      const page = markup(await (await host.get("/house/canberra")).text());
+      expect(page).toContain('id="compose"');
+      expect(page).toContain('href="#compose"');
+      expect(page).toContain("Add a note");
+    } finally {
+      await host.post("/leave", {});
+    }
+  });
+});
