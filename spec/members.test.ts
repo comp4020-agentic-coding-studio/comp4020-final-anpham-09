@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Members = typeof import("../src/members.ts");
 
-/** The keys are read once at boot, so a test that wants a village with keys
- *  cut has to set the secret and then import the module. Two stages: hash a
- *  key with a fresh module, then boot a second one that holds it. */
+/** The codes are read once at boot, so a test that wants a village with
+ *  codes cut has to set the secret and then import the module. Two stages:
+ *  hash a code with a fresh module, then boot a second one that holds it. */
 async function villageWith(secret?: Record<string, string>): Promise<Members> {
   vi.resetModules();
-  if (secret) process.env.MEMBER_KEYS = JSON.stringify(secret);
-  else delete process.env.MEMBER_KEYS;
+  if (secret) process.env.HOUSEHOLD_CODES = JSON.stringify(secret);
+  else delete process.env.HOUSEHOLD_CODES;
   return (await import("../src/members.ts")) as Members;
 }
 
@@ -18,156 +18,150 @@ async function hashOf(key: string): Promise<string> {
 }
 
 beforeEach(() => {
-  delete process.env.MEMBER_KEYS;
+  delete process.env.HOUSEHOLD_CODES;
 });
 
-describe("who may change a house", () => {
-  it("opens every house when no keys have been cut", async () => {
-    const { mayChange, keysCut } = await villageWith();
-    expect(keysCut()).toBe(0);
-    // The deliberate decision: a missing secret must not lock the family out
-    // of their own houses. A door with no lock on it is open.
-    expect(mayChange("home", null, 0)).toBe(true);
-    expect(mayChange("meeting", null, 0)).toBe(true);
+describe("who may start something in a house", () => {
+  it("lets you put something down in your own home", async () => {
+    const { mayPlace } = await villageWith();
+    expect(mayPlace("home", "canberra", "canberra")).toBe(true);
   });
 
-  it("closes a home to a visitor once a single key exists", async () => {
-    const { mayChange } = await villageWith({ Mum: await hashOf("one") });
-    // The rule this whole file exists for.
-    expect(mayChange("home", null, 1)).toBe(false);
+  it("refuses a guest starting something in a home that is not theirs", async () => {
+    const { mayPlace } = await villageWith();
+    // THE REVERSAL. This test used to assert the opposite: "lets a member
+    // change a home, including one that is not theirs", on the argument
+    // that the family is one family however many cities it is in. That was
+    // true when a key meant "one of us" — five keys, cut by hand, given to
+    // five people. Registration is open now, so "signed in" no longer means
+    // "family", and a home has to be its household's own. The README and
+    // CLAUDE.md changed with this line, not after it.
+    expect(mayPlace("home", "nghe-an", "canberra")).toBe(false);
+    expect(mayPlace("home", null, "canberra")).toBe(false);
   });
 
-  it("lets a member change a home, including one that is not theirs", async () => {
-    const { mayChange } = await villageWith({ Mum: await hashOf("one") });
-    expect(mayChange("home", "Mum", 1)).toBe(true);
-    // Mum lives in one house and may still put a note on the table of the
-    // others: the family is one family, however many cities it is in.
-    expect(mayChange("home", "Dad", 1)).toBe(true);
-  });
-
-  it("keeps the meeting house open to visitors however many keys exist", async () => {
-    const { mayChange } = await villageWith({ Mum: await hashOf("one") });
-    expect(mayChange("meeting", null, 1)).toBe(true);
-    expect(mayChange("meeting", "Mum", 1)).toBe(true);
+  it("keeps the meeting house open to everyone, household or not", async () => {
+    const { mayPlace } = await villageWith();
+    // It belongs to nobody, so there is no household it could be "theirs".
+    expect(mayPlace("meeting", null, "meeting")).toBe(true);
+    expect(mayPlace("meeting", "hanoi", "meeting")).toBe(true);
   });
 });
 
-describe("a key, which is not an account", () => {
-  it("cuts no keys at all without the secret, so a fresh checkout has no members", async () => {
-    const { memberNames, keysCut, memberFor } = await villageWith();
-    expect(memberNames()).toEqual([]);
-    expect(keysCut()).toBe(0);
-    expect(memberFor("Mum", "anything")).toBe(null);
+describe("who may respond to what is already here", () => {
+  it("lets anybody signed in write their side and keep it, in any house", async () => {
+    const { mayRespond } = await villageWith();
+    expect(mayRespond(true)).toBe(true);
   });
 
-  it("recognises a key only against its own name, and refuses a wrong one", async () => {
+  it("refuses somebody who is not signed in", async () => {
+    const { mayRespond } = await villageWith();
+    expect(mayRespond(false)).toBe(false);
+  });
+
+  it("is what makes the shelf reachable for a household of one", async () => {
+    const { mayPlace, mayRespond } = await villageWith();
+    // An lives alone in Canberra. He may start something there; nobody else
+    // may. If responding were also limited to the household, nothing he
+    // placed could ever be corroborated, and his shelf would stay empty for
+    // ever. These two answers differing is the whole point.
+    expect(mayPlace("home", "canberra", "canberra")).toBe(true);
+    expect(mayPlace("home", "nghe-an", "canberra")).toBe(false);
+    expect(mayRespond(true)).toBe(true);
+  });
+});
+
+describe("a household code, which is not a password", () => {
+  it("cuts no codes at all without the secret, so any house may be claimed", async () => {
+    const { housesWithCodes, codesCut, codeOpens, householdNeedsCode } = await villageWith();
+    expect(housesWithCodes()).toEqual([]);
+    expect(codesCut()).toBe(0);
+    expect(codeOpens("nghe-an", "anything")).toBe(false);
+    // A door with no lock on it is open: a missing secret must not make the
+    // app unusable for the family, only unguarded.
+    expect(householdNeedsCode("nghe-an")).toBe(false);
+  });
+
+  it("recognises a code only for its own house, and refuses a wrong one", async () => {
     const members = await villageWith({
-      Mum: await hashOf("her key"),
-      Dad: await hashOf("his key"),
+      "nghe-an": await hashOf("the parents' code"),
+      hanoi: await hashOf("the brother's code"),
     });
-    expect(members.keysCut()).toBe(2);
-    expect(members.memberNames()).toEqual(["Mum", "Dad"]);
-    expect(members.memberFor("Mum", "her key")).toBe("Mum");
-    expect(members.memberFor("Dad", "his key")).toBe("Dad");
-    // A key is one person's. Dad's key does not open Mum's name.
-    expect(members.memberFor("Mum", "his key")).toBe(null);
-    expect(members.memberFor("Mum", "nearly her key")).toBe(null);
-    expect(members.memberFor("Nobody", "her key")).toBe(null);
+    expect(members.codesCut()).toBe(2);
+    expect(members.housesWithCodes()).toEqual(["nghe-an", "hanoi"]);
+    expect(members.codeOpens("nghe-an", "the parents' code")).toBe(true);
+    expect(members.codeOpens("hanoi", "the brother's code")).toBe(true);
+    // A code belongs to one house. Hanoi's does not open Nghe An.
+    expect(members.codeOpens("nghe-an", "the brother's code")).toBe(false);
+    expect(members.codeOpens("nghe-an", "nearly the parents' code")).toBe(false);
+    expect(members.codeOpens("narnia", "the parents' code")).toBe(false);
   });
 
-  it("salts every key, so the same key twice is stored differently", async () => {
+  it("requires a code only for a house that has one", async () => {
+    const members = await villageWith({ "nghe-an": await hashOf("the parents' code") });
+    expect(members.householdNeedsCode("nghe-an")).toBe(true);
+    // Canberra has no code cut, so it is claimable without one. That is a
+    // decision about a half-configured village, not an oversight.
+    expect(members.householdNeedsCode("canberra")).toBe(false);
+  });
+
+  it("salts every code, so the same code twice is stored differently", async () => {
     const { hashKey } = await villageWith();
-    const once = hashKey("same key");
-    const twice = hashKey("same key");
+    const once = hashKey("same code");
+    const twice = hashKey("same code");
     expect(once).not.toBe(twice);
     // Deterministic given its salt, which is what makes verification work.
     const salt = once.split(":")[0]!;
-    expect(hashKey("same key", salt)).toBe(once);
+    expect(hashKey("same code", salt)).toBe(once);
   });
 
-  it("refuses to boot on a malformed secret rather than demote everyone to a visitor", async () => {
+  it("refuses to boot on a malformed secret rather than silently unlock every house", async () => {
     vi.resetModules();
-    process.env.MEMBER_KEYS = "{not json";
+    process.env.HOUSEHOLD_CODES = "{not json";
     await expect(import("../src/members.ts")).rejects.toThrow(/could not be read/);
   });
 });
 
-describe("a secret that parses but is not keys", () => {
-  it("drops a placeholder left in the secret instead of counting it as a key", async () => {
-    // The real incident: the template was pasted with its "..." still in it.
-    // Valid JSON, five names, and not one of them a hash.
+describe("a secret that parses but is not codes", () => {
+  it("drops a placeholder left in the secret instead of counting it as a code", async () => {
+    // The real incident, in its new shape: the template pasted with its
+    // "..." still in it. Valid JSON, three houses, not one of them a hash.
     const members = await villageWith({
-      Mum: "...",
-      Dad: "...",
-      Brother: "...",
+      "nghe-an": "...",
+      hanoi: "...",
+      canberra: "...",
     });
-    expect(members.keysCut()).toBe(0);
-    expect(members.keyProblems()).toEqual(["Mum", "Dad", "Brother"]);
-    // The point of dropping them: counting them would close every home while
-    // opening for nobody, which locks the family out of their own houses.
-    expect(members.mayChange("home", null, members.keysCut())).toBe(true);
+    expect(members.codesCut()).toBe(0);
+    expect(members.codeProblems()).toEqual(["nghe-an", "hanoi", "canberra"]);
+    // The point of dropping them: counting them would make every household
+    // require a code that can never verify, so nobody could ever claim one.
+    expect(members.householdNeedsCode("nghe-an")).toBe(false);
   });
 
   it("keeps the good entries and names only the bad ones", async () => {
     const members = await villageWith({
-      Mum: await hashOf("her key"),
-      Dad: "...",
+      "nghe-an": await hashOf("the parents' code"),
+      hanoi: "...",
     });
-    expect(members.keysCut()).toBe(1);
-    expect(members.memberNames()).toEqual(["Mum"]);
-    expect(members.keyProblems()).toEqual(["Dad"]);
-    expect(members.memberFor("Mum", "her key")).toBe("Mum");
-    // One real key is still a key, so the village is genuinely closed.
-    expect(members.mayChange("home", null, members.keysCut())).toBe(false);
+    expect(members.codesCut()).toBe(1);
+    expect(members.housesWithCodes()).toEqual(["nghe-an"]);
+    expect(members.codeProblems()).toEqual(["hanoi"]);
+    expect(members.codeOpens("nghe-an", "the parents' code")).toBe(true);
+    // One real code still guards its own house.
+    expect(members.householdNeedsCode("nghe-an")).toBe(true);
+    // And the broken one leaves its house unguarded rather than unusable.
+    expect(members.householdNeedsCode("hanoi")).toBe(false);
   });
 
   it("rejects a hash truncated by a wrapped paste, which still looks like one", async () => {
-    const full = await hashOf("her key");
-    const members = await villageWith({ Mum: full.slice(0, full.length - 8) });
-    expect(members.keysCut()).toBe(0);
-    expect(members.keyProblems()).toEqual(["Mum"]);
+    const full = await hashOf("the parents' code");
+    const members = await villageWith({ "nghe-an": full.slice(0, full.length - 8) });
+    expect(members.codesCut()).toBe(0);
+    expect(members.codeProblems()).toEqual(["nghe-an"]);
   });
 
   it("says nothing is wrong when every entry is a hash", async () => {
-    const members = await villageWith({ Mum: await hashOf("her key") });
-    expect(members.keyProblems()).toEqual([]);
-  });
-});
-
-describe("finding the way in", () => {
-  type Render = typeof import("../src/render.ts");
-
-  async function pageWith(secret?: Record<string, string>): Promise<Render> {
-    vi.resetModules();
-    if (secret) process.env.MEMBER_KEYS = JSON.stringify(secret);
-    else delete process.env.MEMBER_KEYS;
-    return (await import("../src/render.ts")) as Render;
-  }
-
-  const visitor = { token: "t", name: "Linh", homeSlug: "hanoi", memberName: null };
-  const member = { token: "t", name: "An", homeSlug: "canberra", memberName: "An" };
-
-  it("offers the key to someone who has not used one", async () => {
-    const { page } = await pageWith({ An: await hashOf("a key") });
-    const html = page("x", "<main></main>", visitor);
-    // The whole bug: the page existed and nothing linked to it, so there was
-    // no way to reach it by clicking.
-    expect(html).toContain('href="/key"');
-    expect(html).toContain("visiting");
-  });
-
-  it("says so, rather than offering the key again, once it has been used", async () => {
-    const { page } = await pageWith({ An: await hashOf("a key") });
-    const html = page("x", "<main></main>", member);
-    expect(html).not.toContain('href="/key"');
-    expect(html).toContain("you live here");
-  });
-
-  it("offers no key at all when none have been cut", async () => {
-    const { page } = await pageWith();
-    const html = page("x", "<main></main>", visitor);
-    // There is no lock, so a link implying one would be a lie about the app.
-    expect(html).not.toContain('href="/key"');
-    expect(html).not.toContain("visiting");
+    const members = await villageWith({ "nghe-an": await hashOf("the parents' code") });
+    expect(members.codeProblems()).toEqual([]);
   });
 });
