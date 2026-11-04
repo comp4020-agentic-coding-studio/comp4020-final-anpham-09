@@ -97,20 +97,88 @@ function session(): { get: (p: string) => Promise<Response>; post: (p: string, b
   return { get, post };
 }
 
+type Session = ReturnType<typeof session>;
+
+/** Every test password. Length is the only rule the app has, and a shared
+ *  constant keeps the sign-in helper below able to fall back to logging in. */
+const PASSWORD = "a good long passphrase";
+
+/** Sign this session in as `name`, belonging to `household` (null for a
+ *  guest everywhere).
+ *
+ *  Registers, and falls back to signing in when the name is already taken.
+ *  That fallback is what keeps the suite re-runnable: an account name is
+ *  unique for ever, so the second run of a test that registered "Alice"
+ *  would otherwise be refused and every assertion after it would fail
+ *  against a signed-out session. The spec runs against a persistent
+ *  database with no per-test reset — see the note at the top of this file.
+ *
+ *  No household code is passed, which works because CI and a local dev
+ *  server run with HOUSEHOLD_CODES unset, so no house requires one. A
+ *  village with codes cut is exercised directly in spec/members.test.ts,
+ *  where it can be done without a second server.
+ *
+ *  The household is part of the account NAME, not just an argument. A name
+ *  is unique for ever and its household is fixed at registration, so
+ *  "Bob of nghe-an" in one test and "Bob of canberra" in another would be
+ *  one account belonging to whichever ran first — and the second test would
+ *  quietly assert against the wrong permissions rather than fail. Encoding
+ *  the house in the name makes that collision impossible instead of a thing
+ *  to remember. */
+async function signIn(s: Session, name: string, household: string | null): Promise<string> {
+  const account = `${name} of ${household ?? "nowhere"}`;
+  const made = await s.post("/register", {
+    name: account,
+    password: PASSWORD,
+    household: household ?? "",
+    code: "",
+  });
+  const where = made.headers.get("location") ?? "";
+  const said = new URL(where, baseUrl).searchParams.get("said") ?? "";
+  if (said.includes("already goes by that name")) {
+    const back = await s.post("/login", { name: account, password: PASSWORD });
+    const to = back.headers.get("location") ?? "";
+    const msg = new URL(to, baseUrl).searchParams.get("said") ?? "";
+    if (!msg.includes("Welcome back")) throw new Error(`could not sign in as ${account}: ${msg || to}`);
+    return account;
+  }
+  if (!said.startsWith("Welcome")) throw new Error(`could not register ${account}: ${said || where}`);
+  // Returned so a test asserting on a displayed name uses the name the
+  // account actually has, rather than restating how it was built.
+  return account;
+}
+
 describe("what a browser gets", () => {
-  it("asks a new arrival for a name before letting them into the village", async () => {
+  it("asks a new arrival to sign in before letting them into the village", async () => {
     const s = session();
     const res = await s.get("/");
     expect(res.status).toBe(200);
     const html = await res.text();
+    // The way in used to be a name box. It is a password now, so the first
+    // page is the sign-in form — and it has to offer the way to make an
+    // account, or somebody arriving for the first time has nowhere to go.
+    expect(html).toContain("Sign in");
+    expect(html).toContain('action="/login"');
+    expect(html).toContain('href="/register"');
+  });
+
+  it("offers a way to make an account that actually answers", async () => {
+    const s = session();
+    const res = await s.get("/register");
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    // /key answered 200 from its first commit with nothing linking to it, so
+    // the only way to reach it was to type the URL. Both halves are checked
+    // here: the page answers, and the sign-in page above points at it.
     expect(html).toContain("What should everyone call you?");
+    expect(html).toContain('action="/register"');
+    expect(html).toContain("Which house is yours?");
   });
 
   it("lets someone join and then shows them the four houses", async () => {
     const s = session();
     await s.get("/");
-    const joined = await s.post("/join", { name: "Alice", home: "canberra" });
-    expect(joined.status).toBe(303);
+    await signIn(s, "Alice", "canberra");
     const map = await s.get("/");
     const html = await map.text();
     expect(html).toContain("The meeting house");
@@ -120,7 +188,7 @@ describe("what a browser gets", () => {
   it("places a thing with a plain form POST, no JavaScript involved", async () => {
     const s = session();
     await s.get("/");
-    await s.post("/join", { name: "Alice", home: "canberra" });
+    await signIn(s, "Alice", "canberra");
     try {
       await s.get("/house/canberra");
       // A body unique to this run, not just this test: "contains the text" and
@@ -143,12 +211,19 @@ describe("what a browser gets", () => {
   });
 
   it("explains a refusal in words rather than dropping it", async () => {
+    // Alice places in HER OWN house. Starting something is now the
+    // household's own right, so a Canberra account placing in Hanoi is
+    // refused for a different reason than the one under test, and this
+    // test would pass on the wrong refusal.
     const alice = session();
     await alice.get("/");
-    await alice.post("/join", { name: "Alice", home: "canberra" });
+    await signIn(alice, "Alice", "hanoi");
+    // Bob is a guest in Hanoi, which is the point: a guest may still write
+    // their side and keep it, and that is what makes Alice's own attempt
+    // the only thing being refused here.
     const bob = session();
     await bob.get("/");
-    await bob.post("/join", { name: "Bob", home: "nghe-an" });
+    await signIn(bob, "Bob", "nghe-an");
 
     try {
       await alice.get("/house/hanoi");
@@ -178,7 +253,7 @@ describe("what a browser gets", () => {
   it("answers 404 for a house that does not exist", async () => {
     const s = session();
     await s.get("/");
-    await s.post("/join", { name: "Alice", home: "canberra" });
+    await signIn(s, "Alice", "canberra");
     expect((await s.get("/house/treehouse")).status).toBe(404);
   });
 
@@ -227,7 +302,7 @@ describe("what a browser gets", () => {
     // photograph, or that offered only one size, still fails.
     const s = session();
     await s.get("/");
-    await s.post("/join", { name: "Alice", home: "canberra" });
+    await signIn(s, "Alice", "canberra");
     const html = await (await s.get("/")).text();
     expect(html).toContain('class="scene-photo"');
     for (const width of [760, 1200, 1672]) {
@@ -258,7 +333,7 @@ describe("what a browser gets", () => {
     // the rendered room, the same as a visitor's browser would.
     const s = session();
     await s.get("/");
-    await s.post("/join", { name: "Alice", home: "canberra" });
+    await signIn(s, "Alice", "canberra");
     try {
       const marker = `xss-${Date.now()}`;
       const payload = `<script>window.${marker}=1</script>`;
@@ -281,10 +356,10 @@ describe("what a browser gets", () => {
     // must still land as one keeper, not a corrupted or duplicated row.
     const alice = session();
     await alice.get("/");
-    await alice.post("/join", { name: "Alice", home: "canberra" });
+    await signIn(alice, "Alice", "canberra");
     const bob = session();
     await bob.get("/");
-    await bob.post("/join", { name: "Bob", home: "canberra" });
+    await signIn(bob, "Bob", "canberra");
 
     try {
       await alice.get("/house/canberra");
@@ -326,10 +401,10 @@ describe("what a browser gets", () => {
   it("escapes a script tag submitted as a perspective, through the real HTTP round trip to the shelf", async () => {
     const alice = session();
     await alice.get("/");
-    await alice.post("/join", { name: "Alice", home: "canberra" });
+    await signIn(alice, "Alice", "canberra");
     const bob = session();
     await bob.get("/");
-    await bob.post("/join", { name: "Bob", home: "nghe-an" });
+    await signIn(bob, "Bob", "nghe-an");
 
     try {
       await alice.get("/house/canberra");
@@ -371,19 +446,19 @@ describe("what a browser gets", () => {
     // 404 and change nothing; only the real form's POST works.
     const s = session();
     await s.get("/");
-    await s.post("/join", { name: "Alice", home: "canberra" });
+    await signIn(s, "Alice", "canberra");
     try {
       const viaGet = await s.get("/leave");
       expect(viaGet.status).toBe(404);
-      // Still joined: the map still greets Alice by name rather than showing
-      // the join page, proving the GET above changed nothing.
+      // Still signed in: the map still greets Alice by name rather than
+      // showing the sign-in page, proving the GET above changed nothing.
       const stillHome = await (await s.get("/")).text();
       expect(stillHome).toContain("Alice");
 
       const viaPost = await s.post("/leave", {});
       expect(viaPost.status).toBe(303);
       const afterLeaving = await (await s.get("/")).text();
-      expect(afterLeaving).toContain("What should everyone call you?");
+      expect(afterLeaving).toContain('action="/login"');
     } finally {
       await s.post("/leave", {});
     }
@@ -401,9 +476,9 @@ describe("what a browser gets", () => {
     const two = session();
     try {
       await one.get("/");
-      await one.post("/join", { name: "Player One", home: "canberra" });
+      await signIn(one, "Player One", "canberra");
       await two.get("/");
-      await two.post("/join", { name: "Player Two", home: "hanoi" });
+      const twosName = await signIn(two, "Player Two", "hanoi");
 
       // A bare table: both sit, and the second sitting fills the far chair.
       expect((await one.post("/game/sit", { house: "meeting" })).status).toBe(303);
@@ -431,7 +506,7 @@ describe("what a browser gets", () => {
       // board makes this a test of the direction the player chose and not
       // merely of a move having happened.
       const after = await (await one.get("/house/meeting")).text();
-      expect(after).toContain("It's Player Two's turn.");
+      expect(after).toContain(`It's ${twosName}'s turn.`);
       expect(stonesOnBoard(after)).toEqual(SOWED_PIT_1_RIGHT);
 
       // And a move out of turn is refused in the app's own words rather
@@ -462,9 +537,9 @@ describe("what a browser gets", () => {
     const two = session();
     try {
       await one.get("/");
-      await one.post("/join", { name: "Fragment One", home: "canberra" });
+      await signIn(one, "Fragment One", "canberra");
       await two.get("/");
-      await two.post("/join", { name: "Fragment Two", home: "hanoi" });
+      await signIn(two, "Fragment Two", "hanoi");
       await one.post("/game/sit", { house: "meeting" });
       await two.post("/game/sit", { house: "meeting" });
 
@@ -510,9 +585,9 @@ describe("what a browser gets", () => {
     const two = session();
     try {
       await one.get("/");
-      await one.post("/join", { name: "Ending One", home: "canberra" });
+      await signIn(one, "Ending One", "canberra");
       await two.get("/");
-      await two.post("/join", { name: "Ending Two", home: "hanoi" });
+      await signIn(two, "Ending Two", "hanoi");
       await one.post("/game/sit", { house: "meeting" });
       await two.post("/game/sit", { house: "meeting" });
       await one.post("/game/move", { house: "meeting", pit: "1", dir: "right" });
@@ -563,7 +638,7 @@ describe("what a browser gets", () => {
     const s1 = session();
     try {
       await s1.get("/");
-      await s1.post("/join", { name: "Typist", home: "canberra" });
+      await signIn(s1, "Typist", "canberra");
 
       const before = markup(await (await s1.get("/house/meeting")).text());
       const ping = await s1.post("/typing", { house: "meeting" });
@@ -601,7 +676,7 @@ describe("what a browser gets", () => {
     const s1 = session();
     try {
       await s1.get("/");
-      await s1.post("/join", { name: "No Script", home: "hanoi" });
+      await signIn(s1, "No Script", "hanoi");
       const page = await (await s1.get("/house/meeting")).text();
 
       // The place the bubble appears is in the HTML and is EMPTY. Nothing
@@ -617,6 +692,114 @@ describe("what a browser gets", () => {
       expect(markup(await (await s1.get("/house/meeting")).text())).toContain("typed with no script");
     } finally {
       await s1.post("/leave", {});
+    }
+  });
+});
+
+describe("a household of one, which is the case this design exists for", () => {
+  // An lives alone in Canberra. A thing reaches a shelf only when a SECOND
+  // person writes their side of it and keeps it together, so if a guest
+  // could not do that in a house that is not theirs, nothing An ever placed
+  // at home could reach his own shelf. The rule the whole app is built on
+  // would hold for everybody except him.
+  //
+  // Nothing else in the suite proves this. The unit tests exercise the two
+  // permission functions directly, and the source guard reads the file; only
+  // a real round trip shows a guest actually getting through the route,
+  // the trigger, and onto the shelf.
+  it("lets a guest corroborate a thing in a house where nobody else lives", async () => {
+    const an = session();
+    await an.get("/");
+    const ansName = await signIn(an, "An", "canberra");
+
+    const mum = session();
+    await mum.get("/");
+    const mumsName = await signIn(mum, "Mum", "nghe-an");
+
+    try {
+      // Unique per run: this database is persistent and never reset, so a
+      // fixed body would match a row an earlier run left behind and the
+      // assertions below would pass on the wrong thing.
+      const body = `an duy called today ${Date.now()}`;
+      const placed = await an.post("/place", {
+        house: "canberra",
+        title: "An Duy called",
+        body,
+      });
+      expect(placed.status).toBe(303);
+
+      // Mum is a guest in Canberra. She must be able to SEE the room:
+      // you cannot write your side of something you cannot see, and the
+      // room used to be hidden from everyone but the household.
+      const herView = await (await mum.get("/house/canberra/room")).text();
+      const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(herView);
+      expect(item, "a guest cannot see the room, so she can never corroborate anything in it").not.toBeNull();
+      expect(item![0]).toContain("In the room");
+
+      const thingId = /name="thing" value="(\d+)"/.exec(item![0])?.[1];
+      expect(thingId, "a guest is offered no way to respond to what she can see").toBeTruthy();
+
+      // The two halves of corroborating: her own words, then the keeping.
+      const side = await mum.post("/perspectives", {
+        thing: thingId!,
+        house: "canberra",
+        body: "I heard him on the phone, babbling away.",
+      });
+      expect(side.status).toBe(303);
+      expect(new URL(side.headers.get("location") ?? "", baseUrl).searchParams.get("said")).toBeNull();
+
+      const kept = await mum.post("/take", { thing: thingId!, house: "canberra" });
+      expect(kept.status).toBe(303);
+      const refusal = new URL(kept.headers.get("location") ?? "", baseUrl).searchParams.get("said");
+      expect(refusal, `a guest was refused the keeping: ${refusal}`).toBeNull();
+
+      // It reached the shelf, carrying BOTH names. That is the product.
+      // Read the shelf CARD, not the room's slip. Three things differ and
+      // each one fails as "it never reached the shelf" when it had: the
+      // shelf renders `<li class="thing card-shelf">`; a card contains a
+      // nested `<li class="perspective">`, so a non-greedy match to the
+      // first `</li>` stops inside the card, short of the names; and the
+      // stylesheet is inlined into every page and mentions these same
+      // class names, so it is stripped first (see `markup` at the top of
+      // this file — this has bitten twice before).
+      const shelf = markup(await (await an.get("/shelf")).text());
+      const cards = [...shelf.matchAll(/<li class="thing card-shelf">[\s\S]*?<\/div>\s*<\/li>/g)].map(
+        (m) => m[0],
+      );
+      const card = cards.find((c) => c.includes(body));
+      expect(card, "the thing never reached the shelf").toBeTruthy();
+      // Both names on it. A thing on the shelf with one name is the thing
+      // this app exists to make impossible, so this is the assertion that
+      // the whole design is for.
+      expect(card!).toContain(ansName);
+      expect(card!).toContain(mumsName);
+      expect(card!).toContain("Kept together by");
+    } finally {
+      await an.post("/leave", {});
+      await mum.post("/leave", {});
+    }
+  });
+
+  it("still refuses a guest STARTING something in a house that is not theirs", async () => {
+    // The other half of the same rule, and the reason it is not simply
+    // "a guest may do anything". Responding is open; starting is not.
+    const mum = session();
+    await mum.get("/");
+    await signIn(mum, "Mum", "nghe-an");
+    try {
+      const refused = await mum.post("/place", {
+        house: "canberra",
+        title: "Not hers to start",
+        body: `mum should not be able to start this ${Date.now()}`,
+      });
+      expect(refused.status).toBe(303);
+      const said = new URL(refused.headers.get("location") ?? "", baseUrl).searchParams.get("said") ?? "";
+      // Refused in words, and the words say what she MAY do — a refusal
+      // that only says no teaches nothing.
+      expect(said).toContain("guest in this house");
+      expect(said).toContain("write your side");
+    } finally {
+      await mum.post("/leave", {});
     }
   });
 });
