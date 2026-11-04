@@ -148,10 +148,44 @@ removes all three files.
    after `listening`, so `tail` is not enough:
 
    ```bash
-   mise exec -- flyctl logs -a comp4020-final-anpham-09 --no-tail | grep -E "listening|no keys cut|MEMBER_KEYS has entries that are not hashes"
+   mise exec -- flyctl logs -a comp4020-final-anpham-09 --no-tail | grep -E "listening|no code|not hashes"
    ```
 
    Expect a `listening` line from after the restart and **no** lines matching
-   `no keys cut` or `MEMBER_KEYS has entries that are not hashes`. Any such line
-   means the keys did not load; stop and ask the owner before anyone uses the
-   village.
+   `these houses have no code` or `HOUSEHOLD_CODES has entries that are not
+   hashes`. Either one means the codes did not load; stop and ask the owner
+   before anyone uses the village.
+
+## 5. Cut the household codes
+
+**Do this before telling anyone the village is ready.** Until
+`HOUSEHOLD_CODES` is set, every house is claimable by whoever reaches the
+URL first — the app says so at boot rather than pretending otherwise, but
+saying so is not preventing it.
+
+One code per house, not per person: the two adults in a household share
+theirs. Type each one in; never pass it as an argument.
+
+```bash
+read -rs "c?Nghe An's code: " && printf '%s' "$c" | pnpm -s household-code "nghe-an"; unset c
+read -rs "c?Hanoi's code: "   && printf '%s' "$c" | pnpm -s household-code "hanoi";   unset c
+read -rs "c?Canberra's code: " && printf '%s' "$c" | pnpm -s household-code "canberra"; unset c
+```
+
+Each prints one `"slug":"salt:hash"` fragment. Collect all three into one
+JSON object and set it as a single secret. Setting it restarts the machine.
+
+```bash
+mise exec -- flyctl secrets set HOUSEHOLD_CODES='{"nghe-an":"...","hanoi":"...","canberra":"..."}' -a comp4020-final-anpham-09
+```
+
+Then confirm, with the same grep as Step 4: a `listening` line and **no**
+warning about houses with no code. Finally, remove the secret the keys used
+to live in, which nothing reads any more:
+
+```bash
+mise exec -- flyctl secrets unset MEMBER_KEYS -a comp4020-final-anpham-09
+```
+
+Give each household its own code out of band — not in this repository, not
+in the app, and not over the group chat the app exists to replace.
