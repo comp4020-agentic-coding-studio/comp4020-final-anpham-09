@@ -66,7 +66,7 @@ and half the layout dead ([`3cbdc2e`](https://github.com/comp4020-agentic-coding
 looked at it. The fix needed screenshots ([`8a5a6ef`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/8a5a6ef)).
 
 `CLAUDE.md` holds what the argument forbids; `spec/` holds what can be
-tested — now 150 tests, each broken once before being trusted. Most rules
+tested — now 195 tests, each broken once before being trusted. Most rules
 exist because a mistake taught them: houses are allocated per test since
 vitest runs spec files in parallel and presence is shared state; tests leave
 on their way out since presence outlives them by 45 seconds; `README.md`
@@ -218,3 +218,52 @@ unnoticed — and it was removed on schedule
 ([`dab8ad7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/dab8ad7)). `README.md` and `CLAUDE.md` both still said "no
 accounts" after this shipped; rewritten rather than left contradicted, the
 same rule as the game and the keys.
+
+## 2026-11-04 — a rule I had argued for, reversed on purpose
+
+Keys proved permission, not identity, and the page that took one offered a
+dropdown of all five family names to anybody who loaded it. Replacing them
+with registration broke an argument I had already written down and tested:
+that any member may change any home, because *the family is one family,
+however many cities it is in*. That held while a key meant "one of us" —
+five, cut by hand. With registration open to whoever has the URL, signed-in
+stops meaning family, and a home has to be its household's own. The test
+pinning the old rule now asserts its opposite and carries the reason
+([`94567fb`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/94567fb)).
+
+**The reversal immediately broke something worth more than it.** Narrowing
+"may change" to the household would have meant that nothing I put down in
+Canberra could ever be kept: I live there alone, a thing reaches a shelf
+only when a *second* person writes their side of it, and there is no second
+person. The rule the whole app is built on would have worked for everybody
+except me. So one predicate became two — `mayPlace` for starting something,
+`mayRespond` for answering what is already there — and the room stopped
+being hidden from guests, because you cannot write your side of something
+you cannot see. The deadlock is the design's actual argument, so it is a
+test rather than a paragraph ([`ab176c7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/ab176c7)).
+
+**Three fresh ways to assert nothing, all mine, all the shape already in
+this file.** The shelf renders `<li class="thing card-shelf">`, so the
+room's regex could never match it. A shelf card *contains*
+`<li class="perspective">`, so a non-greedy match to the first `</li>`
+stops before the names — the part under test. And the stylesheet is inlined
+into every page and names those same classes. Each one failed as "it never
+reached the shelf" while the database said otherwise, which I only knew
+because I read the row before believing the test.
+
+**A break that reported pass because it never applied.** Counting malformed
+secret entries as real codes should have gone red; it came back green. The
+edit had silently not matched. The second attempt asserted that the file had
+actually changed before running anything, and then three tests went red.
+A check that passes identically whether or not the thing works — this time
+in the harness rather than the suite.
+
+**Two holes the new model opens, closed before they bit.** An account name
+is unique for ever and its household is fixed when it is made, so the same
+test name wanting two different houses across two files would be one account
+with whichever ran first, the second asserting against the wrong permissions
+and still passing; the house is now part of the name. And `/key` had no
+rate limit at all, which mattered less when a key was one of five long
+strings nobody could enumerate — a password somebody chose is guessable, so
+sign-in attempts are now counted per name, not per cookie, since a cookie
+is free ([`07e88ec`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/07e88ec)).
