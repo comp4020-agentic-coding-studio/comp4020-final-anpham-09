@@ -17,12 +17,14 @@ change would make any line here false, the change is wrong, not the line.
 - **Never drop an action silently.** Every refusal gets words explaining the
   rule. A button that appears to do nothing teaches the user the system is
   broken; being told the rule teaches them the rule.
-- **Collect nothing beyond a chosen name and, for the family, a key.** No
-  email, no profile, no analytics, nothing to recover. A key is not an
-  account: no sign-up, no reset, no record of anyone beyond the name they
-  chose. This rule said "no passwords" until C10, when the homes needed a
-  server-side answer to who may change them. What it was protecting was
-  collecting nothing, and that still holds.
+- **The five have accounts; visitors have none.** An account is a name and a
+  key, and nothing else: no email, no profile, no analytics, no reset, and
+  nothing kept about anyone beyond those two things. It is an account
+  because it is who you are — the same person on every device you sign in
+  on — not merely permission to act. This file said "no accounts, no
+  passwords" until the cookie turned out to be the identity, which made one
+  person with two browsers into two people and let Mum keep her own thing.
+  A visitor is still only their browser, and is never asked for anything.
 - **Never claim privacy the app does not have.** The deployment is a public
   URL. The README says so plainly rather than implying the village is sealed.
 

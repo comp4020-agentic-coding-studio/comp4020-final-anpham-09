@@ -74,14 +74,19 @@ conversation and always was. Privacy comes from where you are, not a
 recipient field. Nothing can be deleted or edited. Still cut: photo uploads,
 likes, tags, the other games the mockups drew.
 
-This file said "no accounts" until C10, and the app still has none — but it
-now has keys. Each of the five adults has their own; a visitor needs nothing
-and is never asked for anything. A key is not an account: no sign-up, no
-email, no reset, no profile, and nothing kept about anyone beyond the name
-they chose. It exists because a home needed a server-side answer to who may
-put something down in it, and "whoever has the URL" was the wrong answer.
+This file said "no accounts" until the cookie turned out to be doing the job
+of one, badly. Identity was the browser, so Mum on her phone and Mum on her
+laptop were two people: she could place a thing and then keep it together
+with herself, and the shelf would show her name on both sides. The rule that
+a memory needs two of you was true of browsers, not of people.
+
+So the five adults have accounts — a name and a key, and nothing else. No
+sign-up, no email, no reset, no profile, nothing kept beyond those two
+things. The account is who you are, the same on every device. A visitor
+needs nothing, is never asked for anything, and is still only their browser,
+which is the honest answer for somebody who has not said who they are.
 An Duy is eleven months old and has no key — he is who the village is for,
-not someone who uses it.
+not somebody who uses it.
 
 One concession to JavaScript: the line saying somebody is typing. With a
 script blocked it never appears and nothing else changes — every action here
