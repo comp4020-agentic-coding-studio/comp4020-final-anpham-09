@@ -267,3 +267,28 @@ rate limit at all, which mattered less when a key was one of five long
 strings nobody could enumerate — a password somebody chose is guessable, so
 sign-in attempts are now counted per name, not per cookie, since a cookie
 is free ([`07e88ec`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/07e88ec)).
+
+**Then I opened the app, and found three things 197 passing tests could
+not.** The suite was green, typecheck clean, every new rule broken once and
+confirmed red. The first page I looked at let me into the village while the
+nav still said "Sign in" — the gate asked whether a `people` row existed for
+this cookie, which is a *session*, when the question is whether it is signed
+in to an *account*. Every row the old `/join` flow left behind has one and no
+account: 2148 on the dev database, all of them walking straight through. No
+test could catch it, because a test always starts with a fresh cookie.
+
+Pulling that thread found a second: signing out cleared the cookie but left
+`member_name` on the row, so replaying the old cookie value signed you back
+in with no password. Invisible while a key was per-browser; with accounts it
+is the difference between signing out and appearing to
+([`9aea5fb`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/9aea5fb)). The third was the room offering a guest "Add a
+note", anchored to a composer deliberately not rendered for them — a dead
+link to the one action the house refuses. The composer was correctly hidden,
+which is exactly why nothing caught it: every assertion was about the form,
+none about the thing pointing at it ([`640fbef`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/640fbef)).
+
+Three for three, the same lesson as the restyle in October: the checks
+answer the question you thought to ask. None of these needed a debugger or a
+log — they needed one person loading the page as somebody who is not the
+developer. The permission rules were right the whole time; what was wrong
+was who the app thought was asking.
