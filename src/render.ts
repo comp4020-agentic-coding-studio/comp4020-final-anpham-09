@@ -319,6 +319,13 @@ form.inline-perspective { display: flex; flex-wrap: wrap; align-items: center;
 /* A label that a screen reader reads and the eye doesn't: used where the
    placeholder and the surrounding context already say what the field is,
    but the field still needs a real label to be announced at all. */
+/* Hidden until focused, then a real, visible target — the skip-link
+   pattern. Invisible to a mouse, one tab stop to a keyboard. */
+.skip-to-composer { position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; }
+.skip-to-composer:focus { position: static; width: auto; height: auto; clip: auto;
+  display: inline-block; margin: 0 0 .5rem; padding: .35rem .6rem; border-radius: .4rem;
+  background: var(--hearth); color: var(--paper); font-size: .8125rem; text-decoration: none; }
 .visually-hidden, form.inline-perspective label { position: absolute; width: 1px; height: 1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 form.inline-perspective input { flex: 1 1 12rem; min-height: 40px; padding: .45rem .7rem;
@@ -1654,6 +1661,17 @@ export function housePage(
       <div class="layout-house measured">
         <div class="room-collection${isMeeting ? " conversation" : ""}">
           <h2>${isMeeting ? "Family chat" : "Recent memories"}</h2>
+          ${
+            // The brief's first artefact criterion is the keyboard, and the
+            // message box is the LAST thing in the tab order here: every
+            // message carries a disclosure control, so at two hundred
+            // messages the box was stop 606 of 609. Hidden until focused,
+            // the way a skip-to-content link is, so it costs a sighted
+            // mouse user nothing and a keyboard user one stop.
+            isMeeting && mayPutDown
+              ? `<a class="skip-to-composer" href="#body">Skip to the message box</a>`
+              : ""
+          }
           <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
           ${
             // At the table the composer belongs UNDER what was said, where

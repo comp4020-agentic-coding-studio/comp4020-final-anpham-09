@@ -1042,3 +1042,47 @@ describe("the table reads as a conversation", () => {
     }
   });
 });
+
+describe("reaching the composer with a keyboard", () => {
+  // The brief's top band for the artefact is keyboard, resize
+  // mid-interaction and a slow connection. Measured in a real browser, the
+  // message box at the table was tab stop 606 of 609: every message
+  // contributes a disclosure control, so reaching the box meant tabbing
+  // past all two hundred of them. The form worked; it was simply
+  // unreachable by the input method the brief names first.
+  it("offers a skip link straight to the message box, before the messages", async () => {
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Keyboard User", "canberra");
+    try {
+      await s.post("/place", { house: "meeting", title: "", body: `keyboard test ${Date.now()}` });
+      const page = markup(await (await s.get("/house/meeting")).text());
+
+      const skip = page.indexOf('href="#body"');
+      const room = page.indexOf('<div id="room">');
+      const box = page.indexOf('id="body"');
+
+      expect(skip, "no way to reach the composer without tabbing the whole thread").toBeGreaterThan(-1);
+      // Before the messages, or it is just another stop after them.
+      expect(skip).toBeLessThan(room);
+      expect(room).toBeLessThan(box);
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("does not add one to a house that has no conversation to skip", async () => {
+    // The other houses list a handful of things and put the composer in
+    // the panel; a skip link there would be noise in the tab order, which
+    // is the same problem pointed the other way.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Keyboard Home", "canberra");
+    try {
+      const page = markup(await (await s.get("/house/canberra")).text());
+      expect(page).not.toContain('href="#body"');
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+});
