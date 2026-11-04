@@ -473,3 +473,108 @@ describe("putting a finished game in the room", () => {
     expect(thing.title).toContain("Linh");
   });
 });
+
+describe("a chair somebody walked away from", () => {
+  // The bug, as photographed: "2 seated · 1 here". A chair holds a person
+  // id and nothing ties that to whether they are still in the room, and
+  // standUp only ever frees your OWN chair. So when both players close the
+  // tab, the table is occupied for ever and nobody can start a game at it
+  // again — there is no button anywhere that would help.
+  type Presence = typeof import("../src/presence.ts");
+
+  async function bootWithPresence(): Promise<{ games: Games; presence: Presence }> {
+    vi.resetModules();
+    process.env.DATABASE_PATH = dbPath;
+    const people = await import("../src/people.ts");
+    people.ensurePerson("an", "An", "nghe-an");
+    people.ensurePerson("linh", "Linh", "hanoi");
+    people.ensurePerson("mai", "Mai", "canberra");
+    return {
+      games: (await import("../src/games.ts")) as Games,
+      presence: (await import("../src/presence.ts")) as Presence,
+    };
+  }
+
+  const NOW = 1_800_000_000;
+  const LONG_AGO = NOW - 600;
+
+  it("can be freed by somebody else once its player is gone", async () => {
+    const { games, presence } = await bootWithPresence();
+    games.sitDown("meeting", "an");
+    games.sitDown("meeting", "linh");
+
+    // An is still at the table; Linh left ten minutes ago.
+    presence.enter("an", "meeting", NOW);
+    presence.enter("linh", "meeting", LONG_AGO);
+
+    expect(games.freeChair("meeting", "top", NOW)).toBe(null);
+    const after = games.gameAt("meeting", "an");
+    expect(after?.top).toBeNull();
+    // An keeps their chair and the game is still there to be joined.
+    expect(after?.bottom).toBe("an");
+  });
+
+  it("refuses to free a chair whose player is still in the room", async () => {
+    const { games, presence } = await bootWithPresence();
+    games.sitDown("meeting", "an");
+    games.sitDown("meeting", "linh");
+    presence.enter("an", "meeting", NOW);
+    presence.enter("linh", "meeting", NOW);
+
+    // The protection that makes this safe: you cannot eject somebody who is
+    // sitting there, however much you want their chair.
+    expect(games.freeChair("meeting", "top", NOW)).toBe("still-here");
+    expect(games.gameAt("meeting", "an")?.top).toBe("linh");
+  });
+
+  it("frees the chair of somebody who never had presence at all", async () => {
+    const { games, presence } = await bootWithPresence();
+    games.sitDown("meeting", "an");
+    games.sitDown("meeting", "linh");
+    presence.enter("an", "meeting", NOW);
+    // Linh has no presence row whatsoever — the state a seat left by a
+    // server restart or a cleared table is actually in.
+    expect(games.freeChair("meeting", "top", NOW)).toBe(null);
+    expect(games.gameAt("meeting", "an")?.top).toBeNull();
+  });
+
+  it("ends the game rather than half-freeing it when the last player has gone", async () => {
+    const { games, presence } = await bootWithPresence();
+    games.sitDown("meeting", "an");
+    games.sitDown("meeting", "linh");
+    presence.enter("an", "meeting", LONG_AGO);
+    presence.enter("linh", "meeting", LONG_AGO);
+
+    expect(games.freeChair("meeting", "top", NOW)).toBe(null);
+    // Freeing the last occupied chair leaves no game, not a game with two
+    // empty seats — the table is bare and anybody may set one out.
+    expect(games.freeChair("meeting", "bottom", NOW)).toBe(null);
+    const after = games.gameAt("meeting", "mai");
+    expect(after === null || after.ended !== null).toBe(true);
+  });
+
+  it("refuses an empty chair and a table with no game", async () => {
+    const { games, presence } = await bootWithPresence();
+    expect(games.freeChair("meeting", "top", NOW)).toBe("no-game");
+    games.sitDown("meeting", "an");
+    presence.enter("an", "meeting", NOW);
+    // Nobody is in the top chair, so there is nothing to free.
+    expect(games.freeChair("meeting", "top", NOW)).toBe("empty-chair");
+  });
+
+  it("leaves a played game's score alone, rather than deleting the game", async () => {
+    const { games, presence } = await bootWithPresence();
+    games.sitDown("meeting", "an");
+    games.sitDown("meeting", "linh");
+    games.play("meeting", "an", 1, "right");
+    presence.enter("linh", "meeting", LONG_AGO);
+    presence.enter("an", "meeting", NOW);
+
+    expect(games.freeChair("meeting", "top", NOW)).toBe(null);
+    // A game with moves in it is stopped, the same as standing up from one.
+    // Nothing anybody played is deleted — that is a must-never.
+    const after = games.gameAt("meeting", "an");
+    expect(after?.ended).toBe("stopped");
+    expect(after?.moveCount).toBeGreaterThan(0);
+  });
+});

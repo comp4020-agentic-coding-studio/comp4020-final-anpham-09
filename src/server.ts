@@ -7,6 +7,7 @@ import { actor, logAction } from "./log.ts";
 import {
   concede,
   endGame,
+  freeChair,
   gameAt,
   placeGame,
   play,
@@ -14,6 +15,7 @@ import {
   standUp,
   type PlaceGameRefusal,
   type PlayRefusal,
+  type FreeChairRefusal,
   type SitRefusal,
 } from "./games.ts";
 import { houseBySlug, listHouses, type House } from "./houses.ts";
@@ -183,6 +185,7 @@ const REFUSALS: Record<
   | PlaceGameRefusal
   | "not-stuck"
   | "not-seated"
+  | FreeChairRefusal
   | RegisterRefusal
   | "guests-cannot-start"
   | "wrong-password"
@@ -219,6 +222,8 @@ const REFUSALS: Record<
   "no-game": "There's no game at the table right now. Anyone can set one out.",
   "not-playing": "You're watching this game, not playing it. Only the two people in the chairs move the stones.",
   "not-seated": "You're not in either chair, so there's nothing to stand up from.",
+  "empty-chair": "That chair is already free. Take it if you want to play.",
+  "still-here": "They're still at the table, so their chair is theirs. A chair only frees up once somebody has actually gone.",
   "not-your-turn": "It isn't your turn yet. The board updates on its own when they've moved.",
   "not-your-pit": "That pit is on the other side of the board. You sow from your own five.",
   "empty-pit": "There's nothing in that pit to pick up. Choose one with stones in it.",
@@ -601,6 +606,28 @@ const server = createServer((req, res) => {
       }
       logAction("sit", actor(me, token), { house: slug });
       publish(slug, "sat");
+      seeOther(res, backTo(slug), setCookie);
+      return;
+    }
+
+    // Free a chair whose player has left. Open to anybody at the table,
+    // because the person who should press it is by definition not here.
+    if (req.method === "POST" && path === "/game/free") {
+      const form = await formData(req);
+      const slug = (form.get("house") ?? "").trim();
+      const side = (form.get("side") ?? "").trim();
+      if (side !== "bottom" && side !== "top") {
+        seeOther(res, said(backTo(slug), REFUSALS["empty-chair"]), setCookie);
+        return;
+      }
+      const refusal = freeChair(slug, side);
+      if (refusal) {
+        logAction("free-chair-refused", actor(me, token), { house: slug, side, reason: refusal });
+        seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);
+        return;
+      }
+      logAction("free-chair", actor(me, token), { house: slug, side });
+      publish(slug, "stood");
       seeOther(res, backTo(slug), setCookie);
       return;
     }

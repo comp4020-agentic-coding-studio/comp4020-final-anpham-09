@@ -895,3 +895,81 @@ describe("what a guest is offered", () => {
     }
   });
 });
+
+describe("a table nobody can get back to", () => {
+  // The photographed bug, end to end: "2 seated · 1 here", both chairs
+  // held, no control anywhere that frees one. The model test in
+  // spec/games.test.ts proves freeChair's rules; this proves a person can
+  // actually reach it — the last fix like this had a route that answered
+  // 200 from its first commit with nothing linking to it.
+  it("offers a way to free the chair of somebody who has gone", async () => {
+    const one = session();
+    await one.get("/");
+    await signIn(one, "Seat One", "canberra");
+    const two = session();
+    await two.get("/");
+    const twosName = await signIn(two, "Seat Two", "hanoi");
+
+    try {
+      await one.get("/house/meeting");
+      await one.post("/game/sit", { house: "meeting" });
+      await two.get("/house/meeting");
+      await two.post("/game/sit", { house: "meeting" });
+
+      // Seat Two leaves the village entirely: presence gone, chair still held.
+      await two.post("/leave", {});
+
+      const table = markup(await (await one.get("/house/meeting")).text());
+      expect(table).toContain(twosName);
+      // The control exists, names the side, and is reachable by somebody
+      // who is NOT the person in that chair.
+      expect(table).toContain('action="/game/free"');
+      expect(table).toContain("Free this chair");
+
+      const freed = await one.post("/game/free", { house: "meeting", side: "top" });
+      expect(freed.status).toBe(303);
+      const said = new URL(freed.headers.get("location") ?? "", baseUrl).searchParams.get("said");
+      expect(said, `freeing the chair was refused: ${said}`).toBeNull();
+
+      // And now the table has a seat in it again.
+      const after = markup(await (await one.get("/house/meeting")).text());
+      expect(after).toContain("Sit down");
+    } finally {
+      // The house field matters: /game/stand without it refuses and the
+      // table stays occupied for whatever runs next. The meeting house has
+      // exactly one table and every game test shares it.
+      await one.post("/game/stand", { house: "meeting" });
+      await one.post("/leave", {});
+      await two.post("/leave", {});
+    }
+  });
+
+  it("refuses to free the chair of somebody who is still at the table", async () => {
+    const one = session();
+    await one.get("/");
+    await signIn(one, "Present One", "canberra");
+    const two = session();
+    await two.get("/");
+    await signIn(two, "Present Two", "hanoi");
+
+    try {
+      await one.get("/house/meeting");
+      await one.post("/game/sit", { house: "meeting" });
+      await two.get("/house/meeting");
+      await two.post("/game/sit", { house: "meeting" });
+
+      // Both are here, so neither chair may be taken from its occupant.
+      const refused = await one.post("/game/free", { house: "meeting", side: "top" });
+      expect(refused.status).toBe(303);
+      const said = new URL(refused.headers.get("location") ?? "", baseUrl).searchParams.get("said") ?? "";
+      expect(said).toContain("still at the table");
+    } finally {
+      // Top stands first: standing the bottom player while somebody holds
+      // the top chair hands them the table rather than clearing it.
+      await two.post("/game/stand", { house: "meeting" });
+      await one.post("/game/stand", { house: "meeting" });
+      await one.post("/leave", {});
+      await two.post("/leave", {});
+    }
+  });
+});

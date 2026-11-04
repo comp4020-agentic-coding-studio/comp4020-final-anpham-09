@@ -1,5 +1,6 @@
 import { db } from "./db.ts";
 import { houseBySlug } from "./houses.ts";
+import { isInRoom } from "./presence.ts";
 import { nameForPersonId } from "./people.ts";
 import {
   type Board,
@@ -58,6 +59,12 @@ export interface GameView {
    *  live at this point: somebody has to say so, which is what
    *  `concede` is for. */
   stuck: Side | null;
+  /** Which seated players are actually in the room, by presence's own
+   *  45-second window. A chair whose player is away can be freed by
+   *  anybody — see `freeChair` — so the page has to be able to say which
+   *  those are. False for an empty chair, which has nobody to be away. */
+  bottomHere: boolean;
+  topHere: boolean;
 }
 
 export type SitRefusal =
@@ -144,7 +151,7 @@ export function gameAt(houseSlug: string, viewer: string): GameView | null {
   if (!house) return null;
   const row = liveGameRow(house.id) ?? lastEndedGame(house.id);
   if (!row) return null;
-  return viewOf(row, viewer);
+  return viewOf(row, viewer, houseSlug);
 }
 
 /** A table that has been played at shows its last game rather than going
@@ -157,7 +164,7 @@ const lastEndedGame = (houseId: number): GameRow | undefined =>
     )
     .get(houseId) as GameRow | undefined;
 
-function viewOf(row: GameRow, viewer: string): GameView {
+function viewOf(row: GameRow, viewer: string, houseSlug: string): GameView {
   const { board, scores, turn, moveCount } = stateOf(row.id);
   const yourSide: Side | null =
     row.bottom === viewer ? "bottom" : row.top === viewer ? "top" : null;
@@ -190,6 +197,10 @@ function viewOf(row: GameRow, viewer: string): GameView {
     // down does not want writing down twice.
     canPlace: row.ended === "finished" && !gameIsPlaced(row.id),
     stuck: mustRefill && !canAffordRefill ? turn : null,
+    // A game that is over has no chair worth freeing, so nobody is
+    // reported away at one: the table shows a score, not two seats.
+    bottomHere: over ? true : isInRoom(row.bottom, houseSlug),
+    topHere: over || row.top === null ? true : isInRoom(row.top, houseSlug),
   };
 }
 
@@ -242,6 +253,68 @@ export function standUp(houseSlug: string, person: string): "no-game" | "not-sea
     return null;
   }
   markEnded(live.id, "stopped");
+  return null;
+}
+
+/** Why a chair could not be freed. */
+export type FreeChairRefusal = "no-game" | "empty-chair" | "still-here";
+
+/** Free a chair whose player has left the room.
+ *
+ *  `standUp` only ever frees your own chair, which is right while you are
+ *  there to use it and useless the moment you are not: a seat holds a
+ *  person id and nothing ties that to whether they are still around. Both
+ *  players closing a tab left the table occupied for ever, with no control
+ *  anywhere that would help — the table read "2 seated · 1 here" and
+ *  nobody could start a game at it again.
+ *
+ *  Presence already knows who is in the room, and already forgets them
+ *  after 45 seconds. So the rule is: a chair may be freed by anybody, but
+ *  only once its player is no longer here. Somebody sitting at the table
+ *  cannot be ejected, mid-game or not — which is what keeps this from
+ *  being a way to throw a person out of a game they are thinking about.
+ *
+ *  `atEpochSeconds` is a parameter rather than read from the clock so a
+ *  test can say "ten minutes ago" without waiting out the TTL. */
+export function freeChair(
+  houseSlug: string,
+  side: Side,
+  atEpochSeconds: number = Math.floor(Date.now() / 1000),
+): FreeChairRefusal | null {
+  const house = houseBySlug(houseSlug);
+  if (!house) return "no-game";
+  const live = liveGameRow(house.id);
+  if (!live) return "no-game";
+
+  const sitter = side === "bottom" ? live.bottom : live.top;
+  if (!sitter) return "empty-chair";
+  if (isInRoom(sitter, houseSlug, atEpochSeconds)) return "still-here";
+
+  // A game with moves in it is stopped rather than emptied, the same as
+  // standing up from one. Nothing anybody played is deleted: the moves
+  // stay, the score stays, and the table shows the last game as it always
+  // does. "Never delete anything anyone placed" applies to a move.
+  if (lastMove(live.id) !== undefined) {
+    markEnded(live.id, "stopped");
+    return null;
+  }
+
+  const other = side === "bottom" ? live.top : live.bottom;
+  if (other === null) {
+    // The last person holding this table is gone and nothing was played.
+    // Ending it leaves the table bare rather than leaving a game with two
+    // empty chairs, which nobody could join and nothing would clear.
+    markEnded(live.id, "stopped");
+    return null;
+  }
+
+  if (side === "top") {
+    db.prepare("UPDATE games SET top = NULL WHERE id = ?").run(live.id);
+  } else {
+    // The bottom chair is the one that owns the row, so the person still
+    // sitting inherits the table rather than being cleared out of it.
+    db.prepare("UPDATE games SET bottom = top, top = NULL WHERE id = ?").run(live.id);
+  }
   return null;
 }
 
@@ -406,7 +479,7 @@ export function placeGame(
   if (row.ended !== "finished") return "game-not-finished";
   if (placedGameIds().has(row.id)) return "already-placed";
 
-  const view = viewOf(row, person);
+  const view = viewOf(row, person, houseSlug);
   const final = view.final ?? { bottom: 0, top: 0 };
   const names = { bottom: view.bottomName, top: view.topName ?? "nobody" };
   const title = `Ô ăn quan · ${names.bottom} and ${names.top}`;

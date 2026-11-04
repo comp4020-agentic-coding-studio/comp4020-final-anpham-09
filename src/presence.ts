@@ -41,6 +41,26 @@ export function whoIsIn(houseSlug: string, atEpochSeconds: number = now()): stri
     .map((r) => (r as { person: string }).person);
 }
 
+/** Whether this person is in this room right now, by the same 45-second
+ *  window everything else here uses. Asked by the game when deciding
+ *  whether a chair may be freed: a seat is only somebody's while they are
+ *  actually at the table. */
+export function isInRoom(
+  person: string,
+  houseSlug: string,
+  atEpochSeconds: number = now(),
+): boolean {
+  const house = houseBySlug(houseSlug);
+  if (!house) return false;
+  const row = db
+    .prepare(
+      `SELECT 1 FROM presence
+        WHERE person = ? AND house_id = ? AND last_seen > ?`,
+    )
+    .get(person, house.id, atEpochSeconds - PRESENCE_TTL_SECONDS);
+  return row !== undefined;
+}
+
 /** One query for the map, so drawing the village is not four round trips. */
 export function whereEveryoneIs(atEpochSeconds: number = now()): Record<string, string[]> {
   const rows = db

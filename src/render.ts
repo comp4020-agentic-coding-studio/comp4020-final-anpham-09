@@ -535,8 +535,17 @@ form.sow { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; marg
 form.sow .cancel { font-size: .875rem; }
 
 ul.chairs { list-style: none; margin: .75rem 0; padding: 0; display: grid; gap: .5rem; }
-li.chair { display: flex; align-items: center; gap: .6rem; padding: .5rem .6rem;
+li.chair { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .5rem .6rem;
   background: var(--card-raised); border-radius: .6rem; }
+/* A chair whose player has gone reads as vacated rather than occupied, so
+   the table does not look busier than it is. */
+li.chair[data-away="true"] { opacity: .72; }
+li.chair[data-away="true"] .chair-name small { color: var(--ink-soft); }
+/* The free-this-chair control takes its own line under the name and score,
+   which is why the row wraps. Quiet: it is a tidy-up, not the main action
+   at the table. */
+li.chair .chair-free { flex-basis: 100%; }
+li.chair .chair-free button { font-size: .8125rem; padding: .25rem .6rem; }
 li.chair .chair-name { flex: 1; min-width: 0; font-size: .9375rem; }
 li.chair .chair-score { font-family: var(--display); font-weight: 700; font-size: 1.125rem; }
 li.chair-empty { background: transparent; box-shadow: inset 0 0 0 1px dashed var(--rule); }
@@ -1343,10 +1352,23 @@ function tablePanel(g: GameView | null, houseSlug: string, watching: number): st
         </form>
       </li>`;
     }
-    return `<li class="chair" data-turn="${!g.ended && g.turn === side && Boolean(g.top)}" data-yours="${g.yourSide === side}">
+    // A chair whose player has left the room. Anybody may free it — the
+    // person who would normally stand up is, by definition, not here to.
+    // Without this the table stayed "2 seated · 1 here" for ever and no
+    // game could be started at it again.
+    const away = side === "bottom" ? !g.bottomHere : !g.topHere;
+    const freeForm = away
+      ? `<form method="post" action="/game/free" class="chair-free">
+          <input type="hidden" name="house" value="${esc(houseSlug)}">
+          <input type="hidden" name="side" value="${side}">
+          <button>Free this chair</button>
+        </form>`
+      : "";
+    return `<li class="chair" data-turn="${!g.ended && g.turn === side && Boolean(g.top)}" data-yours="${g.yourSide === side}" data-away="${away}">
       ${face(name)}
-      <span class="chair-name">${esc(name)}<small>${esc(yours)}${esc(toMove)}</small></span>
+      <span class="chair-name">${esc(name)}<small>${esc(yours)}${esc(toMove)}${away ? " · away" : ""}</small></span>
       <span class="chair-score">${score}<small>points</small></span>
+      ${freeForm}
     </li>`;
   };
 
