@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { gzipSync } from "node:zlib";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MAX_LISTENERS, publish, subscribe } from "./events.ts";
@@ -141,11 +142,54 @@ async function formData(req: IncomingMessage): Promise<URLSearchParams> {
   return new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
 }
 
-const html = (res: ServerResponse, status: number, body: string, cookie?: string): void => {
+/** Below this, compressing costs more than it saves: the CPU and the extra
+ *  header outweigh a few hundred bytes on the wire. */
+const WORTH_GZIPPING = 1024;
+
+/** Whether this request said it can take gzip. Parsed rather than
+ *  string-matched, so `gzip;q=0` — a client explicitly refusing it — is
+ *  honoured instead of read as a yes. */
+function acceptsGzip(req: IncomingMessage): boolean {
+  const header = req.headers["accept-encoding"];
+  const raw = Array.isArray(header) ? header.join(",") : (header ?? "");
+  for (const part of raw.split(",")) {
+    const [name, ...params] = part.trim().split(";");
+    if (name !== "gzip" && name !== "*") continue;
+    const q = params.find((p) => p.trim().startsWith("q="));
+    return q ? Number(q.trim().slice(2)) > 0 : true;
+  }
+  return false;
+}
+
+/** Pages here are large on purpose — a room renders two hundred things,
+ *  each with its own form — and Fly's proxy does not compress for us, so
+ *  every byte rendered was a byte sent. The meeting house measured 316KB,
+ *  31KB gzipped: a tenth of the bytes on the slow connection the brief
+ *  names as a top-band criterion.
+ *
+ *  Synchronous on purpose. One shared-cpu machine with no concurrency to
+ *  protect, and gzipSync on a 300KB page is a fraction of a millisecond —
+ *  the async version would add a callback hop for nothing. The event
+ *  stream never comes through here (see the `sse` path): compressing it
+ *  would buffer it, and live updates would quietly stop. */
+const html = (res: ServerResponse, status: number, body: string, cookie?: string, req?: IncomingMessage): void => {
   const headers: Record<string, string> = { "content-type": "text/html; charset=utf-8" };
   if (cookie) headers["set-cookie"] = cookie;
+  const raw = Buffer.from(body, "utf8");
+  if (req && raw.length >= WORTH_GZIPPING && acceptsGzip(req)) {
+    const packed = gzipSync(raw);
+    headers["content-encoding"] = "gzip";
+    // Caches and proxies must not hand a gzipped body to a client that
+    // cannot read one.
+    headers.vary = "accept-encoding";
+    headers["content-length"] = String(packed.length);
+    res.writeHead(status, headers);
+    res.end(packed);
+    return;
+  }
+  headers["content-length"] = String(raw.length);
   res.writeHead(status, headers);
-  res.end(body);
+  res.end(raw);
 };
 
 const seeOther = (res: ServerResponse, to: string, cookie?: string): void => {
@@ -278,7 +322,7 @@ const server = createServer((req, res) => {
     // The README is published whether or not you've said who you are.
     if (method === "GET" && path === "/readme") {
       const src = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-      html(res, 200, page("About — the village", `<main class="measured">${markdown(src)}</main>`, me), setCookie);
+      html(res, 200, page("About — the village", `<main class="measured">${markdown(src)}</main>`, me), setCookie, req);
       return;
     }
 
@@ -328,7 +372,7 @@ const server = createServer((req, res) => {
     // blank is a real choice, not a failure — you get a real account that
     // belongs to no house and is a guest in all of them.
     if (method === "GET" && path === "/register") {
-      html(res, 200, registerPage(listHouses(), message, null), setCookie);
+      html(res, 200, registerPage(listHouses(), message, null), setCookie, req);
       return;
     }
 
@@ -373,7 +417,7 @@ const server = createServer((req, res) => {
     }
 
     if (method === "GET" && path === "/login") {
-      html(res, 200, loginPage(message), setCookie);
+      html(res, 200, loginPage(message), setCookie, req);
       return;
     }
 
@@ -442,13 +486,13 @@ const server = createServer((req, res) => {
       // all. Without this check every unmatched path fell into the login
       // page at 200, so the app could never 404 for anyone signed out.
       if (method === "GET" && isJoinablePath(path)) {
-        html(res, 200, loginPage(message), setCookie);
+        html(res, 200, loginPage(message), setCookie, req);
         return;
       }
       // Nothing else is a page this visitor can see without joining — the
       // same 404 the rest of the app gives, reached here directly rather
       // than falling through to routes below that assume `me` is a Person.
-      html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such page.</p></main>", me), setCookie);
+      html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such page.</p></main>", me), setCookie, req);
       return;
     }
 
@@ -459,7 +503,7 @@ const server = createServer((req, res) => {
         hereNames: (everywhere[h.slug] ?? []).map(nameForPersonId),
         counts: countsFor(h.slug),
       }));
-      html(res, 200, mapPage(houses, me, message), setCookie);
+      html(res, 200, mapPage(houses, me, message), setCookie, req);
       return;
     }
 
@@ -473,7 +517,7 @@ const server = createServer((req, res) => {
         ...h,
         shelved: shelfFor(h.slug, who, { year: filters.year, q: filters.q }),
       }));
-      html(res, 200, shelfPage(houses, me, message, filters, shelfYears()), setCookie);
+      html(res, 200, shelfPage(houses, me, message, filters, shelfYears()), setCookie, req);
       return;
     }
 
@@ -497,7 +541,7 @@ const server = createServer((req, res) => {
     const room = /^\/house\/([a-z-]+)\/room$/.exec(path);
     if (method === "GET" && room) {
       const house = houseBySlug(room[1]);
-      if (!house) { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
+      if (!house) { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such house.</p></main>", me), setCookie, req); return; }
       enter(who, house.slug);
       // Computed exactly as the /house/:slug route does, so a reconnecting
       // stream's resync carries the same who-line the full page would.
@@ -514,7 +558,7 @@ const server = createServer((req, res) => {
     const tableFrag = /^\/house\/([a-z-]+)\/table$/.exec(path);
     if (method === "GET" && tableFrag) {
       const house = houseBySlug(tableFrag[1]);
-      if (!house || house.kind !== "meeting") { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such table.</p></main>", me), setCookie); return; }
+      if (!house || house.kind !== "meeting") { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such table.</p></main>", me), setCookie, req); return; }
       enter(who, house.slug);
       const pit = Number(url.searchParams.get("pit"));
       const others = whoIsIn(house.slug).filter((p) => p !== who).length;
@@ -568,7 +612,7 @@ const server = createServer((req, res) => {
     const visit = /^\/house\/([a-z-]+)$/.exec(path);
     if (method === "GET" && visit) {
       const house = houseBySlug(visit[1]);
-      if (!house) { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such house.</p></main>", me), setCookie); return; }
+      if (!house) { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such house.</p></main>", me), setCookie, req); return; }
       // Arriving is what makes you present, so a reader with JavaScript off
       // still counts for the 45 seconds the app will admit to.
       enter(who, house.slug);
@@ -579,15 +623,13 @@ const server = createServer((req, res) => {
       // person per tab and a TTL, and would recreate the two-tab presence
       // bug documented in src/presence.ts.
       const picked = Number(url.searchParams.get("pit"));
-      html(
-        res,
+      html(res,
         200,
         housePage(house, me, others, inRoom(house.slug, who), message, {
           game: gameAt(house.slug, who),
           picked: Number.isInteger(picked) ? picked : null,
         }),
-        setCookie,
-      );
+        setCookie, req);
       publish(house.slug, "arrived");
       return;
     }
@@ -835,7 +877,7 @@ const server = createServer((req, res) => {
       return;
     }
 
-    html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such page.</p></main>", me), setCookie);
+    html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such page.</p></main>", me), setCookie, req);
   })().catch((err: unknown) => {
     if (err instanceof BodyTooLarge) {
       // Stop reading rather than buffer the rest of an oversized body —

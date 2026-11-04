@@ -1086,3 +1086,92 @@ describe("reaching the composer with a keyboard", () => {
     }
   });
 });
+
+describe("what a slow connection has to download", () => {
+  // The brief's top band for the artefact names a slow connection. Pages
+  // here are large — the meeting house renders two hundred messages, each
+  // with its own form — and nothing was compressed: Fly's proxy does not
+  // do it for us, so every byte rendered was a byte sent. Measured at
+  // 316KB for that page, 31KB gzipped.
+  it("compresses a page when the browser says it can take it", async () => {
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Slow Line", "canberra");
+    try {
+      const res = await fetch(new URL("/house/meeting", baseUrl), {
+        headers: { cookie: s.cookie(), "accept-encoding": "gzip" },
+        redirect: "manual",
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-encoding")).toBe("gzip");
+      // `fetch` decodes transparently, so what arrives is still the page.
+      const html = await res.text();
+      expect(html).toContain("Family chat");
+      expect(html).toContain('id="body"');
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("sends plain bytes to a client that did not ask for gzip", async () => {
+    // Compression is an offer, never an assumption: a client that omits
+    // the header gets exactly what it would have got before.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Plain Line", "canberra");
+    try {
+      const res = await fetch(new URL("/house/meeting", baseUrl), {
+        headers: { cookie: s.cookie(), "accept-encoding": "identity" },
+        redirect: "manual",
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-encoding")).toBeNull();
+      expect(await res.text()).toContain("Family chat");
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("honours a client that names gzip only to refuse it", async () => {
+    // `gzip;q=0` means "I know what gzip is and I do not want it". A
+    // substring check for "gzip" reads that as a yes and sends a body the
+    // client said it cannot take. Worth its own test because the plain
+    // `identity` case above passes whether or not the q-value is parsed:
+    // that string contains no "gzip" token to be confused by. Caught by
+    // breaking the parser and watching nothing go red.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Refuses Gzip", "canberra");
+    try {
+      const res = await fetch(new URL("/house/meeting", baseUrl), {
+        headers: { cookie: s.cookie(), "accept-encoding": "gzip;q=0, identity" },
+        redirect: "manual",
+      });
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-encoding")).toBeNull();
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("never compresses the event stream, which must not be buffered", async () => {
+    // SSE is the one response that must leave the server the instant it is
+    // written. Compressing it buffers it, and live updates — the brief's
+    // own one-second requirement — silently stop arriving.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Stream Line", "canberra");
+    const controller = new AbortController();
+    try {
+      const res = await fetch(new URL("/stream?house=meeting", baseUrl), {
+        headers: { cookie: s.cookie(), "accept-encoding": "gzip" },
+        signal: controller.signal,
+      });
+      expect(res.headers.get("content-type")).toContain("text/event-stream");
+      expect(res.headers.get("content-encoding")).toBeNull();
+    } finally {
+      controller.abort();
+      await s.post("/leave", {});
+    }
+  });
+});
