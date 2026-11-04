@@ -45,8 +45,10 @@ their own thing, by any path; one person counts once; a thing placed alone
 stays visible; a guest may write their side of anything and keep it, but may
 not start something in a house that is not theirs; a password is never
 stored, only a salted hash of one; placing and playing work with JavaScript
-off; points are conserved across every move of a game; and a change reaches
-another session in under a second, measured at five milliseconds. All 195
+off; the message box at the table is reachable in nine tab stops rather than
+six hundred; a page is gzipped for a browser that asks and sent plain to one
+that refuses; points are conserved across every move of a game; and a change
+reaches another session in under a second, measured at five milliseconds. All 216
 tests were checked by breaking what they guard and confirming red. Several
 didn't, so they were asserting nothing, and were rewritten.
 

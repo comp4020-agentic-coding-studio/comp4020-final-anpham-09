@@ -338,3 +338,39 @@ ignoring my rule entirely. The layout was already a deliberate chat sidebar
 from the Figma screens. Both guesses were reverted, and the thing that
 settled it was asking the live page what it computed rather than reasoning
 about the stylesheet.
+
+## 2026-11-05 — testing the band I had only claimed
+
+The brief's top band for the artefact is *keyboard, resize mid-interaction,
+a slow connection*. I had quoted that line in the design spec in October
+and never measured against it. Two of the three failed.
+
+**The keyboard one was caused by the chat layout I had just shipped.** Every
+message carries a disclosure control, so at two hundred messages the box you
+type into was tab stop 606 of 609: the form worked perfectly and was
+unreachable by the input method the brief names first. A skip link before the
+thread fixes it at nine stops ([`3d14eb8`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/3d14eb8)). Only at the meeting
+house — the other rooms list a handful of things, and a skip link there would
+be noise in the tab order, which is the same fault pointed the other way.
+
+**The slow-connection one was free and I had never looked.** Nothing was
+compressed, and Fly's proxy does not do it for us, so every byte rendered was
+a byte sent: 316KB for the meeting house. Gzip in one helper makes that 31KB
+([`74fc5c3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/74fc5c3)). Not the event stream, which compression would
+buffer — the brief's own one-second requirement would have quietly stopped
+being met, and the realtime spec is how I know it did not.
+
+**Twice the measurement lied before the code did.** The skip link looked
+broken in the browser — focused, but `:focus` refusing to match — until
+`document.hasFocus()` came back false: the automation window was unfocused,
+so no `:focus` rule could apply anywhere on the page. And my q-value parser
+was shipped untested, because the obvious test sends `accept-encoding:
+identity`, a string containing no gzip token to misparse. It passes whether
+the parser works or not. The case that bites is `gzip;q=0` — a client naming
+gzip precisely to refuse it — and only breaking the parser and watching
+nothing go red revealed that the test was not watching.
+
+That is the fourth and fifth time this project has caught a check that could
+not fail, and the second time the audit itself was the thing at fault. The
+pattern is stable enough now to state plainly: a passing test is evidence
+about the test until you have seen it fail.
