@@ -80,6 +80,17 @@ conversation and always was. Privacy comes from where you are, not a
 recipient field. Nothing can be deleted or edited. Still cut: photo uploads,
 likes, tags, the other games the mockups drew.
 
+The meeting house looks like the group chat this app was written against,
+and that is deliberate rather than a contradiction. The problem with the
+chat was never its shape — a bottom-anchored scroll of short messages is
+simply what talking looks like — it was that nothing said there could ever
+become anything. So the shape is borrowed and the ending is not: every
+message here carries the same two-state label as everything in the houses,
+and any of them can be taken up by somebody else and kept. A remark at the
+table is one perspective away from being a memory. That is the whole
+difference, and it is why the keep-together control stays visible on every
+message instead of being tucked behind a menu to look tidier.
+
 This file said "no accounts" until the cookie turned out to be doing the job
 of one, badly. Identity was the browser, so Mum on her phone and Mum on her
 laptop were two people: she could place a thing and then keep it together
