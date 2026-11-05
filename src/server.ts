@@ -10,6 +10,7 @@ import {
   endGame,
   freeChair,
   gameAt,
+  lastSow,
   placeGame,
   play,
   sitDown,
@@ -569,6 +570,7 @@ const server = createServer((req, res) => {
           house.slug,
           Number.isInteger(pit) ? pit : null,
           others,
+          lastSow(house.slug),
         ),
       );
       return;
@@ -628,6 +630,7 @@ const server = createServer((req, res) => {
         housePage(house, me, others, inRoom(house.slug, who), message, {
           game: gameAt(house.slug, who),
           picked: Number.isInteger(picked) ? picked : null,
+          replay: lastSow(house.slug),
         }),
         setCookie, req);
       publish(house.slug, "arrived");
@@ -646,6 +649,12 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
         return;
       }
+      // Sitting down IS being at the table — the strongest statement of
+      // presence the app has. Without this, presence was only ever
+      // recorded by viewing a page, so somebody who sat and then moved
+      // without reloading counted as away and anybody could free their
+      // chair out from under them.
+      enter(who, slug);
       logAction("sit", actor(me, token), { house: slug });
       publish(slug, "sat");
       seeOther(res, backTo(slug), setCookie);
@@ -700,6 +709,8 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(slug), REFUSALS["no-direction"]), setCookie);
         return;
       }
+      // Playing a move is the same: you are plainly here.
+      enter(who, slug);
       const refusal = play(slug, who, pit, direction);
       if (refusal) {
         seeOther(res, said(backTo(slug), REFUSALS[refusal]), setCookie);

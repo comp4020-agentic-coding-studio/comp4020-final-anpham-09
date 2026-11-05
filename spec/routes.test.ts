@@ -67,7 +67,10 @@ const SOWED_PIT_1_RIGHT = [2, 6, 6, 6, 6, 0, 0, 0, 6, 6, 6, 2];
  *  boardPanel — the ring on screen has to match the ring the stones
  *  travel — so the test reads what a person actually sees. */
 function stonesOnBoard(html: string): number[] {
-  return [...markup(html).matchAll(/<li class="pit[^"]*" data-stones="(\d+)"/g)].map((m) =>
+  // Tolerant of attributes between the class and the count — `data-pit`
+  // was added later and this regex, anchored on the two being adjacent,
+  // silently matched nothing and reported an empty board.
+  return [...markup(html).matchAll(/<li class="pit[^"]*"[^>]*data-stones="(\d+)"/g)].map((m) =>
     Number(m[1]),
   );
 }
@@ -152,6 +155,26 @@ async function signIn(s: Session, name: string, household: string | null): Promi
   // Returned so a test asserting on a displayed name uses the name the
   // account actually has, rather than restating how it was built.
   return account;
+}
+
+/** Clear the meeting house table using the app's own routes.
+ *
+ *  The meeting house has exactly ONE table and every game test shares it,
+ *  so a test that fails mid-way — or a person clicking around in a browser
+ *  — leaves a game seated and the NEXT test's `sit` is refused as
+ *  chairs-taken. That reads as a failure in whatever ran next, which has
+ *  now cost three separate debugging sessions. Each test's own `finally`
+ *  cannot fix it: it does not run if the failure happened before the seat
+ *  was taken, and it knows nothing about state left by anybody else.
+ *
+ *  Freeing is only allowed for somebody who has gone, which is exactly
+ *  what a leftover occupant is — so this needs no special route and no
+ *  database access, just the rule the app already has.
+ */
+async function clearTheTable(s: Session): Promise<void> {
+  for (const side of ["top", "bottom"]) {
+    await s.post("/game/free", { house: "meeting", side });
+  }
 }
 
 describe("what a browser gets", () => {
@@ -487,6 +510,8 @@ describe("what a browser gets", () => {
       const twosName = await signIn(two, "Player Two", "hanoi");
 
       // A bare table: both sit, and the second sitting fills the far chair.
+      // "Bare" has to be made true — see clearTheTable.
+      await clearTheTable(one);
       expect((await one.post("/game/sit", { house: "meeting" })).status).toBe(303);
       expect((await two.post("/game/sit", { house: "meeting" })).status).toBe(303);
 
@@ -546,7 +571,9 @@ describe("what a browser gets", () => {
       await signIn(one, "Fragment One", "canberra");
       await two.get("/");
       await signIn(two, "Fragment Two", "hanoi");
+      await clearTheTable(one);
       await one.post("/game/sit", { house: "meeting" });
+      await clearTheTable(two);
       await two.post("/game/sit", { house: "meeting" });
 
       const fragment = await one.get("/house/meeting/table");
@@ -594,7 +621,9 @@ describe("what a browser gets", () => {
       await signIn(one, "Ending One", "canberra");
       await two.get("/");
       await signIn(two, "Ending Two", "hanoi");
+      await clearTheTable(one);
       await one.post("/game/sit", { house: "meeting" });
+      await clearTheTable(two);
       await two.post("/game/sit", { house: "meeting" });
       await one.post("/game/move", { house: "meeting", pit: "1", dir: "right" });
 
@@ -912,8 +941,10 @@ describe("a table nobody can get back to", () => {
 
     try {
       await one.get("/house/meeting");
+      await clearTheTable(one);
       await one.post("/game/sit", { house: "meeting" });
       await two.get("/house/meeting");
+      await clearTheTable(two);
       await two.post("/game/sit", { house: "meeting" });
 
       // Seat Two leaves the village entirely: presence gone, chair still held.
@@ -954,8 +985,10 @@ describe("a table nobody can get back to", () => {
 
     try {
       await one.get("/house/meeting");
+      await clearTheTable(one);
       await one.post("/game/sit", { house: "meeting" });
       await two.get("/house/meeting");
+      await clearTheTable(two);
       await two.post("/game/sit", { house: "meeting" });
 
       // Both are here, so neither chair may be taken from its occupant.

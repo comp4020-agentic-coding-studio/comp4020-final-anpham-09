@@ -547,6 +547,22 @@ ul.pit-row { list-style: none; margin: 0; padding: 0; display: grid;
 .pit-quan { background: var(--hearth-fill); box-shadow: none; }
 /* An emptied quan pit is no longer special, and says so by losing the fill
    rather than by keeping a colour that would claim a quan is still there. */
+/* Sowing, one beat per stone. Every rule here lives inside the
+   reduced-motion query: the script does not run at all under reduce, and
+   this makes sure nothing is left highlighted if it ever did. Colour alone
+   carries no information — the counts in the pits are already correct and
+   are what the board actually says. */
+@media (prefers-reduced-motion: no-preference) {
+  .board[data-sowing="true"] .pit { transition: transform .12s ease, box-shadow .12s ease; }
+  /* A stone landing: the pit lifts for a beat. */
+  .pit[data-beat="drop"] { transform: translateY(-3px); box-shadow: 0 0 0 2px var(--hearth); }
+  /* The hand lifting a pit, at the start and at each relay. */
+  .pit[data-beat="pick"], .pit[data-beat="relay"] { transform: scale(.94); box-shadow: inset 0 0 0 2px var(--hearth); }
+  /* Points leaving the board. */
+  .pit[data-beat="capture"] { transform: scale(1.06); box-shadow: 0 0 0 3px var(--sage, var(--hearth)); }
+  /* Where the turn ended. Quieter than a capture: it is a stop, not a prize. */
+  .pit[data-beat="stop-quan"], .pit[data-beat="stop-empty"] { box-shadow: inset 0 0 0 2px var(--rule); }
+}
 .pit-quan[data-stones="0"] { background: var(--card-raised); box-shadow: inset 0 0 0 1px var(--rule); }
 .pit-quan[data-stones="0"] .pit-count { color: var(--ink-soft); }
 
@@ -1252,12 +1268,12 @@ function boardPanel(g: GameView, houseSlug: string, picked: number | null): stri
       }</span>`;
     const quanClass = isQuanPit(i) ? " pit-quan" : "";
     if (!selectable.has(i)) {
-      return `<li class="pit${quanClass}" data-stones="${stones}">${inner}</li>`;
+      return `<li class="pit${quanClass}" data-pit="${i}" data-stones="${stones}">${inner}</li>`;
     }
     const href = isPicked(i)
       ? `/house/${esc(houseSlug)}`
       : `/house/${esc(houseSlug)}?pit=${i}`;
-    return `<li class="pit${quanClass}" data-stones="${stones}">
+    return `<li class="pit${quanClass}" data-pit="${i}" data-stones="${stones}">
       <a class="pit-pick" href="${href}" aria-label="Pick pit ${i} · ${pit.dan} stones"${isPicked(i) ? ' aria-current="true"' : ""}>
         ${inner}
       </a>
@@ -1489,8 +1505,19 @@ export function tableFragment(
   houseSlug: string,
   picked: number | null,
   othersHere: number,
+  /** The move just played, one beat per stone, for the script to replay.
+   *  The board below is already drawn in its true final position — this
+   *  only says how it got there, and with no script it is ignored. */
+  replay?: { pit: number; direction: string; side: string; drops: unknown[] } | null,
 ): string {
-  return `<div class="table-side">${tablePanel(game, houseSlug, othersHere)}</div>
+  // A <script type="application/json"> is inert: not executed, not a
+  // dangling global, and simply ignored when scripts are blocked. The
+  // board's own markup stays the single source of the position.
+  const replayData =
+    replay && replay.drops.length
+      ? `<script type="application/json" id="sow-replay">${JSON.stringify(replay).replace(/</g, "\\u003c")}</script>`
+      : "";
+  return `${replayData}<div class="table-side">${tablePanel(game, houseSlug, othersHere)}</div>
     <div class="table-board">
       ${
         game
@@ -1532,7 +1559,7 @@ export function housePage(
   /** The meeting house only: the game at the table and which pit the
    *  viewer has picked up. Optional so the three household houses, and
    *  every existing caller, carry on unchanged. */
-  table?: { game: GameView | null; picked: number | null },
+  table?: { game: GameView | null; picked: number | null; replay?: { pit: number; direction: string; side: string; drops: unknown[] } | null },
 ): string {
   const isMeeting = house.slug === "meeting";
   // The same rule the route uses, asked again here so the page offers only
@@ -1655,6 +1682,7 @@ export function housePage(
               house.slug,
               table.picked,
               otherNames.length,
+              table.replay,
             )}</section>`
           : ""
       }
@@ -1742,7 +1770,81 @@ export function housePage(
           }
           return res.ok;
         };
+        // Sowing, stone by stone. CLAUDE.md's second JavaScript exception:
+        // the board below is ALREADY in its true final position, drawn by
+        // the server, so with a script blocked the position is simply
+        // correct at once and nothing travels. This only retells how it
+        // got there.
+        //
+        // It never computes a position. Every beat comes from the server's
+        // own replay of the move it recorded, so the animation cannot
+        // disagree with the game.
+        // Guarded: a browser without matchMedia, or a harness standing in
+        // for one, must fall back to no animation rather than take the
+        // whole script down — live updates and the typing indicator live
+        // in here too. Found by the typing spec, which runs this script
+        // for real against a stub window.
+        const MOTION_OK = typeof window.matchMedia === "function"
+          && window.matchMedia("(prefers-reduced-motion: no-preference)").matches;
+        const BEAT_MS = 160;
+        let sowing = null;          // the run in flight, so a second cannot start
+        let pendingResync = false;  // newest state only, never a queue
+        const seenReplays = new Set();
+
+        // Sets sowing only once a run actually starts, and always clears
+        // it. An earlier draft had the CALLERS assign it around every
+        // call, so a page with nothing to replay — or a reader with
+        // reduced motion — left a promise in sowing that resync then
+        // waited on for ever, and live updates stopped entirely. The
+        // typing spec caught it by counting fetches that never happened.
+        const playSow = async (root) => {
+          if (!MOTION_OK) return;
+          const data = root.querySelector("#sow-replay");
+          if (!data) return;
+          let replay;
+          try { replay = JSON.parse(data.textContent); } catch { return; }
+          if (!replay || !replay.drops || !replay.drops.length) return;
+          // One run per move. The fragment is re-fetched on every event in
+          // the room, so without this the same sow would replay whenever
+          // anybody said anything at the table.
+          const id = replay.side + ":" + replay.pit + ":" + replay.direction + ":" + replay.drops.length;
+          if (seenReplays.has(id)) return;
+          seenReplays.add(id);
+
+          const board = root.querySelector(".board");
+          if (!board) return;
+          const pit = (i) => board.querySelector('[data-pit="' + i + '"]');
+          const beat = () => new Promise((r) => setTimeout(r, BEAT_MS));
+
+          board.setAttribute("data-sowing", "true");
+          let release;
+          sowing = new Promise((r) => { release = r; });
+          try {
+            for (const d of replay.drops) {
+              const cell = pit(d.at);
+              if (!cell) continue;
+              // A class per beat, removed on the next frame so the same pit
+              // can flash twice in a row when the hand comes round again.
+              cell.setAttribute("data-beat", d.kind);
+              await beat();
+              cell.removeAttribute("data-beat");
+            }
+          } finally {
+            board.removeAttribute("data-sowing");
+            sowing = null;
+            release();
+            // The state that arrived while this was running — only the
+            // latest, never a backlog of stale ones.
+            if (pendingResync) { pendingResync = false; resync(); }
+          }
+        };
+
         const resync = async () => {
+          // Chosen deliberately: a run in flight is allowed to finish, and
+          // the newer state is applied after it. Only ever ONE pending
+          // resync, so a burst of events cannot queue up behind it and
+          // replay the board through a history it already left.
+          if (sowing) { pendingResync = true; return; }
           ${nearBottomCheck}
           // The board first: when somebody has just moved, that is what the
           // person watching is waiting to see. Both are fetched either way,
@@ -1755,11 +1857,24 @@ export function housePage(
           // mid-move, and you would never work out why.
           if (table) {
             const pit = new URLSearchParams(location.search).get("pit");
-            await swap(table, "/table" + (pit === null ? "" : "?pit=" + encodeURIComponent(pit)));
+            if (await swap(table, "/table" + (pit === null ? "" : "?pit=" + encodeURIComponent(pit)))) {
+              // The board is already correct; this retells the move that
+              // got it there.
+              await playSow(table);
+            }
           }
           if (await swap(room, "/room")) {${scrollAfterSwap}
           }
         };
+        // The mover's own page: a move is a POST that redirects, so the
+        // page they land on is newly rendered and already carries the
+        // replay. Called here rather than beside the element lookup above
+        // because playSow and resync are const declarations that reference
+        // each other — calling either before both exist is a temporal dead
+        // zone error that takes the whole script down with it, and the
+        // board would stop updating live at all.
+        if (table) playSow(table);
+
         // The one place the payload is read rather than ignored.
         //
         // Every other event means "something changed, fetch it again", and
