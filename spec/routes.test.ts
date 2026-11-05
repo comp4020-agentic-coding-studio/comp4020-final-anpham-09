@@ -1208,3 +1208,84 @@ describe("what a slow connection has to download", () => {
     }
   });
 });
+
+describe("sowing, stone by stone", () => {
+  // CLAUDE.md's second JavaScript exception, and the shape it has to keep:
+  // the feature is ABSENT without a script, never broken. The board the
+  // server sends is already the true position, so the only thing a reader
+  // with scripts blocked loses is the travelling.
+  it("sends the true final board, so the position is right with no script at all", async () => {
+    const one = session();
+    const two = session();
+    try {
+      await one.get("/");
+      await signIn(one, "Sowing One", "canberra");
+      await two.get("/");
+      await signIn(two, "Sowing Two", "hanoi");
+      await clearTheTable(one);
+      await one.post("/game/sit", { house: "meeting" });
+      await two.post("/game/sit", { house: "meeting" });
+      await one.post("/game/move", { house: "meeting", pit: "1", dir: "right" });
+
+      const page = markup(await (await one.get("/house/meeting")).text());
+      // The opening move from a fresh board empties pit 1 and relays, so
+      // the position is NOT the starting one. If the server were leaving
+      // the board for the script to update, this would still read 5.
+      const pit1 = /<li class="pit[^"]*" data-pit="1"[^>]*data-stones="(\d+)"/.exec(page);
+      expect(pit1, "pit 1 is not in the markup").not.toBeNull();
+      expect(pit1![1]).toBe("0");
+    } finally {
+      await one.post("/game/stand", { house: "meeting" });
+      await one.post("/leave", {});
+      await two.post("/leave", {});
+    }
+  });
+
+  it("carries the move it just played, one beat per stone", async () => {
+    const one = session();
+    const two = session();
+    try {
+      await one.get("/");
+      await signIn(one, "Beat One", "canberra");
+      await two.get("/");
+      await signIn(two, "Beat Two", "hanoi");
+      await clearTheTable(one);
+      await one.post("/game/sit", { house: "meeting" });
+      await two.post("/game/sit", { house: "meeting" });
+      await one.post("/game/move", { house: "meeting", pit: "1", dir: "right" });
+
+      const page = await (await one.get("/house/meeting")).text();
+      const found = /<script type="application\/json" id="sow-replay">([\s\S]*?)<\/script>/.exec(page);
+      expect(found, "no replay on the page after a move").not.toBeNull();
+      const replay = JSON.parse(found![1]!);
+      expect(replay.pit).toBe(1);
+      expect(replay.direction).toBe("right");
+      // The hand lifts, then stones land one at a time.
+      expect(replay.drops[0]).toMatchObject({ kind: "pick", at: 1 });
+      expect(replay.drops.filter((d: { kind: string }) => d.kind === "drop").length).toBeGreaterThan(1);
+      // Inert data, not executable: a <script type="application/json"> is
+      // never run, and is simply ignored when scripts are blocked.
+      expect(page).toContain('type="application/json"');
+    } finally {
+      await one.post("/game/stand", { house: "meeting" });
+      await one.post("/leave", {});
+      await two.post("/leave", {});
+    }
+  });
+
+  it("gives every pit a stable id, since position in the rows is not identity", async () => {
+    // The top row renders right-to-left so the board matches the ring the
+    // stones travel, so "third li" is not "pit 3". The animation targets
+    // pits by id; without these it would light the wrong ones.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Pit Ids", "canberra");
+    try {
+      const page = markup(await (await s.get("/house/meeting")).text());
+      const ids = [...page.matchAll(/data-pit="(\d+)"/g)].map((m) => Number(m[1])).sort((a, b) => a - b);
+      expect(ids).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+});
