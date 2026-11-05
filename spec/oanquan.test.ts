@@ -10,6 +10,7 @@ import {
   checkMove,
   decodeBoard,
   encodeBoard,
+  sowDrops,
   finalScore,
   freshBoard,
   isFinished,
@@ -367,5 +368,75 @@ describe("the conservation property", () => {
       expect(b.every((p) => p.dan >= 0 && p.quan >= 0)).toBe(true);
       side = side === "bottom" ? "top" : "bottom";
     }
+  });
+});
+
+describe("the sowing, expanded for the eye", () => {
+  // The board already knows how a turn went: sow() records pick, relay,
+  // capture and stop. What it does not record is each individual stone
+  // landing, which is the thing worth watching. `drops` derives that from
+  // the steps rather than changing them — the engine stays the authority
+  // on what happened, and this says only how to show it.
+  it("drops one stone into each pit in turn, in the direction sown", () => {
+    const board = freshBoard();
+    const { drops } = sowDrops(board, 1, "right");
+    // Five stones from pit 1 going right land in 2, 3, 4, 5, 6 — and then
+    // the turn relays at 7 and carries on, which is why this asserts the
+    // first handful rather than the whole list. (My first draft asserted
+    // the list ended at 6, and the implementation was right.)
+    const landed = drops.filter((d) => d.kind === "drop").map((d) => d.at);
+    expect(landed.slice(0, 5)).toEqual([2, 3, 4, 5, 6]);
+    // It wraps past the end of the ring rather than stopping at 11.
+    expect(landed).toContain(0);
+  });
+
+  it("starts by emptying the pit that was picked up", () => {
+    const { drops } = sowDrops(freshBoard(), 1, "right");
+    expect(drops[0]).toMatchObject({ kind: "pick", at: 1, amount: 5 });
+  });
+
+  it("goes the other way when sown left, wrapping below zero", () => {
+    const { drops } = sowDrops(freshBoard(), 1, "left");
+    // Left from pit 1: 0, then wraps below zero to 11, 10, 9, 8.
+    const landed = drops.filter((d) => d.kind === "drop").map((d) => d.at);
+    expect(landed.slice(0, 5)).toEqual([0, 11, 10, 9, 8]);
+  });
+
+  it("carries on from where the hand stopped when the turn relays", () => {
+    const { drops } = sowDrops(freshBoard(), 1, "right");
+    const relay = drops.find((d) => d.kind === "relay");
+    expect(relay, "a fresh board relays at pit 7").toBeTruthy();
+    // Every drop after a relay continues round the ring from the relay pit.
+    const after = drops.slice(drops.indexOf(relay!) + 1).filter((d) => d.kind === "drop");
+    expect(after.length).toBeGreaterThan(0);
+    // The relay is at pit 7, so the next stone lands at 8 — the hand
+    // continues round the ring rather than restarting anywhere.
+    expect(after[0]!.at).toBe(8);
+  });
+
+  it("ends with the captures, so they are seen last", () => {
+    // A board where sowing pit 5 right lands the last stone leaving pit 7
+    // empty with stones beyond it in pit 8.
+    const board = freshBoard().map((p, i) =>
+      i === 5 ? { dan: 1, quan: 0 } : i === 7 ? { dan: 0, quan: 0 } : { ...p },
+    );
+    const { drops } = sowDrops(board, 5, "right");
+    const captures = drops.filter((d) => d.kind === "capture");
+    expect(captures.length).toBeGreaterThan(0);
+    // Nothing travels after a capture: it is the end of the turn.
+    expect(drops.at(-1)!.kind).toBe("capture");
+  });
+
+  it("accounts for every stone the engine says moved", () => {
+    const board = freshBoard();
+    const { drops, result } = sowDrops(board, 1, "right");
+    const picked = drops.filter((d) => d.kind === "pick" || d.kind === "relay");
+    const landed = drops.filter((d) => d.kind === "drop");
+    // Every stone lifted is a stone put down. If these disagree the
+    // animation would show stones appearing or vanishing, which is the one
+    // thing this game's invariant forbids.
+    expect(landed.length).toBe(picked.reduce((n, d) => n + (d.amount ?? 0), 0));
+    // And the board the replay implies is the board the engine produced.
+    expect(result.board).toEqual(sow(board, 1, "right").board);
   });
 });

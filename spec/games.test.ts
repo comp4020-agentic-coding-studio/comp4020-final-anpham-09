@@ -578,3 +578,82 @@ describe("a chair somebody walked away from", () => {
     expect(after?.moveCount).toBeGreaterThan(0);
   });
 });
+
+describe("replaying the last sow for the eye", () => {
+  // The animation may never compute a position of its own — CLAUDE.md says
+  // so, and a client that invented a board would eventually disagree with
+  // the server about a game in progress. So the sequence comes from what
+  // was already stored: the board before the move, and the pit and
+  // direction that were played.
+  it("hands back the drops for the move just played", async () => {
+    const { games } = await boot();
+    games.sitDown("meeting", "an");
+    games.sitDown("meeting", "linh");
+    expect(games.play("meeting", "an", 1, "right")).toBe(null);
+
+    const replay = games.lastSow("meeting");
+    expect(replay, "no replay for a move that was just made").toBeTruthy();
+    expect(replay!.pit).toBe(1);
+    expect(replay!.direction).toBe("right");
+    // Starts by lifting the pit that was played, and lands stones after it.
+    expect(replay!.drops[0]).toMatchObject({ kind: "pick", at: 1 });
+    expect(replay!.drops.some((d) => d.kind === "drop")).toBe(true);
+  });
+
+  it("replays from the board as it was BEFORE the move, not after", async () => {
+    const { games, engine } = await boot();
+    games.sitDown("meeting", "an");
+    games.sitDown("meeting", "linh");
+    games.play("meeting", "an", 1, "right");
+
+    const replay = games.lastSow("meeting")!;
+    // Replaying a fresh board's opening move: the drops must match what
+    // the engine itself produces from that same starting position. If the
+    // replay started from the board AFTER the move it would show a
+    // completely different turn.
+    const expected = engine.sowDrops(engine.freshBoard(), 1, "right").drops;
+    expect(replay.drops).toEqual(expected);
+  });
+
+  it("offers nothing before anybody has played", async () => {
+    const { games } = await boot();
+    games.sitDown("meeting", "an");
+    games.sitDown("meeting", "linh");
+    expect(games.lastSow("meeting")).toBeNull();
+  });
+
+  it("offers nothing for a refill, which moves no stones around the ring", async () => {
+    // A refill drops one stone into each of your own five pits. No hand
+    // travels the ring, so replaying it AS a sow would animate a turn that
+    // never happened.
+    //
+    // Driving a game to a refill does NOT exercise this: a refill and the
+    // sow it pays for are written in the same play() call, so the last
+    // move is always a sow and the guard can never fire. Two earlier
+    // versions of this test passed with the guard deleted for exactly that
+    // reason. The row is written by hand instead — the only way to reach
+    // the state the guard exists for.
+    const { games, db } = await boot();
+    games.sitDown("meeting", "an");
+    games.sitDown("meeting", "linh");
+    games.play("meeting", "an", 1, "right");
+    expect(games.lastSow("meeting"), "a sow should replay").not.toBeNull();
+
+    const game = db.prepare("SELECT id FROM games ORDER BY id DESC LIMIT 1").get() as { id: number };
+    const last = db
+      .prepare("SELECT seq, board_after, bottom_after, top_after FROM moves WHERE game_id = ? ORDER BY seq DESC LIMIT 1")
+      .get(game.id) as { seq: number; board_after: string; bottom_after: number; top_after: number };
+    db.prepare(
+      `INSERT INTO moves (game_id, seq, side, kind, pit, direction, board_after, bottom_after, top_after)
+       VALUES (?, ?, 'top', 'refill', NULL, NULL, ?, ?, ?)`,
+    ).run(game.id, last.seq + 1, last.board_after, last.bottom_after, last.top_after);
+
+    expect(games.lastSow("meeting")).toBeNull();
+  });
+
+  it("offers nothing at a house with no game", async () => {
+    const { games } = await boot();
+    expect(games.lastSow("meeting")).toBeNull();
+    expect(games.lastSow("canberra")).toBeNull();
+  });
+});

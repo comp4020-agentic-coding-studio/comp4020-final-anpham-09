@@ -17,6 +17,7 @@ import {
   needsRefill,
   refill,
   sow,
+  sowDrops,
   winnerOf,
 } from "./oanquan.ts";
 
@@ -515,6 +516,60 @@ export const gameIsPlaced = (gameId: number): boolean => placedGameIds().has(gam
 
 /** Every move of a game, oldest first — for the replay check that keeps the
  *  stored board honest. */
+/** The move just played, expanded into one beat per stone, or null when
+ *  there is nothing to watch.
+ *
+ *  Replayed from what was already stored — the board as it stood before the
+ *  move, plus the pit and direction played — rather than handed to the
+ *  client as a position to draw. CLAUDE.md requires that the animation never
+ *  computes a board of its own: the server stays the authority on what the
+ *  position is, and this says only how it got there.
+ *
+ *  Null for a refill, which drops a stone into each of your own five pits
+ *  and sends no hand round the ring. */
+export function lastSow(houseSlug: string): {
+  pit: number;
+  direction: Direction;
+  side: Side;
+  drops: ReturnType<typeof sowDrops>["drops"];
+} | null {
+  const house = houseBySlug(houseSlug);
+  if (!house) return null;
+  const row = liveGameRow(house.id) ?? lastEndedGame(house.id);
+  if (!row) return null;
+
+  const played = db
+    .prepare(
+      `SELECT seq, side, kind, pit, direction
+         FROM moves WHERE game_id = ? ORDER BY seq DESC LIMIT 1`,
+    )
+    .get(row.id) as
+    | { seq: number; side: Side; kind: "sow" | "refill"; pit: number | null; direction: Direction | null }
+    | undefined;
+  // Two checks for one fact, on purpose. A refill row has kind 'refill'
+  // AND a null pit, so deleting either alone changes nothing and no test
+  // goes red — measured, not assumed. The kind check says what is meant;
+  // the null check is what the schema actually guarantees.
+  if (!played || played.kind !== "sow") return null;
+  if (played.pit === null || played.direction === null) return null;
+
+  // The board BEFORE this move: the one the previous move left behind, or a
+  // fresh board when this was the opening. Starting from the board after
+  // would replay a different turn entirely.
+  const prior = db
+    .prepare("SELECT board_after FROM moves WHERE game_id = ? AND seq < ? ORDER BY seq DESC LIMIT 1")
+    .get(row.id, played.seq) as { board_after: string } | undefined;
+  const before = prior ? decodeBoard(prior.board_after) : freshBoard();
+  if (!before) return null;
+
+  return {
+    pit: played.pit,
+    direction: played.direction,
+    side: played.side,
+    drops: sowDrops(before, played.pit, played.direction).drops,
+  };
+}
+
 export function movesOf(gameId: number): Array<{
   seq: number;
   side: Side;

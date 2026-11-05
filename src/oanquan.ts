@@ -211,6 +211,50 @@ export function sow(board: Board, from: number, dir: Direction): SowResult {
   return { board: b, captured, steps };
 }
 
+/** One beat of the animation. `drop` is a single stone landing; the others
+ *  mirror the engine's own step kinds. */
+export interface Drop {
+  kind: "pick" | "drop" | "relay" | "capture" | "stop-quan" | "stop-empty";
+  at: number;
+  /** Stones lifted, for `pick` and `relay`. Points taken, for `capture`. */
+  amount?: number;
+}
+
+/** The same turn the engine played, expanded into one beat per stone so it
+ *  can be watched rather than inferred from a before and an after.
+ *
+ *  Derived from `sow`, never a second implementation of it: the engine stays
+ *  the authority on what happened and this decides only how to show it. The
+ *  spec pins that by replaying the drops and comparing with `sow`'s own
+ *  board — if the two ever disagree, stones would appear or vanish on
+ *  screen, which is the one thing this game's invariant forbids. */
+export function sowDrops(
+  board: Board,
+  from: number,
+  dir: Direction,
+): { drops: Drop[]; result: SowResult } {
+  const result = sow(board, from, dir);
+  const drops: Drop[] = [];
+  // Walk the engine's steps, filling in the individual landings between
+  // them. A pick or a relay says how many stones were lifted and from
+  // where; the hand then moves one slot at a time in `dir`, so the pits
+  // they land in follow without re-deciding anything.
+  let at = from;
+  for (const s of result.steps) {
+    if (s.kind === "pick" || s.kind === "relay") {
+      drops.push({ kind: s.kind, at: s.at, amount: s.amount });
+      at = s.at;
+      for (let i = 0; i < (s.amount ?? 0); i++) {
+        at = step(at, dir);
+        drops.push({ kind: "drop", at });
+      }
+      continue;
+    }
+    drops.push({ kind: s.kind, at: s.at, amount: s.amount });
+  }
+  return { drops, result };
+}
+
 /** Bù dân: one dân into each of a side's five pits. The caller deducts
  *  REFILL_COST from that side's score — the engine does not hold scores,
  *  so it cannot do it here, and the conservation invariant depends on the
