@@ -176,11 +176,20 @@ it before calling a visual change done.
   action is a form POST — including a game move, which is a GET to pick a pit
   and a POST to sow it. The script swaps the room and the table when the
   stream says something changed.
-- **The typing indicator is the one exception, and it is a whole feature
+- **The typing indicator is one of two exceptions, and it is a whole feature
   rather than a degraded one.** With a script blocked, nothing is sent and the
   line never appears; everything else on the page behaves identically. Any
   further exception needs the same shape: the feature is absent, not broken,
   and it is written down here before it is built.
+- **Sowing the board stone by stone is the second exception**, written down
+  here before building it, per the rule above. The server always renders the
+  true board after the move, so with a script blocked the position is simply
+  correct immediately — the stones do not travel, and nothing else differs.
+  The animation replays the move the server already recorded: it may never
+  compute a position of its own, and the board on screen at rest is always the
+  board the server sent. It is skipped entirely under
+  `prefers-reduced-motion: reduce`, which is a preference about motion and not
+  about information, so no words or counts live only in the animation.
 - **A typing event must never trigger a resync.** The SSE contract is "any
   event means refetch", and the payload has always been an opaque string the
   client ignores. The client branches on the `typing:` prefix and returns;
