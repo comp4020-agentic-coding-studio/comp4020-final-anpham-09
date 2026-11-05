@@ -66,9 +66,9 @@ the gap below it and opens a smaller one above, so the standard must be
 observed rather than claimed — assert the break landed before trusting
 what the suite says next.
 
-The empirical picture is thinner than either camp admits. Becker et al.'s 2025
-randomised trial for METR found sixteen experienced developers 19% slower with
-AI tools on their own repositories while estimating they had been faster —
+The empirical picture is thin. Becker et al.'s 2025 randomised trial for METR
+found sixteen experienced developers 19% slower with AI tools on their own
+repositories while estimating they had been faster —
 though METR now says those results "no longer reflect the current impact of AI
 models," and GitHub's Copilot study found large speed-ups on defined tasks. The
 durable claim is the narrow one: self-report is unreliable about verification
