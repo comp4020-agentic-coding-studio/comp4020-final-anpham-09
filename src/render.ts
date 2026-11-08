@@ -1425,7 +1425,7 @@ export function timeAgo(iso: string): string {
   // in the thread read "2026-11-01 16:17:27 UTC" beside another reading
   // "4d ago". The seconds are precision nobody asked for and nobody can
   // use; the day is the fact. Still no guessing, and still UTC.
-  return `${iso} UTC`;
+  return longDate(iso.slice(0, 10));
 }
 
 /** A monogram standing in for an avatar — we have no photographs of the
@@ -1542,7 +1542,7 @@ function threadFragment(
     const its = t.createdAt.slice(0, 10);
     if (its !== day) {
       day = its;
-      rows.push(`<li class="thread-day"><span>${esc(dayLabel(its, now))}</span></li>`);
+
     }
     const sameSender =
       i > 0 && oldestFirst[i - 1]!.placedBy === t.placedBy && oldestFirst[i - 1]!.createdAt.slice(0, 10) === its;
