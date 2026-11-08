@@ -431,6 +431,60 @@ li.card-shelf { border-left: 1px solid var(--rule); padding-top: 12px; box-shado
   details.rules[open] { animation: drawer-in .22s ease-out; }
   @keyframes settle-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
   @keyframes drawer-in { from { opacity: 0; translate: 16px 0; } to { opacity: 1; translate: 0 0; } }
+
+  /* --- The one motion idea, applied consistently ---------------------
+     Everything in this app is an object you pick up: a note put down, a
+     stone sown, a book taken off a shelf. So motion here is weight, not
+     decoration — things settle when they arrive, give slightly when
+     pressed, and lift when the cursor is over them. Nothing slides in
+     from offscreen and nothing fades on scroll, because a memory that
+     was already on the shelf did not just appear.
+
+     One duration scale, so the whole app feels like one hand:
+       .12s  press      (must feel instant)
+       .2s   hover
+       .4s   arrival    (already set by settle-in above) */
+
+  /* The houses settle one after another, the way things come to rest.
+     Eight is the most cards any view holds; past that they share the
+     last delay rather than making somebody wait. */
+  .scene-cards > * { animation: settle-in .4s ease-out both; }
+  .scene-cards > :nth-child(1) { animation-delay: .04s; }
+  .scene-cards > :nth-child(2) { animation-delay: .10s; }
+  .scene-cards > :nth-child(3) { animation-delay: .16s; }
+  .scene-cards > :nth-child(4) { animation-delay: .22s; }
+  .scene-cards > :nth-child(n+5) { animation-delay: .26s; }
+
+  /* Press. Every control gives a little, which is the feedback a touch
+     screen otherwise has to invent. Kept at .12s: slower reads as lag. */
+  button, .button, a.furniture, a.house-card, a.album-cover, .float-card {
+    transition: transform .12s ease, box-shadow .2s ease, background-color .2s ease;
+  }
+  button:active, .button:active, a.furniture:active,
+  a.house-card:active, a.album-cover:active { transform: translateY(1px) scale(.994); }
+
+  /* Hover on the surfaces that had none: the nav, the shelf's own
+     controls, and the composer's send. Underline grows from the left
+     rather than appearing, so the nav reads as one strip being traced. */
+  nav.site a { position: relative; }
+  nav.site a::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 1px;
+    background: currentColor; transform: scaleX(0); transform-origin: left;
+    transition: transform .2s ease;
+  }
+  nav.site a:hover::after, nav.site a:focus-visible::after { transform: scaleX(1); }
+  /* aria-current already has its own underline; this would double it. */
+  nav.site a[aria-current]::after { display: none; }
+
+  /* A thing on the shelf lifts a little when pointed at, like a card
+     being half-drawn out of an album. */
+  .card-shelf { transition: transform .2s ease, box-shadow .2s ease; }
+  .card-shelf:hover { transform: translateY(-2px); box-shadow: var(--shadow-1); }
+
+  /* The avatar in the corner is the only ambient motion in the app: it
+     warms as the page settles, so arriving somewhere has a heartbeat
+     without anything moving on its own afterwards. */
+  .whoami .face { animation: settle-in .5s ease-out .18s both; }
 }
 @media (max-width: 1100px) {
   header.chrome { gap: .25rem 1.5rem; padding: .6rem 1.25rem; }
