@@ -563,6 +563,110 @@ ul.pit-row { list-style: none; margin: 0; padding: 0; display: grid;
   /* Where the turn ended. Quieter than a capture: it is a stop, not a prize. */
   .pit[data-beat="stop-quan"], .pit[data-beat="stop-empty"] { box-shadow: inset 0 0 0 2px var(--rule); }
 }
+/* The shelf is a bookcase: one album per household, standing like books.
+   Everything here describes the OPEN state, because that is what the
+   server sends and what a reader with no script keeps. The script adds the
+   closed cover and the turning. */
+.bookcase { display: grid; gap: 1.75rem; margin: 1.75rem 0 0; }
+
+/* A book, not a panel. The cover carries the house's colour, the binding
+   is a darker band down the left with the stitching line beside it, and
+   the whole thing sits slightly off the page on a shadow. */
+.album {
+  --spine: var(--hearth);
+  --spine-deep: var(--hearth-deep);
+  position: relative;
+  border-radius: .35rem .9rem .9rem .35rem;
+  background:
+    linear-gradient(90deg, var(--spine-deep) 0 26px, var(--spine) 26px 30px, transparent 30px),
+    linear-gradient(135deg, var(--card) 0%, var(--card-raised) 100%);
+  box-shadow: var(--shadow-1), inset -1px 0 0 var(--rule), inset 0 -1px 0 var(--rule);
+  overflow: hidden;
+}
+.album[data-album="hanoi"] { --spine: var(--sage); --spine-deep: var(--sage-deep); }
+.album[data-album="canberra"] { --spine: var(--amber); --spine-deep: var(--amber-deep); }
+/* The stitching: a dashed line just inside the binding, the way a bound
+   album shows its thread. */
+.album::before {
+  content: ""; position: absolute; left: 14px; top: 10px; bottom: 10px; width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--paper) 55%, transparent);
+  pointer-events: none;
+}
+/* The page edges: a stack of leaves showing along the fore-edge. */
+.album::after {
+  content: ""; position: absolute; right: 0; top: 6px; bottom: 6px; width: 5px;
+  background: repeating-linear-gradient(180deg, var(--rule) 0 1px, transparent 1px 4px);
+  opacity: .7; pointer-events: none;
+}
+
+.album-title { margin: 0; font-size: 1rem; }
+.album-open {
+  display: flex; width: 100%; align-items: baseline; gap: .75rem;
+  padding: 1.1rem 1.25rem 1.1rem 46px;
+  background: none; border: 0; text-align: left; cursor: pointer;
+  font: inherit; color: inherit;
+}
+.album-open:hover .album-house { color: var(--spine-deep); }
+.album-house { font-family: var(--display); font-weight: 700; font-size: 1.35rem; letter-spacing: -.01em; }
+.album-count { color: var(--ink-soft); font-size: .8125rem; }
+/* Says which way it will go, and turns when the book is open. */
+.album-open::after {
+  content: "›"; margin-left: auto; font-size: 1.1rem; color: var(--ink-soft);
+  transition: transform .25s ease;
+}
+.album[data-open="true"] .album-open::after { transform: rotate(90deg); }
+
+/* The leaf itself: paper, inset from the binding, with a faint rule down
+   the gutter so a page reads as a page. */
+.album-book { padding: 0 1.25rem 1.25rem 46px; }
+.album-pages { display: grid; }
+.page {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: .2rem .6rem .6rem .2rem;
+  padding: 1.1rem 1.15rem;
+  box-shadow: 0 1px 0 var(--rule), 0 6px 0 -3px color-mix(in srgb, var(--rule) 50%, transparent);
+}
+.page-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.page-empty { padding: 1.4rem 1.15rem; }
+/* Inside a page the cards are the paper itself, not boxes on top of it. */
+.page .card-shelf { background: none; border: 0; box-shadow: none; border-radius: 0; }
+.page .card-shelf + .card-shelf { border-top: 1px solid var(--rule); padding-top: 1rem; }
+
+.album-turn {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; margin: .9rem 0 0;
+}
+.album-turn button { font-size: .8125rem; padding: .4rem .8rem; }
+.album-turn button[disabled] { opacity: .35; cursor: default; }
+.album-where { font-size: .8125rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* Opening and turning. All of it inside the motion query: with reduced
+   motion the pages still change, they simply do not swing. The closed
+   cover is applied by the script, so a reader with no script never meets
+   a book that will not open. */
+@media (prefers-reduced-motion: no-preference) {
+  .album-book { perspective: 1600px; }
+  .album[data-open="false"] .album-book { display: none; }
+  /* The cover swinging back on its hinge — the binding is the axis. */
+  .album[data-opening="true"] .album-book { animation: album-open .45s cubic-bezier(.2,.7,.3,1); }
+  @keyframes album-open {
+    from { opacity: 0; transform: rotateY(-78deg); transform-origin: left center; }
+    to   { opacity: 1; transform: rotateY(0); transform-origin: left center; }
+  }
+  .page { transform-origin: left center; backface-visibility: hidden; }
+  .page[data-turning="next"] { animation: leaf-next .3s ease-in; }
+  .page[data-turning="back"] { animation: leaf-back .3s ease-out; }
+  @keyframes leaf-next {
+    from { opacity: 1; transform: rotateY(0); }
+    to   { opacity: 0; transform: rotateY(-62deg); }
+  }
+  @keyframes leaf-back {
+    from { opacity: 0; transform: rotateY(62deg); }
+    to   { opacity: 1; transform: rotateY(0); }
+  }
+}
+
 .pit-quan[data-stones="0"] { background: var(--card-raised); box-shadow: inset 0 0 0 1px var(--rule); }
 .pit-quan[data-stones="0"] .pit-count { color: var(--ink-soft); }
 
@@ -1988,27 +2092,70 @@ export function shelfPage(
   const visibleHouses = filters.house
     ? houses.filter((h) => h.slug === filters.house)
     : houses;
-  const totalShown = visibleHouses.reduce((n, h) => n + h.shelved.length, 0);
-  // One wall rather than a section per house: the shelf's argument is that
-  // these are the family's memories, not four separate collections, and a
-  // card says which house it came from anyway. The house headings stay as
-  // the filter, which is where choosing a house belongs.
-  const everything = visibleHouses.flatMap((h) =>
-    h.shelved.map((t) => shelfCard(t, h)),
-  );
-  const wall = everything.length
-    ? `<ol class="wall">${everything.join("")}</ol>`
+  // Three albums, one per household: the shelf is a bookcase, and each
+  // home keeps its own book. The meeting house gets none — a remark at the
+  // table belongs to whoever was there rather than to a house, and giving
+  // it a book would make the table a fourth home it was never meant to be.
+  //
+  // Every album renders OPEN, with all of its pages in the markup. The
+  // script closes them and turns one page at a time; with no script the
+  // shelf is a complete, readable list of everything kept, which is the
+  // promise CLAUDE.md records. A memory behind a page nobody can turn is a
+  // memory the app has lost.
+  const albumHouses = visibleHouses.filter((h) => h.kind !== "meeting");
+  const totalShown = albumHouses.reduce((n, h) => n + h.shelved.length, 0);
+
+  /** Pages of PER_PAGE memories. One page for an empty album, so a book is
+   *  never a cover with nothing behind it.
+   *
+   *  Four is a leaf you can read without scrolling and few enough that
+   *  turning feels like turning. Two made Canberra's 122 kept memories
+   *  into sixty-one pages, which is a flick-book rather than an album. */
+  const PER_PAGE = 4;
+  const pagesOf = (things: ThingView[], h: House): string[] => {
+    if (!things.length) {
+      return [
+        `<div class="page page-empty"><p class="empty">Nothing kept in ${esc(h.name)} yet.</p><p class="note">Put something down there, and keep it together with somebody else.</p></div>`,
+      ];
+    }
+    const out: string[] = [];
+    for (let i = 0; i < things.length; i += PER_PAGE) {
+      const leaf = things.slice(i, i + PER_PAGE).map((t) => shelfCard(t, h)).join("");
+      out.push(`<div class="page"><ol class="page-cards">${leaf}</ol></div>`);
+    }
+    return out;
+  };
+
+  const albums = albumHouses
+    .map((h) => {
+      const pages = pagesOf(h.shelved, h);
+      const count = `${h.shelved.length} ${h.shelved.length === 1 ? "memory" : "memories"}`;
+      return `<article class="album" data-album="${esc(h.slug)}" data-pages="${pages.length}">
+        <h2 class="album-title">
+          <button type="button" class="album-open" aria-expanded="true" aria-controls="album-${esc(h.slug)}">
+            <span class="album-house">${esc(h.name)}</span>
+            <span class="album-count">${esc(count)}</span>
+          </button>
+        </h2>
+        <div class="album-book" id="album-${esc(h.slug)}">
+          <div class="album-pages">${pages.join("")}</div>
+          <p class="album-turn" hidden>
+            <button type="button" class="turn-back">‹ Back</button>
+            <span class="album-where" aria-live="polite">Page 1 of ${pages.length}</span>
+            <button type="button" class="turn-next">Next ›</button>
+          </p>
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  const wall = totalShown
+    ? `<div class="bookcase">${albums}</div>`
     : `<div class="shelf-empty"><svg viewBox="0 0 56 48" width="56" height="48" fill="none" stroke="currentColor" stroke-width="1.1" aria-hidden="true"><path d="M28 10Q15 2 5 9v31q13-8 23 0 10-8 23 0V9q-10-7-23 1zM28 10v30M10 15q7-3 12 0M10 21q7-3 12 0M34 15q6-3 12 0M34 21q6-3 12 0"/></svg><h2>${isFilteredFrom(filters) ? "No matching memories" : "Nothing kept here yet."}</h2><p class="empty">${
         isFilteredFrom(filters)
-          ? "Nothing on the shelf matches those filters. Try another house, year, or word."
+          ? "Nothing on the shelf matches those filters. Try another year, or another word."
           : "Nothing is on the shelf yet. Leave a note in a house, then add a perspective and keep it together with someone else."
       }</p><a href="${isFilteredFrom(filters) ? "/shelf" : "/"}">${isFilteredFrom(filters) ? "Clear the filters" : "Visit the village"} →</a></div>`;
-  const houseOptions = houses
-    .map(
-      (h) =>
-        `<option value="${esc(h.slug)}"${filters.house === h.slug ? " selected" : ""}>${esc(h.name)}</option>`,
-    )
-    .join("");
   const yearOptions = years
     .map((y) => `<option value="${esc(y)}"${filters.year === y ? " selected" : ""}>${esc(y)}</option>`)
     .join("");
@@ -2028,13 +2175,6 @@ export function shelfPage(
       ${message ? `<p class="note" role="status">${esc(message)}</p>` : ""}
       <form method="get" action="/shelf" class="shelf-filters">
         <div>
-          <label for="shelf-house">House</label>
-          <select id="shelf-house" name="house">
-            <option value="">Every house</option>
-            ${houseOptions}
-          </select>
-        </div>
-        <div>
           <label for="shelf-year">Kept in</label>
           <select id="shelf-year" name="year">
             <option value="">Any year</option>
@@ -2049,8 +2189,78 @@ export function shelfPage(
         ${isFiltered ? `<a href="/shelf">Clear</a>` : ""}
       </form>
       <p class="note shelf-count">${totalShown} ${totalShown === 1 ? "memory" : "memories"} shown${isFiltered ? " for these filters" : ""}.</p>
-      <div class="shelf-layout"><aside class="house-albums" aria-label="House albums">${visibleHouses.map(h => `<a class="house-album" data-house="${esc(h.slug)}" href="/shelf?${new URLSearchParams({ house: h.slug, year: filters.year, q: filters.q }).toString()}"><span class="album-name">${esc(h.name)}</span><svg width="76" height="96" viewBox="0 0 32 36" fill="none" stroke="currentColor" stroke-width="1" aria-hidden="true"><path d="M10 33L23 5M13 25Q2 23 7 17Q13 17 13 25M17 18Q9 13 13 9Q19 11 17 18M18 15Q28 19 28 12Q24 10 18 15M15 24Q25 27 25 21Q20 18 15 24M22 9Q29 8 26 3Q21 4 22 9"/></svg><span>${h.shelved.length} ${h.shelved.length === 1 ? "memory" : "memories"}</span></a>`).join("")}</aside><section class="shelf-memories" aria-label="Kept memories">${wall}</section></div>
-    </main>`,
+      <section class="shelf-memories" aria-label="Kept memories">${wall}</section>
+    </main>
+    <script type="module">
+      // The albums. Everything above is already readable without this:
+      // every book is open and every page is in the markup. This closes
+      // them so they can be opened, and shows one page at a time.
+      //
+      // So the FIRST thing it does is hide pages — which means if this
+      // script fails to parse, nothing is hidden and the shelf is exactly
+      // the complete list the server sent. The failure mode is the
+      // no-script mode, which is the whole point of the arrangement.
+      const motionOk = typeof window.matchMedia === "function"
+        && window.matchMedia("(prefers-reduced-motion: no-preference)").matches;
+
+      for (const album of document.querySelectorAll(".album")) {
+        const pages = [...album.querySelectorAll(".page")];
+        const turn = album.querySelector(".album-turn");
+        const where = album.querySelector(".album-where");
+        const back = album.querySelector(".turn-back");
+        const next = album.querySelector(".turn-next");
+        const opener = album.querySelector(".album-open");
+        const book = album.querySelector(".album-book");
+        if (!pages.length || !turn || !opener || !book) continue;
+
+        let at = 0;
+        let open = false;
+
+        const show = () => {
+          pages.forEach((p, i) => { p.hidden = i !== at; });
+          where.textContent = "Page " + (at + 1) + " of " + pages.length;
+          back.disabled = at === 0;
+          next.disabled = at === pages.length - 1;
+        };
+
+        // A one-page album needs no controls: a book with a single leaf is
+        // not something you turn.
+        if (pages.length > 1) turn.hidden = false;
+        show();
+
+        const setOpen = (want) => {
+          open = want;
+          album.setAttribute("data-open", String(open));
+          opener.setAttribute("aria-expanded", String(open));
+          if (open && motionOk) {
+            album.setAttribute("data-opening", "true");
+            setTimeout(() => album.removeAttribute("data-opening"), 440);
+          }
+        };
+        setOpen(false);
+
+        opener.addEventListener("click", () => setOpen(!open));
+
+        const goTo = (want, dir) => {
+          if (want < 0 || want >= pages.length || want === at) return;
+          const leaving = pages[at];
+          at = want;
+          if (!motionOk) { show(); return; }
+          // The leaf that is going swings away, then the new one arrives.
+          leaving.setAttribute("data-turning", dir);
+          setTimeout(() => {
+            leaving.removeAttribute("data-turning");
+            show();
+            const arriving = pages[at];
+            arriving.setAttribute("data-turning", dir === "next" ? "back" : "next");
+            setTimeout(() => arriving.removeAttribute("data-turning"), 300);
+          }, 290);
+        };
+
+        back.addEventListener("click", () => goTo(at - 1, "back"));
+        next.addEventListener("click", () => goTo(at + 1, "next"));
+      }
+    </script>`,
     me,
     "shelf",
   );

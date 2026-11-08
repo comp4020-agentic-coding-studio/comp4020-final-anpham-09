@@ -1289,3 +1289,105 @@ describe("sowing, stone by stone", () => {
     }
   });
 });
+
+describe("the shelf, as three albums", () => {
+  // One book per household, opened and turned. CLAUDE.md's third
+  // JavaScript exception, and the shape it must keep: with no script every
+  // album renders OPEN, so the shelf is still a complete readable list.
+  // The test below is the one that matters — a memory hidden behind a page
+  // nobody can turn is a memory the app has lost.
+  it("renders an album for each household and none for the meeting house", async () => {
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Album Reader", "canberra");
+    try {
+      const page = markup(await (await s.get("/shelf")).text());
+      for (const slug of ["nghe-an", "hanoi", "canberra"]) {
+        expect(page, `no album for ${slug}`).toContain(`data-album="${slug}"`);
+      }
+      // A remark at the table belongs to whoever was there, not to a house.
+      expect(page).not.toContain('data-album="meeting"');
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("shows every kept memory in the served HTML, with no script at all", async () => {
+    // The promise CLAUDE.md makes. Place something, keep it together, then
+    // read the shelf as a browser with scripting off would: the memory has
+    // to be in the markup, not waiting behind a page turn.
+    const an = session();
+    const mum = session();
+    await an.get("/");
+    await signIn(an, "Page One", "canberra");
+    await mum.get("/");
+    await signIn(mum, "Page Two", "nghe-an");
+    try {
+      const body = `album test ${Date.now()}`;
+      await an.post("/place", { house: "canberra", title: "An album memory", body });
+
+      const room = await (await mum.get("/house/canberra/room")).text();
+      const thing = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
+      expect(thing, "the thing is not in the room").not.toBeNull();
+      const id = /name="thing" value="(\d+)"/.exec(thing![0])?.[1];
+      expect(id).toBeTruthy();
+      await mum.post("/perspectives", { thing: id!, house: "canberra", body: "I remember this" });
+      await mum.post("/take", { thing: id!, house: "canberra" });
+
+      const shelf = markup(await (await an.get("/shelf")).text());
+      expect(shelf, "a kept memory is missing from the shelf markup").toContain(body);
+      // And it is inside Canberra's album, not loose on the page.
+      const album = /data-album="canberra"[\s\S]*?(?=data-album="|<\/main>)/.exec(shelf);
+      expect(album, "no canberra album").not.toBeNull();
+      expect(album![0]).toContain(body);
+    } finally {
+      await an.post("/leave", {});
+      await mum.post("/leave", {});
+    }
+  });
+
+  it("renders EVERY page of an album, not just the first", async () => {
+    // The promise is that no memory lives behind a page nobody can turn.
+    // Asserting one new memory is in the markup does not prove it: a new
+    // memory may well land on page one. This counts instead — the cards
+    // in the markup must equal the memories the page says it is showing,
+    // across every album. Dropping pages after the first is exactly the
+    // break this is here to catch.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Every Page", "canberra");
+    try {
+      const shelf = markup(await (await s.get("/shelf")).text());
+      const claimed = Number(/(\d+) memor\w+ shown/.exec(shelf)?.[1] ?? "-1");
+      const cards = (shelf.match(/class="thing card-shelf"/g) ?? []).length;
+      expect(claimed, "the shelf does not say how many it is showing").toBeGreaterThan(0);
+      expect(cards, `the shelf claims ${claimed} memories but only ${cards} are in the markup`).toBe(claimed);
+
+      // And an album with more than one page really does carry them all.
+      const multi = /data-album="[a-z-]+" data-pages="([2-9]\d*)"/.exec(shelf);
+      if (multi) {
+        const pages = Number(multi[1]);
+        const rendered = (shelf.match(/<div class="page"/g) ?? []).length;
+        expect(rendered).toBeGreaterThanOrEqual(pages);
+      }
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("keeps the card markup the shelf rule is proved through", async () => {
+    // spec's one-person-household test reads `card-shelf` to check a
+    // memory carries BOTH names. Changing the shelf must not quietly make
+    // that assertion unreachable.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Card Shape", "canberra");
+    try {
+      const shelf = markup(await (await s.get("/shelf")).text());
+      expect(shelf).toContain('class="thing card-shelf"');
+      expect(shelf).toContain("Kept together by");
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+});

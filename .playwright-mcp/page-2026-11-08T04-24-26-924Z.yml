@@ -1,0 +1,29 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "The village" [ref=e3] [cursor=pointer]:
+      - /url: /
+    - navigation "site" [ref=e4]:
+      - link "Village map" [ref=e5] [cursor=pointer]:
+        - /url: /
+      - link "Memory shelf" [ref=e6] [cursor=pointer]:
+        - /url: /shelf
+      - link "The meeting house" [ref=e7] [cursor=pointer]:
+        - /url: /house/meeting
+      - link "Sign in" [ref=e9] [cursor=pointer]:
+        - /url: /login
+      - button "Leave the village" [ref=e11] [cursor=pointer]
+  - main [ref=e13]:
+    - generic [ref=e14]: Four places. One family.
+    - heading "The village" [level=1] [ref=e15]
+    - paragraph [ref=e16]: Four places and the people in them. Sign in to go in.
+    - generic [ref=e17]:
+      - generic [ref=e18]: Your name
+      - textbox "Your name" [ref=e19]
+      - generic [ref=e20]: Your password
+      - textbox "Your password" [ref=e21]
+      - button "Sign in" [ref=e22] [cursor=pointer]
+    - paragraph [ref=e23]:
+      - text: No account yet?
+      - link "Make one" [ref=e24] [cursor=pointer]:
+        - /url: /register
+      - text: .
