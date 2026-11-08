@@ -1385,7 +1385,7 @@ function tablePanel(g: GameView | null, houseSlug: string, watching: number): st
         : "";
     return `<div class="card game-invitation">
       <div class="game-invitation-copy"><span class="eyebrow">A game for two</span>
-      <h3 class="rule-title">Ô ăn quan</h3>
+      <h2 class="rule-title">Ô ăn quan</h2>
       <p class="body-sm">Five little stones. A familiar way to spend time together.</p>
       <p class="game-facts">2 players <span aria-hidden="true">·</span> No timer <span aria-hidden="true">·</span> Learn as you play</p>
       ${past}
@@ -1460,7 +1460,7 @@ function tablePanel(g: GameView | null, houseSlug: string, watching: number): st
           </form>`;
 
   return `<div class="card">
-    <div class="game-title-row"><div><span class="eyebrow">At the table</span><h3 class="rule-title">Ô ăn quan</h3></div>
+    <div class="game-title-row"><div><span class="eyebrow">At the table</span><h2 class="rule-title">Ô ăn quan</h2></div>
     <p class="game-attendance">${g.top ? "2 seated" : "1 waiting"}<span aria-hidden="true"> · </span>${watching + 1} here</p></div>
     <ul class="chairs">${chair("bottom")}${chair("top")}</ul>
     <p class="game-legend"><span><i class="legend-dan" aria-hidden="true"></i>Dân <strong>1</strong></span><span><i class="legend-quan" aria-hidden="true"></i>Quan <strong>10</strong></span><span>No timer</span></p>

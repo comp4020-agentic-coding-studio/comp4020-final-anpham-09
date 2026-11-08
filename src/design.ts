@@ -13,15 +13,42 @@ button, a, summary { -webkit-tap-highlight-color: transparent; }
 button, summary, a { touch-action: manipulation; }
 :where(p, h1, h2, h3, a, span) { overflow-wrap: anywhere; }
 
-/* The village is one continuous scene. The copy rests on its open sky. */
+/* The village is one continuous scene. The copy rests on its open sky.
+   The sky is the problem: it is nearly as light as the type that sits on it.
+   The wash below holds its weight down the band the copy actually occupies —
+   heading at 7-16% of the scene, lede at 17-21%, the sub-paragraph at 22-29%
+   — then clears, so the photograph is only dimmed where words are read over
+   it. Those percentages were measured against the rendered image, not
+   guessed; the smaller copy needs more help than the heading because 4.5:1
+   is the bar for body text and 3:1 for display sizes.
+   It returns a little at the foot for the hand-written hint near the bottom. */
 .scene-village { min-height: max(760px, calc(100svh - 76px)); padding-top: 2rem; }
-.scene-village::after { background: linear-gradient(to bottom, color-mix(in srgb, var(--paper) 67%, transparent), transparent 43%); }
-.scene-village .scene-copy { color: var(--ink); text-shadow: none; }
+.scene-village::after {
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--paper) 64%, transparent) 0%,
+    color-mix(in srgb, var(--paper) 62%, transparent) 30%,
+    transparent 52%,
+    transparent 60%,
+    color-mix(in srgb, var(--paper) 42%, transparent) 78%,
+    color-mix(in srgb, var(--paper) 50%, transparent) 100%); }
+/* The base rule in render.ts gives scene type its own shadow, for the reason
+   its comment states. The restyle cancelled it here and on the home page, and
+   the wash alone does not carry the smaller copy. It comes back mixed from
+   --paper rather than hard-coded dark: this copy is --ink, which is cream on
+   a dark theme and near-black on a light one, so a fixed dark halo would be
+   wrong in one of them. Mixing both from the same token keeps the halo the
+   opposite of the text in either theme, and keeps working when the family
+   swap in their own photographs, which a wash tuned to this sky would not. */
+.scene-village .scene-copy { color: var(--ink);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--paper) 70%, transparent),
+               0 2px 14px color-mix(in srgb, var(--paper) 52%, transparent); }
 .scene-village .scene-eyebrow { color: var(--sage-deep); margin-bottom: .2rem; }
 .scene-village h1 { font-size: clamp(3.5rem, 5.7vw, 5.5rem); letter-spacing: -.06em; }
 .scene-village .lede { color: var(--ink); font-family: var(--display); max-width: 44rem; font-size: clamp(1rem, 1.45vw, 1.5rem); }
 .scene-village .scene-sub { color: var(--ink); background: none; padding: .15rem; max-width: 36rem; backdrop-filter: none; -webkit-backdrop-filter: none; line-height: 1.65; }
-.scene-village .scene-hint { color: var(--ink); text-shadow: none; font-weight: 500; bottom: 12%; font-size: 1.7rem; }
+.scene-village .scene-hint { color: var(--ink); font-weight: 500; bottom: 12%; font-size: 1.7rem;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--paper) 70%, transparent),
+               0 2px 14px color-mix(in srgb, var(--paper) 52%, transparent); }
 .float-card { padding: .85rem 1.2rem; gap: .7rem; border-radius: 13px; }
 .float-card .float-name { font-size: 1.18rem; }
 .float-card .float-meta { display: flex; align-items: center; gap: .65rem; line-height: 1.45; font-size: .74rem; }
@@ -43,7 +70,13 @@ button, summary, a { touch-action: manipulation; }
 .house-page > .scene-room::before, .house-page > .scene-room::after { z-index: -1; border-radius: 0; }
 .house-page > .scene-room::after { background: linear-gradient(to bottom, transparent 52%, color-mix(in srgb, var(--ink) 12%, transparent)); }
 .home-page > .scene-room::before { background: linear-gradient(100deg, color-mix(in srgb, var(--paper) 91%, transparent), transparent 43%); }
-.home-page .scene-copy { color: var(--ink); text-shadow: none; max-width: none; }
+/* Same reasoning as the village copy above: the restyle cancelled the base
+   shadow, and a room's heading sits over whatever furniture is behind it —
+   in Nghe An, a sunlit window. The left wash helps but does not reach the
+   lede. Mixed from --paper so it is correct in both themes. */
+.home-page .scene-copy { color: var(--ink); max-width: none;
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--paper) 70%, transparent),
+               0 2px 14px color-mix(in srgb, var(--paper) 52%, transparent); }
 .home-page .scene-back, .home-page .scene-presence, .home-page .scene-eyebrow, .home-page .scene-copy .lede { color: var(--ink); }
 .home-page .scene-copy h1 { font-size: clamp(2.5rem, 4vw, 4rem); letter-spacing: -.05em; }
 .home-page .scene-copy .lede { font-family: var(--display); max-width: 24rem; }
@@ -124,7 +157,10 @@ a.pit-pick[aria-current] { background: var(--paper); }
 .pit-quan, .pit-quan[data-stones="0"] { background: transparent; }
 .pit-quan .pit-count, .pit-quan[data-stones="0"] .pit-count { color: var(--ink); bottom: 18%; }
 .quan-stone { display: grid; place-items: center; width: 40px; height: 49px; border-radius: 50%; background: var(--hearth-fill); color: var(--on-hearth); font-size: .9rem; font-weight: 700; }
-.quan-label { position: absolute; bottom: 7%; font-size: .6rem; letter-spacing: .05em; color: var(--ink); }
+/* nowrap because the quan ends are the narrowest cells on the board, and at
+   phone width "QUAN" was breaking to "QUA / N" — a Vietnamese word split
+   mid-syllable, in an app written for a Vietnamese family. */
+.quan-label { position: absolute; bottom: 7%; font-size: .6rem; letter-spacing: .05em; color: var(--ink); white-space: nowrap; }
 .pit-quan .pit-stones:not(:empty) { position: absolute; top: 15%; padding: 0; grid-template-columns: repeat(3, 10px); gap: 3px; }
 .pit-quan .stone { width: 10px; height: 9px; }
 .pit-quan .quan-stone + .pit-stones:empty { display: none; }
