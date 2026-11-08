@@ -44,3 +44,7 @@ assets/village-screens*/
 # nowhere else in writing.
 assets/o-an-quan*/*
 !assets/o-an-quan*/README.md
+
+# Screenshots the browser-automation MCP drops while I am looking at the
+# running app. Debug output, not the artefact.
+.playwright-mcp/
