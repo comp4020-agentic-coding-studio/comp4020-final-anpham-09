@@ -319,6 +319,26 @@ it before calling a visual change done.
   `<dialog>` destroys the dialog and slams the drawer shut on whoever was
   reading it. Each live region is fetched and swapped on its own, which is
   why the board has a fragment route of its own.
+- **The family chat is a chat, and the mock-ups keep trying to make it a
+  feed.** What the meeting house takes from a design: a header saying where
+  you are, a presence pill that counts the table AND names who is at it, a
+  day divider wherever the day changes, bubbles, and a dot on the monogram
+  of anybody still in the room. All of it comes from data the app already
+  has — presence is the same presence the strip counts, and the dividers
+  use the same `dayLabel` as the note board, so "Today" cannot mean two
+  things in one app. What it does NOT take, however nicely drawn: hearts
+  and reaction chips, voice notes, a search icon, an overflow menu, a
+  free-text status beside a name ("At the stove" — the app knows which
+  house you are in, not what you are doing), and a third word for a state
+  that already has two ("Memory saved" is not "On the shelf"). Likes and
+  tags are listed as cut in the README; a control with nothing behind it is
+  the guest-hotspot bug again; and a status the app cannot know is a false
+  label. This has now come up with two separate mock-ups, which is why it
+  is written down rather than re-argued.
+- **The meeting house has no side panel.** The two-state rule lives folded
+  up in the chat header and the quiet line sits directly above the composer,
+  because both are read there: one before you scroll, one as you press send.
+  `spec/routes.test.ts` asserts that order.
 - **A typing event must never trigger a resync.** The SSE contract is "any
   event means refetch", and the payload has always been an opaque string the
   client ignores. The client branches on the `typing:` prefix and returns;

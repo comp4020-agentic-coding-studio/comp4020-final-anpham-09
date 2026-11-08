@@ -1542,7 +1542,7 @@ function threadFragment(
     const its = t.createdAt.slice(0, 10);
     if (its !== day) {
       day = its;
-
+      rows.push(`<li class="thread-day"><span>${esc(dayLabel(its, now))}</span></li>`);
     }
     const sameSender =
       i > 0 && oldestFirst[i - 1]!.placedBy === t.placedBy && oldestFirst[i - 1]!.createdAt.slice(0, 10) === its;

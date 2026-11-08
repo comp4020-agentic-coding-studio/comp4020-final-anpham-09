@@ -115,4 +115,4 @@ and the next test refused a chair: three debugging sessions, each ending in
 clearing it by hand — the habit this file exists to catch ([`da629bd`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/da629bd)).
 
 `CLAUDE.md` holds what the argument forbids; `spec/` what can be tested —
-258 tests, each broken once before being trusted.
+266 tests, each broken once before being trusted.

@@ -66,5 +66,5 @@ JavaScript adds four things and takes none away: the typing line, the
 travelling stones, the books, the drawers. Blocked, each is simply absent —
 every action is a form POST.
 
-258 checks in `spec/`, each broken once and seen to fail before it was
+266 checks in `spec/`, each broken once and seen to fail before it was
 trusted. Judged, not tested: whether the village reads as a place.

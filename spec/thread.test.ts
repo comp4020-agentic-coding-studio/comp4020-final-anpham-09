@@ -98,3 +98,55 @@ describe("how long ago something was said", () => {
     expect(timeAgo("2026-11-01T16:17:27Z")).toBe("1 November 2026");
   });
 });
+
+// The dividers were the point of the chat redesign and nothing checked
+// them: deleting the line that renders one left the whole suite green.
+describe("the thread says which day it is", () => {
+  const TWO_DAYS = new Date(Date.parse(`${TODAY}T12:00:00Z`) - 2 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const on = (day: string, body: string, placedBy = "dad"): ThingView =>
+    view({ body, placedBy, createdAt: `${day} 09:30:00` });
+
+  it("marks each new day once, and names today as today", () => {
+    const html = roomFragment([], [on(TODAY, "newest"), on("2026-11-01", "oldest")], "meeting", TODAY);
+    const days = [...html.matchAll(/<li class="thread-day"><span>([^<]*)<\/span>/g)].map((m) => m[1]);
+    // Oldest first, because a conversation reads downward.
+    expect(days).toEqual(["1 November 2026", "Today"]);
+  });
+
+  it("does not repeat the day for a second message on it", () => {
+    const html = roomFragment([], [on(TODAY, "second"), on(TODAY, "first")], "meeting", TODAY);
+    expect(html.match(/thread-day/g) ?? []).toHaveLength(1);
+  });
+
+  it("says yesterday in words", () => {
+    const html = roomFragment([], [on(TWO_DAYS, "older")], "meeting", TODAY);
+    expect(html).toContain(TWO_DAYS === TODAY ? "Today" : "2026");
+    const yesterday = new Date(Date.parse(`${TODAY}T12:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+    const y = roomFragment([], [on(yesterday, "y")], "meeting", TODAY);
+    expect(y).toContain("Yesterday");
+  });
+
+  it("never groups a message with one from the day before", () => {
+    // Same person either side of midnight is not a run: the divider sits
+    // between them, so hiding the second one's name and face would leave a
+    // bubble under a date with nobody attached to it.
+    const html = roomFragment(
+      [],
+      [on(TODAY, "after", "mum"), on("2026-11-01", "before", "mum")],
+      "meeting",
+      TODAY,
+    );
+    expect(html.match(/data-same-sender="true"/g) ?? []).toHaveLength(0);
+  });
+
+  it("puts a dot only on somebody who is in the room now", () => {
+    const html = roomFragment(["Mum"], [on(TODAY, "hers", "mum")], "meeting", TODAY);
+    // placedByName is "Dad" on the fixture, so Mum being present must not
+    // light up Dad's monogram.
+    expect(html).toContain('data-here="false"');
+    const present = roomFragment(["Dad"], [on(TODAY, "his")], "meeting", TODAY);
+    expect(present).toContain('data-here="true"');
+  });
+});
