@@ -1390,4 +1390,56 @@ describe("the shelf, as three albums", () => {
       await s.post("/leave", {});
     }
   });
+
+  it("ships every script-only control hidden, so no-script gets no dead buttons", async () => {
+    // "Close the book" and the turn controls do nothing until the script
+    // unhides them. A reader with no script must never be shown one: a
+    // button that appears to do nothing teaches them the app is broken,
+    // which is the thing CLAUDE.md will not have on a page.
+    //
+    // This asserts on the MARKUP the server sends, not on the stylesheet,
+    // because the stylesheet is inlined into every page and would make
+    // the assertion unfailable. Confirmed red by dropping the `hidden`
+    // attribute from either of the two.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "No Script", "canberra");
+    try {
+      const shelf = markup(await (await s.get("/shelf")).text());
+      for (const tag of shelf.match(/<p class="(?:book-head|album-turn)"[^>]*>/g) ?? []) {
+        expect(tag, `a script-only control ships visible: ${tag}`).toContain("hidden");
+      }
+      // And there is at least one of each to have checked.
+      expect(shelf).toContain('<p class="book-head" hidden>');
+      expect(shelf).toContain('<p class="album-turn" hidden>');
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("puts no more than four memories on a page, across at most two leaves", async () => {
+    // A page is a spread: two leaves, two memories each. More than that
+    // and the turning stops meaning anything, because the whole album is
+    // on the first page. Confirmed red by raising PER_PAGE.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Four A Page", "canberra");
+    try {
+      const shelf = markup(await (await s.get("/shelf")).text());
+      const pages = shelf.split('<div class="page"').slice(1);
+      expect(pages.length, "no pages on the shelf").toBeGreaterThan(0);
+      for (const page of pages) {
+        // The chunk runs to the start of the NEXT page, which is where a
+        // page ends. Cutting at the first </div> instead would stop
+        // inside the first card's own body and count almost nothing —
+        // the assertions below would then be unfailable.
+        const leaves = (page.match(/<ol class="page-cards leaf">/g) ?? []).length;
+        const cards = (page.match(/class="thing card-shelf"/g) ?? []).length;
+        expect(leaves, `a page with ${leaves} leaves`).toBeLessThanOrEqual(2);
+        expect(cards, `a page carrying ${cards} memories`).toBeLessThanOrEqual(4);
+      }
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
 });

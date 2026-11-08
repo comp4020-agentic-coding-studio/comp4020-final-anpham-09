@@ -170,6 +170,14 @@ it before calling a visual change done.
 - Colour comes from custom properties only; dark mode redefines the tokens in
   one `prefers-color-scheme` block. No literal colour in a rule body.
 - Interactive targets are at least 44×44px, including nav links.
+- **A control the script has not reached yet must not look like a control.**
+  Anything the script unhides carries the `hidden` attribute in the markup,
+  and every rule that gives it a `display` is written `:not([hidden])` — a
+  `display` declaration outranks the user agent's own rule for `[hidden]`,
+  so without that the no-script page shows a "Close the book" and a pair of
+  turn controls that cannot do anything. The same slip hid nothing on the
+  shelf's pages and stacked all thirty-two of them behind a control reading
+  "Page 1 of 32". Both were found by looking at the screen.
 - State is carried in text, never by colour alone. "In the room" and "On the
   shelf" are words before they are a left border.
 - One `h1` per page, and **the app must work with JavaScript off**. Every
@@ -191,13 +199,17 @@ it before calling a visual change done.
   `prefers-reduced-motion: reduce`, which is a preference about motion and not
   about information, so no words or counts live only in the animation.
 - **The shelf's albums are the third exception**, written down here before
-  building them. Each household's kept memories are a book you open and turn
-  the pages of. With a script blocked every album renders open — a heading
-  and all of its memories, nothing hidden behind a page that cannot be
-  turned — so the shelf is still a complete, readable list of everything
-  kept. The turning is skipped under `prefers-reduced-motion: reduce`; pages
-  still change, they just do not animate. No memory may ever exist only on a
-  page the reader cannot reach without JavaScript.
+  building them. Each household's kept memories are a book: three of them
+  stand closed on a shelf, and opening one takes it down into a two-leaf
+  spread over the page, four memories to a spread, turned a leaf at a time.
+  With a script blocked there is no shelf of covers and no spread — every
+  album renders open, a heading and all of its memories, and the cover is a
+  plain link down to them. Nothing is hidden behind a page that cannot be
+  turned, so the shelf is still a complete, readable list of everything
+  kept. The opening and the turning are skipped under
+  `prefers-reduced-motion: reduce`; the book still opens and the pages still
+  change, they just do not swing. No memory may ever exist only on a page
+  the reader cannot reach without JavaScript.
 - **A typing event must never trigger a resync.** The SSE contract is "any
   event means refetch", and the payload has always been an opaque string the
   client ignores. The client branches on the `typing:` prefix and returns;

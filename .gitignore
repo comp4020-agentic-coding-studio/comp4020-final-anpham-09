@@ -44,6 +44,11 @@ assets/village-screens*/
 # nowhere else in writing.
 assets/o-an-quan*/*
 !assets/o-an-quan*/README.md
+# And the Stitch mock the memory shelf was rebuilt against: a megabyte of
+# screen export and the Tailwind page behind it. Reference for building the
+# books, not input to them, and the argument for the shape it suggested is
+# in README.md where a reader can actually find it.
+assets/stitch_*/
 
 # Screenshots the browser-automation MCP drops while I am looking at the
 # running app. Debug output, not the artefact.

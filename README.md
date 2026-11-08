@@ -56,7 +56,7 @@ off; every memory kept is in the shelf's markup, so no album page hides one
 from a reader with no script; the message box at the table is reachable in
 nine tab stops rather than six hundred; a page is gzipped for a browser that asks and sent plain to one
 that refuses; points are conserved across every move of a game; and a change
-reaches another session in under a second, measured at five milliseconds. All 234
+reaches another session in under a second, measured at five milliseconds. All 236
 tests were checked by breaking what they guard and confirming red. Several
 didn't, so they were asserting nothing, and were rewritten.
 

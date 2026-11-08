@@ -38,6 +38,16 @@ const STYLE = `
   --amber:#D9933B; --amber-deep:#8F5B19;
   --board:#E9D5B6; --pit:#F5E7CF; --board-edge:#BEA17C; --pebble:#8E7E66;
   --scene-shadow:#24150F;
+  /* Bookbinding. A cover has to read as an object standing in a room
+     rather than as another card on the page, and the paper palette holds
+     nothing dark enough to do that — so the three leathers are their own
+     tokens. They stay dark in both themes, because a leather album is
+     dark; what changes is how much light is in them. Measured on the
+     cover: --on-book is 9.3:1 on Nghe An, 9.9:1 on Hanoi and 12.2:1 on
+     Canberra, and the foil 6.3:1 on the darkest of the three. */
+  --book-nghe-an:#7B2014; --book-hanoi:#174534; --book-canberra:#1E2E52;
+  --book-foil:#E7C698; --on-book:#FAF2E8; --book-edge:#EAE2D2;
+  --scrim:rgba(30,16,10,.58);
   --shadow-1:0 2px 8px -2px rgba(56,27,19,.05), 0 4px 16px -4px rgba(56,27,19,.06);
   --shadow-2:0 4px 12px -2px rgba(56,27,19,.08), 0 8px 24px -4px rgba(56,27,19,.08);
   /* Cards that float over a photograph need a heavier shadow than cards on
@@ -61,6 +71,12 @@ const STYLE = `
     --sage:#A8C4AE; --sage-deep:#CBDCCF;
     --amber:#E8B877; --amber-deep:#FFD9A8;
     --board:#493A2C; --pit:#372E25; --board-edge:#927859; --pebble:#D2B68F;
+    /* The leathers lift rather than darken, for the same reason the
+       terracotta does: a cover darker than the page behind it stops being
+       an object and becomes a hole. Re-measured on the lifted ones. */
+    --book-nghe-an:#8E3326; --book-hanoi:#1F5A45; --book-canberra:#2E4578;
+    --book-foil:#E0BE8E; --on-book:#F7EFE4; --book-edge:#4A3D32;
+    --scrim:rgba(0,0,0,.7);
     --shadow-1:0 2px 8px -2px rgba(0,0,0,.35), 0 4px 16px -4px rgba(0,0,0,.40);
     --shadow-2:0 4px 12px -2px rgba(0,0,0,.45), 0 8px 24px -4px rgba(0,0,0,.50);
     --shadow-float:0 2px 6px -1px rgba(0,0,0,.5), 0 12px 32px -8px rgba(0,0,0,.6);
@@ -563,113 +579,247 @@ ul.pit-row { list-style: none; margin: 0; padding: 0; display: grid;
   /* Where the turn ended. Quieter than a capture: it is a stop, not a prize. */
   .pit[data-beat="stop-quan"], .pit[data-beat="stop-empty"] { box-shadow: inset 0 0 0 2px var(--rule); }
 }
-/* The shelf is a bookcase: one album per household, standing like books.
-   Everything here describes the OPEN state, because that is what the
-   server sends and what a reader with no script keeps. The script adds the
-   closed cover and the turning. */
+/* The shelf is a bookcase: one book per household, standing on a board,
+   and read by taking it down and opening it.
+
+   There are two states here and the plain one is the one the server
+   sends. With no script every album is a heading followed by every page
+   it holds, in order, down the page — the complete readable list CLAUDE.md
+   promises. The script adds the class that stands the books up, shuts
+   them, and turns one leaf at a time. A script that fails to parse leaves
+   the readable shelf exactly as it was: the failure mode is the degraded
+   mode. */
 .bookcase { display: grid; gap: 1.75rem; margin: 1.75rem 0 0; }
 
-/* A book, not a panel. The cover carries the house's colour, the binding
-   is a darker band down the left with the stitching line beside it, and
-   the whole thing sits slightly off the page on a shadow. */
-.album {
-  --spine: var(--hearth);
-  --spine-deep: var(--hearth-deep);
-  position: relative;
-  border-radius: .35rem .9rem .9rem .35rem;
-  background:
-    linear-gradient(90deg, var(--spine-deep) 0 26px, var(--spine) 26px 30px, transparent 30px),
-    linear-gradient(135deg, var(--card) 0%, var(--card-raised) 100%);
-  box-shadow: var(--shadow-1), inset -1px 0 0 var(--rule), inset 0 -1px 0 var(--rule);
-  overflow: hidden;
-}
-.album[data-album="hanoi"] { --spine: var(--sage); --spine-deep: var(--sage-deep); }
-.album[data-album="canberra"] { --spine: var(--amber); --spine-deep: var(--amber-deep); }
-/* The stitching: a dashed line just inside the binding, the way a bound
-   album shows its thread. */
-.album::before {
-  content: ""; position: absolute; left: 14px; top: 10px; bottom: 10px; width: 0;
-  border-left: 1px dashed color-mix(in srgb, var(--paper) 55%, transparent);
-  pointer-events: none;
-}
-/* The page edges: a stack of leaves showing along the fore-edge. */
-.album::after {
-  content: ""; position: absolute; right: 0; top: 6px; bottom: 6px; width: 5px;
-  background: repeating-linear-gradient(180deg, var(--rule) 0 1px, transparent 1px 4px);
-  opacity: .7; pointer-events: none;
-}
+/* A book, not a panel. The cover carries the household's leather, the
+   binding is a darker band down the hinge with the stitching beside it,
+   and the fore-edge shows the stack of leaves.
+
+   --scene-shadow is the one colour that does not flip between themes, so
+   it is what darkens the hinge: mixing with --ink would lighten it in the
+   dark theme and turn the binding into a highlight. */
+.album { --leather: var(--book-nghe-an); position: relative; }
+.album[data-album="hanoi"] { --leather: var(--book-hanoi); }
+.album[data-album="canberra"] { --leather: var(--book-canberra); }
 
 .album-title { margin: 0; font-size: 1rem; }
-.album-open {
-  display: flex; width: 100%; align-items: baseline; gap: .75rem;
-  padding: 1.1rem 1.25rem 1.1rem 46px;
-  background: none; border: 0; text-align: left; cursor: pointer;
-  font: inherit; color: inherit;
+a.album-cover {
+  position: relative; z-index: 1; display: flex; overflow: hidden;
+  align-items: baseline; gap: .75rem;
+  padding: 1.1rem 1.25rem 1.1rem 50px;
+  text-decoration: none; color: var(--on-book);
+  border-radius: .3rem .85rem .85rem .3rem;
+  background:
+    linear-gradient(90deg,
+      color-mix(in srgb, var(--scene-shadow) 70%, var(--leather)) 0 24px,
+      color-mix(in srgb, var(--book-foil) 22%, var(--leather)) 24px 27px,
+      color-mix(in srgb, var(--scene-shadow) 34%, var(--leather)) 27px 33px,
+      transparent 33px),
+    linear-gradient(100deg, var(--leather) 34%, color-mix(in srgb, var(--book-foil) 9%, var(--leather)) 100%);
+  box-shadow: var(--shadow-2);
 }
-.album-open:hover .album-house { color: var(--spine-deep); }
-.album-house { font-family: var(--display); font-weight: 700; font-size: 1.35rem; letter-spacing: -.01em; }
-.album-count { color: var(--ink-soft); font-size: .8125rem; }
-/* Says which way it will go, and turns when the book is open. */
-.album-open::after {
-  content: "›"; margin-left: auto; font-size: 1.1rem; color: var(--ink-soft);
-  transition: transform .25s ease;
+/* Gold-blocked border, the way a bound album is tooled. */
+a.album-cover::before {
+  content: ""; position: absolute; inset: 7px 9px 7px 40px; border-radius: .25rem;
+  border: 1px solid color-mix(in srgb, var(--book-foil) 38%, transparent);
+  pointer-events: none;
 }
-.album[data-open="true"] .album-open::after { transform: rotate(90deg); }
+/* The stitching: a dashed thread just inside the binding. */
+.album::before {
+  content: ""; position: absolute; z-index: 2; left: 15px; top: 14px; bottom: 14px; width: 0;
+  border-left: 1px dashed color-mix(in srgb, var(--book-foil) 55%, transparent);
+  pointer-events: none;
+}
+/* The fore-edge: the leaves, seen end on. */
+.album::after {
+  content: ""; position: absolute; z-index: 2; right: -3px; top: 9px; bottom: 9px; width: 6px;
+  border-radius: 0 2px 2px 0;
+  background: repeating-linear-gradient(180deg,
+    var(--book-edge) 0 2px, color-mix(in srgb, var(--scene-shadow) 22%, var(--book-edge)) 2px 3px);
+  box-shadow: 0 1px 4px -1px var(--scene-shadow);
+  pointer-events: none;
+}
 
-/* The leaf itself: paper, inset from the binding, with a faint rule down
-   the gutter so a page reads as a page. */
-.album-book { padding: 0 1.25rem 1.25rem 46px; }
-.album-pages { display: grid; }
-.page {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: .2rem .6rem .6rem .2rem;
-  padding: 1.1rem 1.15rem;
-  box-shadow: 0 1px 0 var(--rule), 0 6px 0 -3px color-mix(in srgb, var(--rule) 50%, transparent);
+.album-volume { display: block; font-size: .625rem; letter-spacing: .22em;
+  text-transform: uppercase; font-weight: 700; color: var(--book-foil); }
+.album-house { font-family: var(--display); font-weight: 700; font-size: 1.35rem; letter-spacing: -.01em; }
+.album-span { font-size: .8125rem; color: color-mix(in srgb, var(--on-book) 76%, transparent); }
+.album-foot { margin-left: auto; display: flex; align-items: center; gap: .9rem; }
+.album-count { font-size: .8125rem; color: color-mix(in srgb, var(--on-book) 82%, transparent); }
+/* Says what the cover does. It is a link to the open book below it, which
+   is exactly what it does when there is no script to intercept it. */
+.album-cue {
+  font-size: .75rem; font-weight: 600; padding: .5rem .7rem; border-radius: .25rem;
+  background: color-mix(in srgb, var(--on-book) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--book-foil) 45%, transparent);
 }
-.page-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
-.page-empty { padding: 1.4rem 1.15rem; }
+a.album-cover:hover .album-cue { background: var(--on-book); color: var(--leather); }
+a.album-cover:focus-visible { outline: 3px solid var(--hearth); outline-offset: 2px; }
+
+/* --- With a script: three books standing on a shelf --- */
+.bookcase.standing {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.1rem; align-items: end;
+  padding: 2.5rem 1.4rem 0; border-radius: .5rem;
+  background: radial-gradient(120% 90% at 50% 0%,
+    color-mix(in srgb, var(--amber) 13%, transparent) 0%, transparent 62%), var(--card);
+}
+/* The board they stand on. */
+.bookcase.standing::after {
+  content: ""; grid-column: 1 / -1; height: 15px; margin: 1.1rem -1.4rem 0;
+  border-radius: 0 0 .5rem .5rem;
+  background: linear-gradient(180deg, var(--board) 0 45%, var(--board-edge) 45%);
+  box-shadow: 0 14px 22px -14px var(--scene-shadow);
+}
+.bookcase.standing a.album-cover {
+  flex-direction: column; align-items: stretch; gap: .5rem;
+  aspect-ratio: 3 / 4; padding: 1.4rem 1.1rem 1.1rem 46px;
+}
+.bookcase.standing .album-volume::after {
+  content: ""; display: block; width: 3.2rem; height: 2px; margin-top: .4rem;
+  background: linear-gradient(90deg, var(--book-foil), transparent);
+}
+.bookcase.standing .album-house { font-size: 1.6rem; line-height: 1.15; }
+/* The crest: tooled into the leather rather than printed on it, because an
+   emblem standing for a real house would be a claim the app cannot make. */
+.bookcase.standing a.album-cover::after {
+  content: ""; position: absolute; left: calc(50% + 20px); top: 50%; width: 78px; height: 78px;
+  transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--book-foil) 62%, transparent);
+  background: radial-gradient(circle at 50% 36%,
+    color-mix(in srgb, var(--book-foil) 20%, transparent) 0%, transparent 72%);
+  box-shadow: inset 0 0 0 5px color-mix(in srgb, var(--scene-shadow) 30%, transparent),
+              inset 0 0 0 6px color-mix(in srgb, var(--book-foil) 34%, transparent),
+              0 1px 0 color-mix(in srgb, var(--book-foil) 22%, transparent);
+}
+.bookcase.standing .album-foot {
+  margin: auto 0 0; padding-top: .7rem;
+  border-top: 1px solid color-mix(in srgb, var(--book-foil) 32%, transparent);
+  justify-content: space-between; gap: .5rem;
+}
+.bookcase.standing .album-span { font-size: .75rem; }
+
+/* --- The open book --- */
+/* A <dialog> is an ordinary block here until the script opens one: the UA
+   hides a closed dialog, so the base rule puts it back. With no script
+   nothing ever calls showModal(), and this is simply the book, open,
+   under its heading. */
+.album-book {
+  display: block; position: static; inset: auto; z-index: auto;
+  width: auto; max-width: none; height: auto; max-height: none;
+  margin: 0; padding: .9rem 1.25rem 1.25rem 50px;
+  border: 0; background: none; color: inherit; overflow: visible;
+}
+/* Shut. Set by the script and by nothing else, which is why a reader with
+   no script never meets a book that will not open. */
+.album[data-open="false"] .album-book { display: none; }
+.album[data-open="true"] .album-book {
+  position: fixed; inset: 0; margin: auto; padding: 0;
+  width: min(100% - 1.5rem, 64rem); height: min(100% - 1.5rem, 52rem);
+  background: var(--paper);
+  border-radius: .3rem 1rem 1rem .3rem;
+  box-shadow: var(--shadow-float), inset 0 0 0 1px var(--rule);
+  overflow: hidden;
+}
+.album-book::backdrop { background: var(--scrim); }
+
+.book-inner { display: flex; flex-direction: column; height: 100%; }
+.album[data-open="true"] .book-inner {
+  padding: 1rem 1.25rem 1rem 1.25rem;
+  /* The binding runs down the middle of an opened book, not down its
+     edge. */
+  background:
+    linear-gradient(90deg, transparent calc(50% - 13px),
+      color-mix(in srgb, var(--rule) 60%, transparent) calc(50% - 13px),
+      color-mix(in srgb, var(--rule) 24%, transparent) 50%,
+      color-mix(in srgb, var(--rule) 60%, transparent) calc(50% + 13px),
+      transparent calc(50% + 13px));
+}
+/* Both of these carry the hidden attribute in the markup and have it
+   taken off by the script, so :not([hidden]) is the same load-bearing
+   selector as on .page: a display declaration outranks the UA rule that
+   hides them, and without it a reader with no script is shown a "Close
+   the book" button and a pair of turn controls that cannot do anything.
+   A button that appears to do nothing is the one thing CLAUDE.md will not
+   have on a page. */
+.book-head:not([hidden]) { display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; margin: 0 0 .6rem; }
+.book-head-name { font-family: var(--display); font-weight: 700; font-size: 1.15rem; }
+.album-close { font-size: .8125rem; padding: .55rem .85rem; }
+
+.album-pages { display: grid; flex: 1; min-height: 0; }
+.album[data-open="true"] .album-pages { overflow: auto; }
+.page { padding: .2rem 0 0; }
+/* :not([hidden]) is load-bearing, not decoration. A display declaration
+   here outranks the UA's own rule hiding [hidden] elements, so without it
+   the script hides a page, the page goes on rendering, and all thirty-two
+   of them stack up behind a control that says "Page 1 of 32". Found by
+   looking at the screen, not by a test. */
+.album[data-open="true"] .page:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2.4rem; align-content: start; }
+.leaf, .page-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; align-content: start; }
+.leaf + .leaf { margin-top: 1rem; }
+.album[data-open="true"] .leaf + .leaf { margin-top: 0; }
+.page-empty { padding: 1.1rem 0; }
+/* Stacked, with no script, one page has to end before the next begins. */
+.album-pages > .page + .page { margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); }
+.album[data-open="true"] .album-pages > .page + .page { margin: 0; padding-top: .2rem; border-top: 0; }
 /* Inside a page the cards are the paper itself, not boxes on top of it. */
 .page .card-shelf { background: none; border: 0; box-shadow: none; border-radius: 0; }
 .page .card-shelf + .card-shelf { border-top: 1px solid var(--rule); padding-top: 1rem; }
 
-.album-turn {
+.album-turn:not([hidden]) {
   display: flex; align-items: center; justify-content: space-between;
   gap: 1rem; margin: .9rem 0 0;
 }
-.album-turn button { font-size: .8125rem; padding: .4rem .8rem; }
+.album-turn button { font-size: .8125rem; padding: .55rem .9rem; }
 .album-turn button[disabled] { opacity: .35; cursor: default; }
 .album-where { font-size: .8125rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 
-/* On a phone the binding costs too much of the column, so the book keeps
-   its spine but gives the page back most of that width. Measured: at
-   360px the 46px inset left 258px of text; this returns about 40 of it. */
+/* Three books do not fit across a phone, and an open spread is two pages
+   wide only where there is room for two pages. */
+@media (max-width: 760px) {
+  .bookcase.standing { grid-template-columns: 1fr 1fr; gap: .9rem; }
+  .album[data-open="true"] .page:not([hidden]) { grid-template-columns: 1fr; gap: 1rem; }
+  .album[data-open="true"] .book-inner { background: none; }
+  .album[data-open="true"] .leaf + .leaf {
+    margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+}
 @media (max-width: 480px) {
-  .album { background:
-    linear-gradient(90deg, var(--spine-deep) 0 14px, var(--spine) 14px 17px, transparent 17px),
-    linear-gradient(135deg, var(--card) 0%, var(--card-raised) 100%); }
-  .album::before { left: 7px; }
-  .album-open { padding: .9rem 1rem .9rem 26px; }
-  .album-book { padding: 0 .8rem .9rem 26px; }
-  .page { padding: .9rem .85rem; }
+  .bookcase.standing { grid-template-columns: 1fr; padding: 1.5rem 1rem 0; }
+  .bookcase.standing a.album-cover { aspect-ratio: auto; min-height: 210px; }
+  /* A squat cover has no middle to tool a crest into: at this width it
+     lands across the dates instead. The binding, the foil frame and the
+     fore-edge are enough to say "book" on their own. */
+  .bookcase.standing a.album-cover::after { display: none; }
+  a.album-cover { padding: .9rem 1rem .9rem 30px; }
+  a.album-cover::before { inset: 6px 7px 6px 24px; }
+  .album::before { left: 9px; }
+  .album-book { padding: .8rem .85rem .9rem 30px; }
+  .album[data-open="true"] .book-inner { padding: .85rem .9rem; }
   .album-house { font-size: 1.15rem; }
-  /* The turn controls stack rather than squeeze the page number out. */
+  /* The turn controls wrap rather than squeeze the page number out. */
   .album-turn { flex-wrap: wrap; justify-content: center; gap: .5rem .75rem; }
 }
 
-/* Opening and turning. All of it inside the motion query: with reduced
-   motion the pages still change, they simply do not swing. The closed
-   cover is applied by the script, so a reader with no script never meets
-   a book that will not open. */
+/* Opening, shutting and turning. All of it inside the motion query: with
+   reduced motion the book still opens and the pages still change, they
+   simply do not swing. */
 @media (prefers-reduced-motion: no-preference) {
-  .album-book { perspective: 1600px; }
-  .album[data-open="false"] .album-book { display: none; }
+  .bookcase.standing a.album-cover { transition: transform .3s ease, box-shadow .3s ease; }
+  .bookcase.standing a.album-cover:hover { transform: translateY(-9px); box-shadow: var(--shadow-float); }
   /* The cover swinging back on its hinge — the binding is the axis. */
-  .album[data-opening="true"] .album-book { animation: album-open .45s cubic-bezier(.2,.7,.3,1); }
-  @keyframes album-open {
-    from { opacity: 0; transform: rotateY(-78deg); transform-origin: left center; }
-    to   { opacity: 1; transform: rotateY(0); transform-origin: left center; }
+  .album[data-opening="true"] .album-book { animation: book-open .5s cubic-bezier(.2,.75,.3,1); }
+  .album[data-closing="true"] .album-book { animation: book-shut .3s ease-in forwards; }
+  .album-book { transform-origin: left center; }
+  @keyframes book-open {
+    from { opacity: 0; transform: perspective(1800px) rotateY(-74deg) scale(.92); }
+    to   { opacity: 1; transform: perspective(1800px) rotateY(0) scale(1); }
   }
+  @keyframes book-shut {
+    from { opacity: 1; transform: perspective(1800px) rotateY(0) scale(1); }
+    to   { opacity: 0; transform: perspective(1800px) rotateY(-74deg) scale(.92); }
+  }
+  .album-pages { perspective: 1600px; }
   .page { transform-origin: left center; backface-visibility: hidden; }
   .page[data-turning="next"] { animation: leaf-next .3s ease-in; }
   .page[data-turning="back"] { animation: leaf-back .3s ease-out; }
@@ -2077,6 +2227,25 @@ const isFilteredFrom = (f: { year: string; q: string; house: string }): boolean 
  *
  *  The two names are the point of the whole app, so they are the loudest
  *  line on the card after the title — not a footnote. */
+/** The months an album actually covers, for its cover. Derived from the
+ *  keepings themselves rather than written by hand: a subtitle somebody
+ *  invented for a house would be a claim about a real place that the app
+ *  has no business making. UTC, like every other time here. */
+function keptSpan(things: ThingView[]): string {
+  const months = things
+    .map((t) => t.keptAt)
+    .filter((k): k is string => Boolean(k))
+    .map((k) => new Date(/[zZ]|[+-]\d\d:\d\d$/.test(k) ? k : `${k.replace(" ", "T")}Z`))
+    .filter((d) => !Number.isNaN(d.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+  if (!months.length) return "Nothing kept here yet";
+  const label = (d: Date): string =>
+    `${d.toLocaleString("en", { month: "long", timeZone: "UTC" })} ${d.getUTCFullYear()}`;
+  const first = label(months[0]!);
+  const last = label(months[months.length - 1]!);
+  return first === last ? `Kept ${first}` : `Kept ${first} \u2013 ${last}`;
+}
+
 function shelfCard(t: ThingView, house: House): string {
   const everyone = [t.placedByName, ...t.keeperNames];
   return `<li class="thing card-shelf">
@@ -2136,31 +2305,57 @@ export function shelfPage(
     }
     const out: string[] = [];
     for (let i = 0; i < things.length; i += PER_PAGE) {
-      const leaf = things.slice(i, i + PER_PAGE).map((t) => shelfCard(t, h)).join("");
-      out.push(`<div class="page"><ol class="page-cards">${leaf}</ol></div>`);
+      // A page is a spread: the left leaf and the right one, two memories
+      // each. Open, that is what a book looks like; shut into one column
+      // on a phone, and stacked down the page with no script, it is the
+      // same four memories in the same order either way.
+      const spread = things.slice(i, i + PER_PAGE);
+      const leaves = [spread.slice(0, 2), spread.slice(2)]
+        .filter((leaf) => leaf.length)
+        .map((leaf) => `<ol class="page-cards leaf">${leaf.map((t) => shelfCard(t, h)).join("")}</ol>`)
+        .join("");
+      out.push(`<div class="page">${leaves}</div>`);
     }
     return out;
   };
 
+  const VOLUMES = ["I", "II", "III", "IV"];
   const albums = albumHouses
-    .map((h) => {
+    .map((h, i) => {
       const pages = pagesOf(h.shelved, h);
       const count = `${h.shelved.length} ${h.shelved.length === 1 ? "memory" : "memories"}`;
+      const id = `album-${esc(h.slug)}`;
+      // The cover is a LINK to the open book below it, and with no script
+      // that is exactly what it does: it jumps you to the pages. The
+      // script intercepts the click and opens the book instead. A control
+      // that does nothing without JavaScript would teach the reader the
+      // app is broken, which is the one thing CLAUDE.md will not have.
       return `<article class="album" data-album="${esc(h.slug)}" data-pages="${pages.length}">
-        <h2 class="album-title">
-          <button type="button" class="album-open" aria-expanded="true" aria-controls="album-${esc(h.slug)}">
+        <h2 class="album-title" id="${id}-title">
+          <a class="album-cover" href="#${id}">
+            <span class="album-volume">Volume ${VOLUMES[i] ?? String(i + 1)}</span>
             <span class="album-house">${esc(h.name)}</span>
-            <span class="album-count">${esc(count)}</span>
-          </button>
+            <span class="album-span">${esc(keptSpan(h.shelved))}</span>
+            <span class="album-foot">
+              <span class="album-count">${esc(count)}</span>
+              <span class="album-cue">Open the book</span>
+            </span>
+          </a>
         </h2>
-        <div class="album-book" id="album-${esc(h.slug)}">
-          <div class="album-pages">${pages.join("")}</div>
-          <p class="album-turn" hidden>
-            <button type="button" class="turn-back">‹ Back</button>
-            <span class="album-where" aria-live="polite">Page 1 of ${pages.length}</span>
-            <button type="button" class="turn-next">Next ›</button>
-          </p>
-        </div>
+        <dialog class="album-book" id="${id}" aria-labelledby="${id}-title">
+          <div class="book-inner">
+            <p class="book-head" hidden>
+              <span class="book-head-name">${esc(h.name)}</span>
+              <button type="button" class="album-close" autofocus>Close the book</button>
+            </p>
+            <div class="album-pages">${pages.join("")}</div>
+            <p class="album-turn" hidden>
+              <button type="button" class="turn-back">‹ Back</button>
+              <span class="album-where" aria-live="polite">Page 1 of ${pages.length}</span>
+              <button type="button" class="turn-next">Next ›</button>
+            </p>
+          </div>
+        </dialog>
       </article>`;
     })
     .join("");
@@ -2209,28 +2404,37 @@ export function shelfPage(
     </main>
     <script type="module">
       // The albums. Everything above is already readable without this:
-      // every book is open and every page is in the markup. This closes
-      // them so they can be opened, and shows one page at a time.
+      // every book is open and every page is in the markup, and each
+      // cover is a link down to its own pages.
       //
-      // So the FIRST thing it does is hide pages — which means if this
-      // script fails to parse, nothing is hidden and the shelf is exactly
-      // the complete list the server sent. The failure mode is the
-      // no-script mode, which is the whole point of the arrangement.
+      // So the FIRST thing this does is shut the books — which means if
+      // the script fails to parse, nothing is hidden and the shelf is
+      // exactly the complete list the server sent. The failure mode is
+      // the no-script mode, which is the whole point of the arrangement.
       const motionOk = typeof window.matchMedia === "function"
         && window.matchMedia("(prefers-reduced-motion: no-preference)").matches;
+
+      // Stand them up on the shelf. Without this class the bookcase is a
+      // plain stack, which is what a reader with no script keeps.
+      const bookcase = document.querySelector(".bookcase");
+      if (bookcase) bookcase.classList.add("standing");
 
       for (const album of document.querySelectorAll(".album")) {
         const pages = [...album.querySelectorAll(".page")];
         const turn = album.querySelector(".album-turn");
+        const head = album.querySelector(".book-head");
         const where = album.querySelector(".album-where");
         const back = album.querySelector(".turn-back");
         const next = album.querySelector(".turn-next");
-        const opener = album.querySelector(".album-open");
+        const cover = album.querySelector(".album-cover");
         const book = album.querySelector(".album-book");
-        if (!pages.length || !turn || !opener || !book) continue;
+        const close = album.querySelector(".album-close");
+        if (!pages.length || !turn || !cover || !book || !close) continue;
+        // An old browser without <dialog> keeps the open book it was
+        // sent rather than being handed a cover that will not open.
+        if (typeof book.showModal !== "function") continue;
 
         let at = 0;
-        let open = false;
 
         const show = () => {
           pages.forEach((p, i) => { p.hidden = i !== at; });
@@ -2239,23 +2443,45 @@ export function shelfPage(
           next.disabled = at === pages.length - 1;
         };
 
-        // A one-page album needs no controls: a book with a single leaf is
-        // not something you turn.
+        if (head) head.hidden = false;
+        // A one-page album needs no controls: a book with a single leaf
+        // is not something you turn.
         if (pages.length > 1) turn.hidden = false;
         show();
+        album.setAttribute("data-open", "false");
 
-        const setOpen = (want) => {
-          open = want;
-          album.setAttribute("data-open", String(open));
-          opener.setAttribute("aria-expanded", String(open));
-          if (open && motionOk) {
+        const open = () => {
+          at = 0;
+          show();
+          album.setAttribute("data-open", "true");
+          if (motionOk) {
             album.setAttribute("data-opening", "true");
-            setTimeout(() => album.removeAttribute("data-opening"), 440);
+            setTimeout(() => album.removeAttribute("data-opening"), 520);
           }
+          book.showModal();
+          document.documentElement.style.overflow = "hidden";
         };
-        setOpen(false);
 
-        opener.addEventListener("click", () => setOpen(!open));
+        // Shutting it is the cover coming back down, so the book stays on
+        // screen until that has played. Escape skips it, which is right:
+        // Escape means out, now.
+        const shut = () => {
+          if (!motionOk) { book.close(); return; }
+          album.setAttribute("data-closing", "true");
+          setTimeout(() => book.close(), 300);
+        };
+
+        cover.addEventListener("click", (e) => { e.preventDefault(); open(); });
+        close.addEventListener("click", shut);
+        // The page behind the book is still the shelf: clicking it puts
+        // the book back.
+        book.addEventListener("click", (e) => { if (e.target === book) shut(); });
+        book.addEventListener("close", () => {
+          album.removeAttribute("data-closing");
+          album.setAttribute("data-open", "false");
+          document.documentElement.style.overflow = "";
+          cover.focus();
+        });
 
         const goTo = (want, dir) => {
           if (want < 0 || want >= pages.length || want === at) return;
