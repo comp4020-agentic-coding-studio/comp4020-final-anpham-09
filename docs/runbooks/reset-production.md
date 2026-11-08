@@ -12,6 +12,26 @@
 
 Run this once, when accounts first deploy, and never casually afterwards.
 
+> **RUN AND COMPLETE: 9 November 2026, 05:04 AEDT.** The village was reset
+> by the owner. Backup taken first with `VACUUM INTO`, pulled to
+> `~/backups/village/before-accounts-20261109-024418.db`, and verified:
+> `PRAGMA integrity_check` returned `ok` at 27 things, 82 keepings, 0
+> perspectives. After the restart every count was 0 and `names` was `[]`.
+> The four houses re-seeded, and registering an account into Canberra on the
+> empty database worked.
+>
+> **This procedure is now over.** The counts in Step 1 below describe the
+> state it was run against and will never match again. If the village ever
+> needs clearing a second time, the family will by then have put real things
+> in it — and deleting those is the thing the rule forbids. Write a new
+> document with its own argument rather than re-running this one.
+>
+> `HOUSEHOLD_CODES` and `MEMBER_KEYS` were both unset at the same time. Every
+> house is deliberately open: anyone who registers may claim any household,
+> which is the owner's decision for a village of six people who know each
+> other. The boot log says so on every start. Setting three real hashes into
+> `HOUSEHOLD_CODES` closes them again, and nothing else has to change.
+
 ## Why this is allowed
 
 "Nothing can be deleted" protects memories. Production holds none. Checked
