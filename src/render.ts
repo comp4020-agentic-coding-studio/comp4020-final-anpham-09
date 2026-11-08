@@ -1072,6 +1072,53 @@ li.card-shelf:nth-of-type(odd), li.card-shelf:nth-of-type(even) { transform: non
 .drawer-foot .memory-compose { gap: .35rem; }
 a.drawer-link { font-size: .85rem; min-height: 44px; display: inline-flex; align-items: center; }
 
+/* --- The family chat --- */
+/* A header that says where you are and who is in the room, with the rule
+   the house runs on folded up beside it. */
+.chat-head { display: flex; flex-wrap: wrap; align-items: flex-start;
+  justify-content: space-between; gap: .75rem 1rem; }
+.chat-title h2 { margin: 0; }
+.chat-title .note { margin: .15rem 0 0; }
+/* Who is at the table, as a pill rather than a sentence floating above the
+   messages. The count is for a glance and the names are underneath it,
+   because everywhere else in this app presence is people with names. */
+/* Sticky, because the messages scroll inside #room and who is at the table
+   is not something to scroll past. It stays in the live fragment rather
+   than moving up into the header, so the one element the stream refreshes
+   is still the one that says who is here. */
+.table-presence { position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: .25rem .6rem; margin: 0 0 1rem; padding: .5rem .8rem;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 999px; }
+.table-presence .faces { flex: none; }
+.table-count { font-weight: 600; font-size: .8125rem; }
+.table-who { font-size: .8125rem; color: var(--ink-soft); }
+/* The day a run of messages belongs to. A thread without these is the
+   undated scroll this app was written against. */
+.thread-day { display: flex; align-items: center; gap: .75rem; margin: 1.5rem 0 1.1rem;
+  font-size: .75rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-soft); }
+.thread-day::before, .thread-day::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.thread-day:first-child { margin-top: 0; }
+/* What somebody said, as something said rather than a row in a list. */
+.meeting-page li.thread-msg .thread-body { background: var(--paper);
+  border: 1px solid var(--rule); border-radius: 14px; padding: .7rem .9rem; }
+.meeting-page li.thread-msg .thread-meta { margin-top: 0; }
+.meeting-page li.thread-msg[data-same-sender="true"] .thread-body { border-top-left-radius: 4px; }
+/* Still in the room, on the same presence the strip above counts. */
+li.thread-msg[data-here="true"] > .face { position: relative; }
+li.thread-msg[data-here="true"] > .face::after {
+  content: ""; position: absolute; right: -1px; bottom: -1px;
+  width: .55rem; height: .55rem; border-radius: 50%;
+  background: var(--sage-deep); border: 2px solid var(--paper);
+}
+.table-quiet { margin: 0 0 .6rem; }
+/* At the table the composer is one row — say something, send it — so the
+   picture disclosure goes on its own line above it rather than squeezing
+   the box you type in down to nothing, which is what it did at first. */
+form.say { flex-wrap: wrap; }
+form.say .optional-photo { flex: 1 0 100%; order: -1; margin: 0 0 .1rem; }
+
 /* --- A photograph on a memory --- */
 /* The picture and the words are one thing, so they are one <figure>: the
    caption IS the description, which is why the image's alt is empty. */
@@ -1371,8 +1418,13 @@ export function timeAgo(iso: string): string {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-  if (days === 1) return "yesterday";
+    if (days === 1) return "yesterday";
   if (days < 7) return `${days}d ago`;
+  // Past a week, the date rather than a count of days — but the DATE, not
+  // the timestamp. This used to print the stored value whole, so a message
+  // in the thread read "2026-11-01 16:17:27 UTC" beside another reading
+  // "4d ago". The seconds are precision nobody asked for and nobody can
+  // use; the day is the fact. Still no guessing, and still UTC.
   return `${iso} UTC`;
 }
 
@@ -1419,8 +1471,18 @@ function eventAndKeptMeta(t: ThingView): string {
  *  name show once for the run, the rest tuck under it. Decided here rather
  *  than in CSS because `:has()` on a previous sibling does not exist, and
  *  the server already knows who said what. */
-function threadMessage(t: ThingView, houseSlug: string, sameSender = false): string {
-  return `<li class="thing thread-msg" data-same-sender="${sameSender}">
+function threadMessage(
+  t: ThingView,
+  houseSlug: string,
+  sameSender = false,
+  /** Everybody else the room can see right now. Used for one thing: a dot
+   *  on the speaker's monogram when they are still in the room. It is the
+   *  same presence the strip above the thread counts, so the dot cannot
+   *  disagree with the sentence. */
+  here: ReadonlySet<string> = new Set(),
+): string {
+  const present = here.has(t.placedByName);
+  return `<li class="thing thread-msg" data-same-sender="${sameSender}" data-here="${present}">
     ${monogram(t.placedByName)}
     <div class="thread-body">
       <p class="thread-meta"><strong>${esc(t.placedByName)}</strong> ${homeChip(t.placedBy)}
@@ -1443,23 +1505,68 @@ function threadMessage(t: ThingView, houseSlug: string, sameSender = false): str
  *  is actually around replaces the other rooms' who-line, in the same
  *  register ("nobody else", never "nobody" — the viewer is always here
  *  reading it). */
-function threadFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
-  const strip = `<p class="lede" id="who">${otherNames.length ? "Around the table right now: " + names(otherNames) + "." : "Nobody is at the table right now."}</p>`;
+function threadFragment(
+  otherNames: string[],
+  things: ThingView[],
+  houseSlug: string,
+  now: string,
+): string {
+  // The presence strip is a count AND the names. The count is what a glance
+  // wants; the names are what the rest of the app says, and dropping them
+  // for a tidier pill would make this the one place the village talks about
+  // "3 people" instead of about Mum and Anh. The viewer is counted, because
+  // they are at the table — they are reading it.
+  const atTable = otherNames.length + 1;
+  const strip = `<p class="table-presence" id="who">
+    ${faces(otherNames)}
+    <span class="table-count">${atTable} at the table</span>
+    <span class="table-who">${
+      otherNames.length
+        ? `${names(otherNames)} ${otherNames.length === 1 ? "is" : "are"} here with you`
+        : "Just you, for now"
+    }</span>
+  </p>`;
   if (!things.length) {
     return `${strip}<div class="conversation-empty"><svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M13 15h38v27H31L19 51v-9h-6z"/><circle cx="23" cy="29" r="1"/><circle cx="32" cy="29" r="1"/><circle cx="41" cy="29" r="1"/></svg><p class="hand">Pull up a chair.</p><p class="empty">Nothing has been said at the table yet.</p><p class="note">Leave a little of your day for whoever comes by.</p></div>`;
   }
+  const here = new Set(otherNames);
   const oldestFirst = [...things].reverse();
-  return `${strip}<ol class="thread">${oldestFirst
-    .map((t, i) => threadMessage(t, houseSlug, i > 0 && oldestFirst[i - 1]!.placedBy === t.placedBy))
-    .join("")}</ol>`;
+  // A day divider wherever the day changes. A thread two hundred messages
+  // long is otherwise one undated scroll, which is the group chat this app
+  // was written against: An Duy's first year is in there somewhere and
+  // nobody will find it. The labels come from the same `dayLabel` the note
+  // board uses, so "Today" means the same thing in both places.
+  const rows: string[] = [];
+  let day = "";
+  oldestFirst.forEach((t, i) => {
+    const its = t.createdAt.slice(0, 10);
+    if (its !== day) {
+      day = its;
+      rows.push(`<li class="thread-day"><span>${esc(dayLabel(its, now))}</span></li>`);
+    }
+    const sameSender =
+      i > 0 && oldestFirst[i - 1]!.placedBy === t.placedBy && oldestFirst[i - 1]!.createdAt.slice(0, 10) === its;
+    rows.push(threadMessage(t, houseSlug, sameSender, here));
+  });
+  return `${strip}<ol class="thread">${rows.join("")}</ol>`;
 }
 
 /** The village's one room-list renderer, with the meeting house's single
  *  exception: it alone reads as a conversation (see `threadFragment`).
  *  Every other house keeps the plain room list this always rendered. */
-export function roomFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
+export function roomFragment(
+  otherNames: string[],
+  things: ThingView[],
+  houseSlug: string,
+  /** Today, UTC, from `today()` in src/things.ts. Passed in rather than read
+   *  here so that one function answers which day it is — the five-a-day
+   *  count, the note board and the thread's dividers all ask the same one,
+   *  and a renderer that asked the clock itself could label a message
+   *  "Today" that the server had already counted as yesterday. */
+  now: string,
+): string {
   return houseSlug === "meeting"
-    ? threadFragment(otherNames, things, houseSlug)
+    ? threadFragment(otherNames, things, houseSlug, now)
     : regularRoomFragment(otherNames, things, houseSlug);
 }
 
@@ -2055,14 +2162,21 @@ const MONTHS = [
  *  `now` is passed in rather than read from the clock here, so that every
  *  heading on one board is relative to the SAME day — a board rendered
  *  across midnight would otherwise be able to say "Today" twice. */
+/** A YYYY-MM-DD in words. Shared by the note board's headings and by
+ *  anything in `timeAgo` older than a week, so one date is written one way
+ *  everywhere in the app. */
+function longDate(day: string): string {
+  const [y, m, d] = day.split("-");
+  const month = MONTHS[Number(m) - 1];
+  return month ? `${Number(d)} ${month} ${y}` : day;
+}
+
 function dayLabel(day: string, now: string): string {
   if (day === now) return "Today";
   const then = Date.parse(`${day}T00:00:00Z`);
   const here = Date.parse(`${now}T00:00:00Z`);
   if (here - then === 86_400_000) return "Yesterday";
-  const [y, m, d] = day.split("-");
-  const month = MONTHS[Number(m) - 1];
-  return month ? `${Number(d)} ${month} ${y}` : day;
+  return longDate(day);
 }
 
 const noteCount = (n: number): string => (n === 1 ? "1 note" : `${n} notes`);
@@ -2128,7 +2242,11 @@ export function housePage(
    *  how many notes this viewer may still leave on the table today. The
    *  meeting house has neither — nothing is capped there and a remark is
    *  not a note on a surface — so it carries on passing nothing. */
-  notes?: { days: NoteDay[]; left: number; today: string },
+    notes?: { days: NoteDay[]; left: number; today: string },
+  /** Today, UTC, from `today()` in src/things.ts — see roomFragment. The
+   *  three homes also get it inside `notes`; the meeting house has no note
+   *  board and still needs it for the thread's day dividers. */
+  now: string = "",
 ): string {
   const isMeeting = house.slug === "meeting";
   // The same rule the route uses, asked again here so the page offers only
@@ -2158,7 +2276,7 @@ export function housePage(
             <input id="title" name="title" required maxlength="120" placeholder="His first steps">`
             }
             <label for="body"${isMeeting ? ' class="visually-hidden"' : ""}>${esc(composeLabel)}</label>
-            ${isMeeting ? '<input id="body" name="body" required maxlength="280" placeholder="Send a message…" autocomplete="off">' : '<textarea id="body" name="body" required maxlength="280" rows="4" placeholder="What do you want to remember?"></textarea>'}
+            ${isMeeting ? '<input id="body" name="body" required maxlength="280" placeholder="Share a thought with the room…" autocomplete="off">' : '<textarea id="body" name="body" required maxlength="280" rows="4" placeholder="What do you want to remember?"></textarea>'}
                         ${
               isMeeting
                 ? ""
@@ -2305,7 +2423,7 @@ export function housePage(
             <span class="drawer-words"><h2 id="table-title">The table</h2><small>${esc(leftLine)}</small></span>
             <button type="button" class="drawer-close" hidden autofocus>Leave the table</button>
           </div>
-          <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
+          <div id="room">${roomFragment(otherNames, things, house.slug, now)}</div>
           <div class="drawer-foot">
             ${tableFoot}
             <a class="drawer-link" href="#board">The note board — ${esc(
@@ -2376,8 +2494,14 @@ export function housePage(
         // its ending is different.
         isMeeting
           ? `<div class="layout-house measured">
-        <div class="room-collection conversation">
-          <h2>Family chat</h2>
+                <div class="room-collection conversation">
+          <div class="chat-head">
+            <div class="chat-title">
+              <h2>Family chat</h2>
+              <p class="note">Everyone, wherever they are</p>
+            </div>
+            ${guideBlock}
+          </div>
           ${
             // The brief's first artefact criterion is the keyboard, and the
             // message box is the LAST thing in the tab order here: every
@@ -2387,16 +2511,14 @@ export function housePage(
             // mouse user nothing and a keyboard user one stop.
             mayPutDown ? `<a class="skip-to-composer" href="#body">Skip to the message box</a>` : ""
           }
-          <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
-          ${
+          <div id="room">${roomFragment(otherNames, things, house.slug, now)}</div>
+                    ${
             // At the table the composer belongs UNDER what was said, where
-            // a conversation puts it, not in the side panel beside it.
-            `<div class="composer">${composerBlock}${typingLine}</div>`
+            // a conversation puts it, not in the side panel beside it. The
+            // quiet line sits between the two, which is where it is read:
+            // it is about what happens when you press send.
+            `<div class="composer"><p class="quiet table-quiet">${esc(quietLine)}</p>${composerBlock}${typingLine}</div>`
           }
-        </div>
-        <div class="panel-stack">
-          ${guideBlock}
-          <p class="quiet">${esc(quietLine)}</p>
         </div>
       </div>`
           : // A household room keeps only what is not a note and not a

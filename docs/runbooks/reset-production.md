@@ -26,6 +26,27 @@ Run this once, when accounts first deploy, and never casually afterwards.
 > in it — and deleting those is the thing the rule forbids. Write a new
 > document with its own argument rather than re-running this one.
 >
+> **The village was then seeded, and the seed is authored.** Three accounts
+> — An (Canberra), Mum (Nghe An), Brother (Hanoi) — were created by the
+> owner's agent, and every memory, perspective and table note now in
+> production was written by me, not by the people whose names are on them.
+> The photographs are real: An Duy's first year, from the family's own
+> birthday-gift archive, and each caption describes what is visible in its
+> own photograph.
+>
+> This matters because the app's one claim is that a memory is something two
+> of you were there for, and on the shelf today that is not true of the
+> seeded rows: the second name on each is a voice I wrote. Saying so here is
+> the only way the claim and the artefact can both stand. When the family
+> use it, their own words replace this — nothing has to be deleted, because
+> the shelf grows rather than being filled once.
+>
+> Two captions in the first pass described photographs I had not looked at
+> (a gate arrival, a bath) and were simply wrong. "Never delete or expire
+> anything anyone placed" has no exception for an author's embarrassment, so
+> they stay in their rooms, uncorroborated, and accurate ones were placed
+> beside them. Things 5 and 6 are the wrong pair.
+>
 > `HOUSEHOLD_CODES` and `MEMBER_KEYS` were both unset at the same time. Every
 > house is deliberately open: anyone who registers may claim any household,
 > which is the owner's decision for a village of six people who know each

@@ -625,6 +625,7 @@ const server = createServer((req, res) => {
           others,
           house.kind === "meeting" ? inRoom(house.slug, who) : onTable(house.slug, who),
           house.slug,
+          today(),
         ),
       );
       return;
@@ -739,6 +740,7 @@ const server = createServer((req, res) => {
                 left: notesLeftToday(house.slug),
                 today: today(),
               },
+          today(),
         ),
         setCookie, req);
       publish(house.slug, "arrived");

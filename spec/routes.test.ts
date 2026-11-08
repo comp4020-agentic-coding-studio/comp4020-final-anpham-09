@@ -1082,18 +1082,27 @@ describe("the table reads as a conversation", () => {
     await s.get("/");
     await signIn(s, "Chat Shape", "canberra");
     try {
-      const page = markup(await (await s.get("/house/meeting")).text());
+            const page = markup(await (await s.get("/house/meeting")).text());
+      const collection = page.indexOf('class="room-collection conversation"');
+      const head = page.indexOf('class="chat-head"');
       const room = page.indexOf('<div id="room">');
       const composer = page.indexOf('<div class="composer">');
-      const collection = page.indexOf('class="room-collection conversation"');
 
       expect(collection, "the meeting house is not marked as a conversation").toBeGreaterThan(-1);
+      expect(head, "the chat has no header").toBeGreaterThan(-1);
       expect(composer, "no composer under the messages").toBeGreaterThan(-1);
-      // Order is the assertion: messages first, composer after, and both
-      // inside the collection rather than off in the panel.
-      expect(collection).toBeLessThan(room);
+      // Order is the assertion: the header, then what was said, then the
+      // box you say something in — all three inside the conversation.
+      expect(collection).toBeLessThan(head);
+      expect(head).toBeLessThan(room);
       expect(room).toBeLessThan(composer);
-      expect(page.indexOf('class="panel-stack"')).toBeGreaterThan(composer);
+      // And nothing is parked in a side panel beside the talk. The table
+      // used to keep the two-state rule and the quiet line out there; they
+      // are in the header and above the composer now, where they are read.
+      expect(page, "the table still has a side panel").not.toContain('class="panel-stack"');
+      expect(page.indexOf("How memories are kept"), "the rule is not in the header")
+        .toBeGreaterThan(head);
+      expect(page.indexOf("How memories are kept")).toBeLessThan(room);
     } finally {
       await s.post("/leave", {});
     }
