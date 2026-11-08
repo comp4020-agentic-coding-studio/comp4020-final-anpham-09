@@ -25,18 +25,27 @@ the day. Nothing is withheld and nothing expires.
 
 Houses, then, not a feed. A feed has one direction and nowhere to stand.
 
-And three albums, not one wall. Each home keeps its own — Nghe An's, Hanoi's,
-mine in Canberra — because that is how a family actually keeps them: a book
-per household, on a shelf, that somebody has to take down and open. The
-meeting house has no album. A remark at the table belongs to whoever was
-there rather than to a house, and giving it a book would make the table into
-a fourth home it was never meant to be.
+And a room is a room: it holds furniture, not a list. The notes are on the
+table, the album is on the shelf, and you see either by going to it. Each
+home keeps its own album — Nghe An's, Hanoi's, mine in Canberra — because
+that is how a family keeps them: a book per household that somebody has to
+take down and open. The meeting house has neither. A remark there belongs
+to whoever was in the room, and giving it a book would make it a fourth
+home it was never meant to be.
+
+A table is a surface, not storage, so it holds five notes a day each. The
+day turns and it is clear: every note is on the note board behind it, under
+the day it was left. Nothing is swept there — being on the table means
+having been left today, which the timestamp already answers. Five is the
+only number here that refuses anything, and it refuses only starting:
+writing your side of what is already here is never capped, or a busy
+Tuesday could stop a memory being a memory.
 
 ## What I read
 
 **Robin Sloan, [An app can be a home-cooked meal](https://www.robinsloan.com/notes/home-cooked-app/) (2020).**
-His app has "four daily active users, with zero churn". Six related people is
-a decision, not a shortfall.
+His app has "four daily active users, with zero churn". Six related people
+is a decision, not a shortfall.
 
 **Maggie Appleton, [Home-Cooked Software and Barefoot Developers](https://maggieappleton.com/home-cooked-software) (2024).**
 Software made by people who understand the community, not the stack.
@@ -52,11 +61,14 @@ their own thing, by any path; one person counts once; a thing placed alone
 stays visible; a guest may write their side of anything and keep it, but may
 not start something in a house that is not theirs; a password is never
 stored, only a salted hash of one; placing and playing work with JavaScript
-off; every memory kept is in the shelf's markup, so no album page hides one
-from a reader with no script; the message box at the table is reachable in
-nine tab stops rather than six hundred; a page is gzipped for a browser that asks and sent plain to one
-that refuses; points are conserved across every move of a game; and a change
-reaches another session in under a second, measured at five milliseconds. All 236
+off; every memory kept is in the markup, so neither an album page nor a
+drawer hides one from a reader with no script; the message box is nine tab
+stops away rather than six hundred; the sixth note of a day is refused in
+words, while a full table never stops anybody writing their side of
+something; yesterday's note is off the table and on the board; a page is
+gzipped for a browser that asks and sent plain to one that refuses; points
+are conserved across every move of a game; and a change reaches another
+session in under a second, measured at five milliseconds. All 241
 tests were checked by breaking what they guard and confirming red. Several
 didn't, so they were asserting nothing, and were rewritten.
 
@@ -65,24 +77,24 @@ Not enforced:
 - A password proves who holds a browser; nothing proves who is at the
   keyboard. Somebody who hands over their password hands over their name.
 - Ten wrong passwords in a minute, per name, is as far as the app slows
-  guessing down. There is no lockout, because locking an account needs a
-  way to unlock it and this app has no addresses to send one to.
+  guessing down. There is no lockout: unlocking one needs an address to
+  send to, and this app has none.
 - A room shows its two hundred newest things; nothing reaches the older ones.
 - A body over 280 characters is trimmed, not refused — the one place the app
   acts without words.
-- Times show in UTC. Hanoi and Nghe An run three or four hours behind
-  Canberra.
+- Times show in UTC, and so does the day a table turns over on: 7am in
+  Nghe An and Hanoi, 11am in Canberra, not midnight. A local one would need
+  a timezone kept per person, and an account is three things.
 
 Judged, not tested: whether the village reads as a place, and whether the
 shelf is worth coming back to.
 
 ## What I built, and what I didn't
 
-This file used to call a game the thing I most wanted and cut. It was a
-sequence, not a cut: presence worked first, then the table got a board. **Ô ăn
-quan** is the game my parents played as children — two rows of five, a quan at
-each end. A finished game is a score, not a memory, so it reaches the shelf
-the same way everything else does. A game somebody walks away from has no
+A game was the thing I most wanted and nearly cut; it was a sequence, not a
+cut. **Ô ăn quan** is the game my parents played as children — two rows of
+five, a quan at each end. A finished game is a score, not a memory, so it
+reaches the shelf the way everything else does. A game somebody walks away from has no
 score, and the app doesn't offer to keep it.
 
 No notifications, no *private* messages — the meeting house is a group
@@ -91,25 +103,23 @@ recipient field. Nothing can be deleted or edited. Still cut: photo uploads,
 likes, tags, the other games the mockups drew.
 
 The meeting house looks like the group chat this app was written against,
-and that is deliberate rather than a contradiction. The problem with the
+deliberately. The problem with the
 chat was never its shape — a bottom-anchored scroll of short messages is
 simply what talking looks like — it was that nothing said there could ever
 become anything. So the shape is borrowed and the ending is not: every
 message here carries the same two-state label as everything in the houses,
 and any of them can be taken up by somebody else and kept. A remark at the
-table is one perspective away from being a memory. That is the whole
-difference, and it is why the keep-together control stays visible on every
-message instead of being tucked behind a menu to look tidier.
+table is one perspective away from being a memory, which is why the
+keep-together control is on every message rather than behind a menu.
 
 This file said "no accounts" until the cookie turned out to be doing the job
 of one, badly. Identity was the browser, so Mum on her phone and Mum on her
-laptop were two people: she could place a thing and then keep it together
-with herself, and the shelf would show her name on both sides. The rule that
-a memory needs two of you was true of browsers, not of people.
+laptop were two people, and she could keep a thing together with herself.
+The rule that a memory needs two of you was true of browsers, not people.
 
 So you register: a name, a password, and which house is yours. Nothing else
-— no email, no reset, no profile. The account is who you are, the same on
-every device, and that is what makes the shelf rule a rule about people.
+— no email, no reset, no profile. The account is who you are on every
+device, which is what makes the shelf rule a rule about people.
 
 Claiming a house needs that household's code, because this is a public URL
 and without one anybody who found it could put something in my parents'
@@ -118,14 +128,11 @@ somewhere share a front door. Registering without a code is a real account
 that belongs to no house.
 
 Belonging to a house decides one thing only: whether you can **start**
-something there. Anybody signed in can write their side of what is already
-in any room and keep it together — and that is deliberate, not a loose end.
-I live alone in Canberra. If responding were also the household's own,
-nothing I put down at home could ever be corroborated, and the one rule
-this whole app is built on would work for everyone except me.
-
-An Duy is eleven months old and has no account — he is who the village is
-for, not somebody who uses it.
+something there. Anybody signed in can write their side of what is in any
+room and keep it together, which is deliberate. I live alone in Canberra:
+if responding were the household's own too, nothing I put down at home
+could ever be corroborated, and the rule this app is built on would work
+for everyone except me.
 
 One concession to JavaScript: the line saying somebody is typing. With a
 script blocked it never appears and nothing else changes — every action here

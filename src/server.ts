@@ -26,14 +26,18 @@ import { clearMember, displayName, ensurePerson, getPerson, isMember, nameForPer
 import { codeOpens, codeProblems, householdNeedsCode, mayPlace, mayRespond } from "./members.ts";
 import { accountExists, createAccount, householdOf, verifyPassword, type RegisterRefusal } from "./accounts.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
-import { esc, housePage, loginPage, mapPage, markdown, page, registerPage, roomFragment, shelfPage, tableFragment } from "./render.ts";
+import { boardFragment, esc, housePage, loginPage, mapPage, markdown, page, registerPage, roomFragment, shelfPage, tableFragment } from "./render.ts";
 import {
   addPerspective,
   countsFor,
   houseOfThing,
   inRoom,
   keepTogether,
+  noteBoard,
+  notesLeftToday,
+  onTable,
   place,
+  today,
   shelfFor,
   shelfYears,
   type KeepRefusal,
@@ -254,6 +258,10 @@ const REFUSALS: Record<
   "blank-name": "The app needs something to call you.",
   "blank-title": "A thing in a house needs something to call it. At the table, a line on its own is enough.",
   "blank-body": "There's nothing there to put down.",
+  // The table is a surface, not a quota: what is refused is leaving a sixth
+  // note on it today, and the five already there are named so the sentence
+  // says where they went rather than only what cannot happen.
+  "table-full": "Five notes is a day\'s worth, and you\'ve left five on this table today. They\'re all on the note board, and tomorrow\'s table starts empty.",
   "unknown-thing": "That isn't here any more, so nothing was recorded.",
   "own-thing": "You put this down, so you can't be the one who keeps it together too. A memory is something two of you add to.",
   already: "You'd already kept this together. One person is one keeper, however many times they click.",
@@ -548,7 +556,30 @@ const server = createServer((req, res) => {
       // stream's resync carries the same who-line the full page would.
       const others = whoIsIn(house.slug).filter((p) => p !== who).map(nameForPersonId);
       res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-      res.end(roomFragment(others, inRoom(house.slug, who), house.slug));
+      // A household room's live fragment is its TABLE — today's notes.
+      // Everything older is on the board, which has a fragment of its own
+      // below for the same reason this one exists.
+      res.end(
+        roomFragment(
+          others,
+          house.kind === "meeting" ? inRoom(house.slug, who) : onTable(house.slug, who),
+          house.slug,
+        ),
+      );
+      return;
+    }
+
+    // The board's counterpart to /room. A note placed while somebody has
+    // the board open belongs on it at once: the SSE contract is "something
+    // changed, fetch it again", and an archive that only caught up on a
+    // reload would be the one surface in the app that quietly went stale.
+    const boardFrag = /^\/house\/([a-z-]+)\/board$/.exec(path);
+    if (method === "GET" && boardFrag) {
+      const house = houseBySlug(boardFrag[1]);
+      if (!house || house.kind === "meeting") { html(res, 404, page("Not found", "<main class=\"measured\"><h1>Not found</h1><p>No such note board.</p></main>", me), setCookie, req); return; }
+      enter(who, house.slug);
+      res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+      res.end(boardFragment(noteBoard(house.slug, who), house.slug, today()));
       return;
     }
 
@@ -627,11 +658,27 @@ const server = createServer((req, res) => {
       const picked = Number(url.searchParams.get("pit"));
       html(res,
         200,
-        housePage(house, me, others, inRoom(house.slug, who), message, {
-          game: gameAt(house.slug, who),
-          picked: Number.isInteger(picked) ? picked : null,
-          replay: lastSow(house.slug),
-        }),
+        housePage(
+          house,
+          me,
+          others,
+          // The room shows what is on the table; the board below it holds
+          // every note the room has ever held, so nothing is out of reach.
+          house.kind === "meeting" ? inRoom(house.slug, who) : onTable(house.slug, who),
+          message,
+          {
+            game: gameAt(house.slug, who),
+            picked: Number.isInteger(picked) ? picked : null,
+            replay: lastSow(house.slug),
+          },
+          house.kind === "meeting"
+            ? undefined
+            : {
+                days: noteBoard(house.slug, who),
+                left: notesLeftToday(house.slug, who),
+                today: today(),
+              },
+        ),
         setCookie, req);
       publish(house.slug, "arrived");
       return;

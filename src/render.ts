@@ -5,7 +5,7 @@ import { mayPlace } from "./members.ts";
 import { isQuanPit } from "./oanquan.ts";
 import { displayName, getPerson, type Person } from "./people.ts";
 import { householdOf } from "./accounts.ts";
-import type { ThingView } from "./things.ts";
+import { NOTES_A_DAY, type NoteDay, type ThingView } from "./things.ts";
 
 export const esc = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -1017,8 +1017,101 @@ li.card-shelf:nth-of-type(odd), li.card-shelf:nth-of-type(even) { transform: non
 .chip-house[data-house="canberra"] { background: color-mix(in srgb, var(--amber) 24%, var(--card)); color: var(--amber-deep); }
 .chip-house[data-house="meeting"] { background: color-mix(in srgb, var(--ink) 10%, var(--card)); color: var(--ink); }
 
+/* --- The drawers: the table, and the note board behind it --- */
+/* A <dialog> is an ordinary block here until the script opens one. The user
+   agent hides a closed dialog, so the base rule puts it back: with no
+   script nothing ever calls showModal(), and these are simply the table and
+   the board lying open under the room with everything in them. */
+.drawer {
+  display: block; position: static; inset: auto; z-index: auto;
+  width: min(100% - 2.5rem, 54rem); height: auto; max-height: none;
+  margin: 1.5rem auto 0; padding: 0; border: 0;
+  background: none; color: inherit; overflow: visible;
+}
+/* Shut. Set by the script and by nothing else, which is why a reader with
+   no script never meets a drawer that will not open. */
+.drawer[data-drawer="shut"] { display: none; }
+/* Pulled out: it lies over the room, and the room is still there behind the
+   scrim. You have not gone to another page — you have gone to the table. */
+.drawer[data-drawer="open"] {
+  position: fixed; inset: 0; margin: auto;
+  width: min(100% - 2.5rem, 52rem); height: min(100% - 2.5rem, 50rem);
+  border-radius: 18px; background: var(--paper); color: var(--ink);
+  box-shadow: 0 30px 70px -24px var(--scene-shadow);
+}
+.drawer::backdrop { background: var(--scrim); }
+.drawer-inner { display: flex; flex-direction: column; gap: .9rem; min-height: 0; }
+.drawer[data-drawer="open"] .drawer-inner { height: 100%; padding: 1.2rem 1.4rem 1.05rem; }
+/* Only the contents scroll, so the heading that says which drawer this is
+   and the composer under it both stay where they were put. */
+.drawer[data-drawer="open"] > .drawer-inner > #room,
+.drawer[data-drawer="open"] > .drawer-inner > #board-list {
+  flex: 1; overflow: auto; min-height: 0; scrollbar-gutter: stable; padding-right: .2rem;
+}
+.drawer-head { display: flex; align-items: center; gap: .85rem;
+  padding-bottom: .8rem; border-bottom: 1px solid var(--rule); }
+.drawer-head h2 { font-size: 1.1rem; margin: 0; }
+.drawer-words { display: grid; }
+.drawer-words small { font-size: .8rem; color: var(--ink-soft); }
+.drawer-art { display: grid; place-items: center; width: 38px; height: 38px;
+  border-radius: 9px; background: var(--hearth-fill); color: var(--on-hearth); flex: none; }
+.drawer-board .drawer-art { background: var(--sage-deep); }
+/* :not([hidden]) because a display declaration outranks the user agent's
+   own rule for [hidden] — without it the no-script page offers a button
+   that shuts a drawer nothing can open. */
+.drawer-close:not([hidden]) { display: inline-flex; align-items: center; margin-left: auto;
+  min-height: 44px; padding: .4rem .85rem; font-size: .8125rem; flex: none; }
+.drawer-foot { display: grid; gap: .8rem; padding-top: .85rem; border-top: 1px solid var(--rule); }
+.drawer-foot .memory-compose { padding: 0; margin: 0; background: none; box-shadow: none; }
+.drawer-foot .memory-compose h3 { margin: 0 0 .35rem; font-size: .95rem; }
+/* The notes are what you came to the table for, so the thing you write
+   them with stays small. rows="4" is the right size for the composer when
+   it has a panel to itself; at the table it would take the page. */
+.drawer-foot .memory-compose textarea { height: 4.5rem; min-height: 4.5rem; }
+.drawer-foot .memory-compose { gap: .35rem; }
+a.drawer-link { font-size: .85rem; min-height: 44px; display: inline-flex; align-items: center; }
+
+/* --- The note board --- */
+/* Sorted by the day each note was left, because that is the one order an
+   archive of a family's days can be read in. */
+.board-days { display: grid; gap: 1.3rem; }
+.board-day { display: grid; gap: .65rem; }
+.board-date { display: flex; align-items: baseline; gap: .6rem; margin: 0;
+  font-family: var(--display); font-size: .95rem;
+  padding-bottom: .35rem; border-bottom: 1px solid var(--rule); }
+.board-tally { font-family: var(--body); font-size: .75rem; color: var(--ink-soft); }
+.board-stamp { margin-left: auto; font-size: .72rem; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums; }
+.board-notes { display: grid; gap: .8rem; }
+.board-empty { display: grid; gap: .35rem; padding: 1.25rem 0; }
+
+@media (max-width: 760px) {
+  .drawer[data-drawer="open"] { width: 100%; height: 100%; border-radius: 0; }
+  .drawer[data-drawer="open"] .drawer-inner { padding: 1rem 1.05rem .9rem; }
+  /* One scroller, not two. On a wide screen the notes get their own
+     scrolling area and the composer stays put under them; on a phone
+     that leaves the notes about one card tall, with the form taking the
+     rest of the screen — so here the whole drawer scrolls as one column
+     instead, the way a phone scrolls anything. */
+  .drawer[data-drawer="open"] .drawer-inner { overflow: auto; }
+  .drawer[data-drawer="open"] > .drawer-inner > #room,
+  .drawer[data-drawer="open"] > .drawer-inner > #board-list { overflow: visible; flex: none; }
+  /* Which means the way out has to stay on screen. */
+  .drawer[data-drawer="open"] .drawer-head {
+    position: sticky; top: -1rem; z-index: 1;
+    flex-wrap: wrap; background: var(--paper); padding-top: 1rem; margin-top: -1rem;
+  }
+  .drawer-words { flex: 1 1 10rem; }
+  .drawer-close:not([hidden]) { order: 3; width: 100%; margin-left: 0; justify-content: center; }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   a.house-card { transition: transform .15s ease; }
+  .drawer[data-drawer="open"] { animation: drawer-out .3s cubic-bezier(.2,.75,.3,1); }
+  @keyframes drawer-out {
+    from { opacity: 0; transform: translateY(14px) scale(.985); }
+    to { opacity: 1; transform: none; }
+  }
   a.house-card:hover { transform: translateY(-2px); }
   .float-card { transition: transform .15s ease, border-color .15s ease; }
   .float-card:hover { transform: translateY(-2px); }
@@ -1208,7 +1301,10 @@ function thingItem(t: ThingView, houseSlug: string): string {
 function regularRoomFragment(otherNames: string[], things: ThingView[], houseSlug: string): string {
   const who = `<p class="lede" id="who">${otherNames.length ? names(otherNames) + (otherNames.length === 1 ? " was here in the last minute." : " were here in the last minute.") : "Nobody else has been here in the last minute."}</p>`;
   if (!things.length) {
-    return `${who}<div class="room-empty"><svg viewBox="0 0 36 44" width="36" height="44" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M7 4h17l6 6v29H7zM23 4v8h7M12 20h12M12 25h12M12 30h7"/></svg><div><p class="hand">A little space for your day.</p><p class="note">Nothing in this room yet. Leave a note on the table; someone can add their own perspective and keep it together.</p><a href="#compose">Write the first note →</a></div></div>`;
+    // "Nothing today", not "nothing in this room": what the table is empty
+    // of is today, and everything older is on the board a link away. Saying
+    // the room was empty would be false the moment anybody had ever used it.
+    return `${who}<div class="room-empty"><svg viewBox="0 0 36 44" width="36" height="44" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M7 4h17l6 6v29H7zM23 4v8h7M12 20h12M12 25h12M12 30h7"/></svg><div><p class="hand">A clear table.</p><p class="note">Nothing has been put down here today. Leave a note; someone can add their own perspective and keep it together.</p><a href="#compose">Write today's first note →</a></div></div>`;
   }
   return `${who}<ol>${things.map((t) => thingItem(t, houseSlug)).join("")}</ol>`;
 }
@@ -1901,6 +1997,69 @@ export function tableFragment(
  *  distinct second member writing their own perspective and choosing to
  *  keep it together. Presence names are still shown, since who is around is
  *  still useful to know — just not framed as the cause. */
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** A day on the note board, in words. "Today" and "Yesterday" are worth
+ *  saying because they are how anybody would say them; everything older
+ *  gets its real date rather than "4 days ago", because a board is sorted
+ *  by date and a relative age is not a date you can look down a list for.
+ *
+ *  `now` is passed in rather than read from the clock here, so that every
+ *  heading on one board is relative to the SAME day — a board rendered
+ *  across midnight would otherwise be able to say "Today" twice. */
+function dayLabel(day: string, now: string): string {
+  if (day === now) return "Today";
+  const then = Date.parse(`${day}T00:00:00Z`);
+  const here = Date.parse(`${now}T00:00:00Z`);
+  if (here - then === 86_400_000) return "Yesterday";
+  const [y, m, d] = day.split("-");
+  const month = MONTHS[Number(m) - 1];
+  return month ? `${Number(d)} ${month} ${y}` : day;
+}
+
+const noteCount = (n: number): string => (n === 1 ? "1 note" : `${n} notes`);
+
+/** The note board: every note this room holds, under the day it was left.
+ *
+ *  Exported because it has a fragment route of its own — see /house/:slug/board
+ *  — and the live stream swaps it the same way it swaps the table. One
+ *  renderer either way, so a board that updated live could never show
+ *  something a reloaded one would not.
+ *
+ *  A note renders here as the same `li.thing` the table shows, deliberately:
+ *  a note on the board and a note on the table are one object seen in two
+ *  places, and the perspective and keep-together controls have to work on
+ *  the board too, or a note older than today could never reach the shelf. */
+export function boardFragment(days: NoteDay[], houseSlug: string, now: string): string {
+  if (!days.length) {
+    return `<div class="board-empty"><p class="hand">Nothing on the board yet.</p>
+      <p class="note">Every note left in this room ends up here, under the day it was left. Put the first one on the table.</p></div>`;
+  }
+  const label = (day: string): string => dayLabel(day, now);
+  const items = days
+    .map(
+      (d) => `<li class="board-day">
+        <h3 class="board-date"><span class="board-when">${esc(label(d.day))}</span>
+          <span class="board-tally">${esc(noteCount(d.things.length))}</span>
+          ${
+            // "Today" and "Yesterday" are how anybody says those two days,
+            // but a board is sorted BY date, so the date itself is printed
+            // beside them. For every older day the heading already is the
+            // date and repeating it would just be the same thing twice.
+            label(d.day) === d.day || !/^(Today|Yesterday)$/.test(label(d.day))
+              ? ""
+              : `<span class="board-stamp">${esc(d.day)}</span>`
+          }</h3>
+        <ol class="board-notes">${d.things.map((t) => thingItem(t, houseSlug)).join("")}</ol>
+      </li>`,
+    )
+    .join("");
+  return `<ol class="board-days">${items}</ol>`;
+}
+
 function consequenceLine(otherNames: string[]): string {
   const whoIsHere = otherNames.length
     ? `${names(otherNames)} ${otherNames.length === 1 ? "is" : "are"} here right now. `
@@ -1920,6 +2079,11 @@ export function housePage(
    *  viewer has picked up. Optional so the three household houses, and
    *  every existing caller, carry on unchanged. */
   table?: { game: GameView | null; picked: number | null; replay?: { pit: number; direction: string; side: string; drops: unknown[] } | null },
+  /** The three household houses only: the note board behind the table, and
+   *  how many notes this viewer may still leave on the table today. The
+   *  meeting house has neither — nothing is capped there and a remark is
+   *  not a note on a surface — so it carries on passing nothing. */
+  notes?: { days: NoteDay[]; left: number; today: string },
 ): string {
   const isMeeting = house.slug === "meeting";
   // The same rule the route uses, asked again here so the page offers only
@@ -1940,7 +2104,7 @@ export function housePage(
   // either way — a plain POST to /place that works with JavaScript off.
   const composerBlock = mayPutDown
     ? `<form method="post" action="/place" id="compose" class="${isMeeting ? "say" : "memory-compose"}">
-            ${isMeeting ? "" : '<h2>Add a note to the table</h2>'}
+            ${isMeeting ? "" : '<h3>Add a note to the table</h3>'}
             <input type="hidden" name="house" value="${esc(house.slug)}">
             ${
               isMeeting
@@ -2005,6 +2169,115 @@ export function housePage(
   const scrollOnLoad = isMeeting
     ? `if (room.scrollHeight > room.clientHeight) room.scrollTop = room.scrollHeight;`
     : "";
+
+  // --- The room, as furniture ---
+  //
+  // A household room shows no notes and no memories on its own floor any
+  // more. It shows what a room shows: a table and a shelf. The notes are on
+  // the table and the album is on the shelf, and you look at either by
+  // going to it.
+  //
+  // Both are ordinary links. The shelf's goes to this house's album, which
+  // is a page that already exists; the table's points at the drawer below,
+  // which with no script is simply open under the room. So the furniture
+  // does what it looks like it does whether or not any of the script
+  // arrives — see the comment on the drawers themselves.
+  const TABLE_ART =
+    '<svg viewBox="0 0 32 24" width="29" height="22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 11h28M6 11v11M26 11v11M11 11V4h10v7"/></svg>';
+  const SHELF_ART =
+    '<svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 5Q6 2 3 5v15q5-3 9 0 4-3 9 0V5q-3-3-9 0zM12 5v15"/></svg>';
+  // How many notes are on the table today, and how many of them are this
+  // viewer's remaining five. The count is rendered once, with the page, and
+  // that is correct for as long as it is on screen: the cap is per person,
+  // so somebody else leaving a note cannot change it, and your own note
+  // arrives by a POST that redirects to a freshly rendered page.
+  const leftToday = notes?.left ?? NOTES_A_DAY;
+  const leftLine = !mayPutDown
+    ? "Read what is here, add your side"
+    : leftToday === 0
+      ? "Full for today — five is a day's worth"
+      : leftToday === 1
+        ? "One more note today"
+        : `${leftToday} more notes today`;
+  const onTableNow = things.length === 1 ? "1 note today" : `${things.length} notes today`;
+  const boardTotal = (notes?.days ?? []).reduce((n, d) => n + d.things.length, 0);
+  const furniture = `<div class="room-furniture">
+        <a class="furniture furniture-table" href="#table">
+          <span class="furniture-art">${TABLE_ART}</span>
+          <span class="furniture-words"><strong>The table</strong><small>${esc(onTableNow)}</small></span>
+          <span class="furniture-go" aria-hidden="true">›</span>
+        </a>
+        <a class="furniture furniture-shelf" href="/shelf?house=${esc(house.slug)}">
+          <span class="furniture-art">${SHELF_ART}</span>
+          <span class="furniture-words"><strong>The shelf</strong><small>The album, kept together</small></span>
+          <span class="furniture-go" aria-hidden="true">›</span>
+        </a>
+      </div>`;
+
+  // What the table offers you once you are at it: the form, or the words
+  // saying why there isn't one. A guest has no form here at all and never
+  // did; somebody who has already left five has used the table up for
+  // today. Both are told the rule rather than shown a control that would
+  // be refused.
+  const tableFoot = !mayPutDown
+    ? `<p class="body-sm">You're a guest in this house, so starting something new here is for the people who live in it. You can still write your side of anything on this table or on the board and keep it together — that's how it reaches their shelf.</p>`
+    : leftToday === 0
+      ? `<p class="body-sm"><strong>You've left five notes here today.</strong> That's what this table holds in a day. They're all on the note board, and tomorrow's table starts empty. Writing your side of something already here, and keeping it together, are never capped.</p>`
+      : composerBlock;
+
+  // --- The drawers ---
+  //
+  // Each is a <dialog>, which is an ordinary open block until something
+  // calls showModal() on it. Nothing does unless the script runs, and the
+  // FIRST thing the script does is shut them — so a script that fails to
+  // parse leaves the room exactly as the server sent it: the table open
+  // under the scene with today's notes in it, the board open under that
+  // with every note the room holds. Nothing is ever only behind a click.
+  // The two-state rule and what follows from it. Not a note and not a
+  // memory, so it stays in the room rather than going in a drawer.
+  const guideBlock = `<details class="memory-guide">
+            <summary>How memories are kept</summary>
+            <div class="card">
+              <h3 class="rule-title">The two-state rule</h3>
+              <p class="body-sm"><strong>In the room</strong> — nobody has kept this together yet.</p>
+              <p class="body-sm"><strong>On the shelf</strong> — someone wrote their own perspective and chose to keep it together, and it stays.</p>
+            </div>
+            <div class="card-raised">
+              <p class="consequence">${esc(consequenceLine(otherNames))}</p>
+            </div>
+          </details>`;
+
+  const drawers = isMeeting
+    ? ""
+    : `<dialog class="drawer" id="table" aria-labelledby="table-title">
+        <div class="drawer-inner">
+          <div class="drawer-head">
+            <span class="drawer-art" aria-hidden="true">${TABLE_ART}</span>
+            <span class="drawer-words"><h2 id="table-title">The table</h2><small>${esc(leftLine)}</small></span>
+            <button type="button" class="drawer-close" hidden autofocus>Leave the table</button>
+          </div>
+          <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
+          <div class="drawer-foot">
+            ${tableFoot}
+            <a class="drawer-link" href="#board">The note board — ${esc(
+              boardTotal === 1 ? "1 note, by the day it was left" : `all ${boardTotal} notes, by the day they were left`,
+            )} →</a>
+          </div>
+        </div>
+      </dialog>
+      <dialog class="drawer drawer-board" id="board" aria-labelledby="board-title">
+        <div class="drawer-inner">
+          <div class="drawer-head">
+            <span class="drawer-art" aria-hidden="true"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 4h16v16H4zM4 9h16M9 9v11"/></svg></span>
+            <span class="drawer-words"><h2 id="board-title">The note board</h2><small>Every note this room has held, newest day first</small></span>
+            <button type="button" class="drawer-close" hidden autofocus>Close the board</button>
+          </div>
+          <div id="board-list">${boardFragment(notes?.days ?? [], house.slug, notes?.today ?? "")}</div>
+          <div class="drawer-foot">
+            <a class="drawer-link" href="#table">← Back to the table</a>
+          </div>
+        </div>
+      </dialog>`;
   return page(
     house.name,
     `<main class="house-page ${isMeeting ? "meeting-page" : "home-page"}">
@@ -2025,7 +2298,7 @@ export function housePage(
           }</span>
         </p>
         ${message ? `<p class="scene-notice" role="status">${esc(message)}</p>` : ""}`,
-        isMeeting ? "" : `<div class="room-hotspots">${mayPutDown ? `<a href="#compose" class="room-hotspot"><span class="hotspot-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4v16M4 12h16"/></svg></span><span><strong>Add a note</strong><small>Place on the table</small></span><span aria-hidden="true">›</span></a>` : ""}<a href="/shelf?house=${esc(house.slug)}" class="room-hotspot album-hotspot"><span class="hotspot-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5Q6 2 3 5v15q5-3 9 0 4-3 9 0V5q-3-3-9 0zM12 5v15"/></svg></span><span><strong>Open the shelf</strong><small>Read your shared stories</small></span><span aria-hidden="true">›</span></a></div>`,
+        isMeeting ? "" : furniture,
       )}
       ${
         // The board sits above the conversation, because it is the thing
@@ -2046,9 +2319,16 @@ export function housePage(
             )}</section>`
           : ""
       }
-      <div class="layout-house measured">
-        <div class="room-collection${isMeeting ? " conversation" : ""}">
-          <h2>${isMeeting ? "Family chat" : "Recent memories"}</h2>
+      ${
+        // The meeting house is unchanged: it is a conversation, and the
+        // messages are the room. Hiding a group chat behind a piece of
+        // furniture would undo the argument the README makes for its
+        // shape — that the chat's shape was borrowed on purpose and only
+        // its ending is different.
+        isMeeting
+          ? `<div class="layout-house measured">
+        <div class="room-collection conversation">
+          <h2>Family chat</h2>
           ${
             // The brief's first artefact criterion is the keyboard, and the
             // message box is the LAST thing in the tab order here: every
@@ -2056,54 +2336,32 @@ export function housePage(
             // messages the box was stop 606 of 609. Hidden until focused,
             // the way a skip-to-content link is, so it costs a sighted
             // mouse user nothing and a keyboard user one stop.
-            isMeeting && mayPutDown
-              ? `<a class="skip-to-composer" href="#body">Skip to the message box</a>`
-              : ""
+            mayPutDown ? `<a class="skip-to-composer" href="#body">Skip to the message box</a>` : ""
           }
           <div id="room">${roomFragment(otherNames, things, house.slug)}</div>
           ${
             // At the table the composer belongs UNDER what was said, where
-            // a conversation puts it, not in the side panel beside it. Every
-            // other house keeps it in the panel: there you are filing a
-            // thing, not answering somebody.
-            isMeeting ? `<div class="composer">${composerBlock}${typingLine}</div>` : ""
+            // a conversation puts it, not in the side panel beside it.
+            `<div class="composer">${composerBlock}${typingLine}</div>`
           }
         </div>
         <div class="panel-stack">
-          <details class="memory-guide">
-            <summary>How memories are kept</summary>
-            <div class="card">
-            <h3 class="rule-title">The two-state rule</h3>
-            <p class="body-sm"><strong>In the room</strong> — nobody has kept this together yet.</p>
-            <p class="body-sm"><strong>On the shelf</strong> — someone wrote their own perspective and chose to keep it together, and it stays.</p>
-          </div>
-          <div class="card-raised">
-            <p class="consequence">${esc(consequenceLine(otherNames))}</p>
-          </div>
-          </details>
-          <!-- At the table this is one box, because a remark is not an
-               artefact: it has no title and no "when did this happen",
-               and asking for either would be a small lie about what is
-               being written. In a household house, where a thing can reach
-               the shelf under its own name, both still earn their place. -->
-          ${
-            // A guest at a household house is shown no composer. The POST is
-            // refused server-side either way, so this is not the boundary —
-            // the boundary is in the route. This is about not offering
-            // somebody a form that cannot work.
-            //
-            // It says what a guest MAY do, because that is the useful half.
-            // A guest can see everything in this room and write their side
-            // of any of it: that is how anything here ever reaches a shelf,
-            // and in a household of one it is the only way.
-            mayPutDown
-              ? ""
-              : `<p class="body-sm">You're a guest here, so starting something new is for the people who live in this house. You can still write your side of anything below and keep it together — that's how it reaches their shelf.</p>`
-          }
-          ${isMeeting ? "" : composerBlock}
+          ${guideBlock}
+          <p class="quiet">${esc(quietLine)}</p>
+        </div>
+      </div>`
+          : // A household room keeps only what is not a note and not a
+            // memory: the rule the house runs on, and the line about there
+            // being no notifications. Everything anybody put down is on the
+            // table or on the board below.
+            `<div class="layout-house measured room-only">
+        <div class="panel-stack">
+          ${guideBlock}
           <p class="quiet">${esc(quietLine)}</p>
         </div>
       </div>
+      ${drawers}`
+      }
       <script type="module">
         // Live updating is the only thing JavaScript adds. Without it the page
         // still renders, and every action is still a form POST.
@@ -2113,8 +2371,81 @@ export function housePage(
           const rules = document.querySelector("details.rules[open]");
           if (rules) { rules.removeAttribute("open"); rules.querySelector("summary")?.focus(); }
         });
-        // Null in the three household houses, which have no table.
-        const table = document.getElementById("table");
+        // Null in the three household houses, which have no game table.
+        // Asked for by name only where one can exist: a household room now
+        // has a <dialog id="table"> of its own — the drawer the notes are
+        // in — and handing that to the board's resync would have it fetch
+        // a fragment route that house hasn't got.
+        const table = ${isMeeting ? 'document.getElementById("table")' : "null"};
+
+        // --- The furniture ---
+        //
+        // Everything in the drawers is already readable without a line of
+        // this: both render open under the room, and the table and the
+        // board are plain links down to them. So the FIRST thing done here
+        // is shut them — which means a script that fails to parse hides
+        // nothing at all, and the room stays the complete list the server
+        // sent. The failure mode is the no-script mode.
+        const drawers = new Map();
+        for (const d of document.querySelectorAll("dialog.drawer")) {
+          // A browser with no <dialog> keeps the open drawers it was sent,
+          // rather than being handed furniture that will not open.
+          if (typeof d.showModal === "function") drawers.set(d.id, d);
+        }
+        if (drawers.size) {
+          let cameFrom = null;
+          // Going from the table to the board shuts one and opens the
+          // other. The scroll lock and the focus belong to the pair, not
+          // to either one, so the handover says so.
+          let switching = false;
+          for (const d of drawers.values()) {
+            d.setAttribute("data-drawer", "shut");
+            const close = d.querySelector(".drawer-close");
+            if (close) {
+              close.hidden = false;
+              close.addEventListener("click", () => d.close());
+            }
+            // The room behind is still the room: clicking it shuts the
+            // drawer, the same way clicking off an open book shuts it.
+            d.addEventListener("click", (e) => { if (e.target === d) d.close(); });
+            d.addEventListener("close", () => {
+              d.setAttribute("data-drawer", "shut");
+              if (switching) return;
+              document.documentElement.style.overflow = "";
+              if (cameFrom) { cameFrom.focus(); cameFrom = null; }
+            });
+          }
+          const openDrawer = (id, from) => {
+            const d = drawers.get(id);
+            if (!d) return;
+            if (from) cameFrom = from;
+            switching = true;
+            for (const other of drawers.values()) if (other !== d && other.open) other.close();
+            switching = false;
+            d.setAttribute("data-drawer", "open");
+            d.showModal();
+            document.documentElement.style.overflow = "hidden";
+          };
+          // Every link that pointed at a drawer now opens it instead of
+          // jumping down to it. The links are what work with no script, so
+          // they are what works with one too — there is no second set of
+          // controls that only a script can reach.
+          for (const link of document.querySelectorAll('a[href^="#"]')) {
+            const id = (link.getAttribute("href") || "").slice(1);
+            if (!drawers.has(id)) continue;
+            link.addEventListener("click", (e) => {
+              e.preventDefault();
+              // A link from inside one drawer to the other leaves the
+              // piece of furniture in the ROOM as the thing focus comes
+              // back to, because that is where the reader started.
+              openDrawer(id, link.closest("dialog.drawer") ? null : link);
+            });
+          }
+          // Arriving on /house/x#table — a bookmark, or a reload after
+          // opening one — should still put you at the table, not at a
+          // drawer the script has just shut behind you.
+          if (location.hash.length > 1) openDrawer(location.hash.slice(1), null);
+        }
         ${scrollHelper}
         ${scrollOnLoad}
         const stream = new EventSource("/stream?house=" + encodeURIComponent(${JSON.stringify(house.slug)}));
@@ -2225,6 +2556,12 @@ export function housePage(
           }
           if (await swap(room, "/room")) {${scrollAfterSwap}
           }
+          // The board is a sibling of #room for the same reason the game
+          // table is: replacing the markup inside an open <dialog> would
+          // destroy the dialog and slam the drawer shut on whoever was
+          // reading it. So each is fetched and swapped on its own.
+          const boardList = document.getElementById("board-list");
+          if (boardList) await swap(boardList, "/board");
         };
         // The mover's own page: a move is a POST that redirects, so the
         // page they land on is newly rendered and already carries the

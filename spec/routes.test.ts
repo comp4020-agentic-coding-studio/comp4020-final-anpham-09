@@ -112,15 +112,36 @@ type Session = ReturnType<typeof session>;
  *  constant keeps the sign-in helper below able to fall back to logging in. */
 const PASSWORD = "a good long passphrase";
 
+/** A stamp that is new on every run of this file, and part of every account
+ *  name it makes.
+ *
+ *  Account names used to be stable, and `signIn` fell back to logging in
+ *  when one already existed. That was enough while nothing the app did
+ *  depended on what an account had done TODAY. A table now holds five
+ *  notes a day PER PERSON, and this database is persistent and never reset
+ *  — so a permanent "Alice of canberra" spends her five in two runs, and on
+ *  the third every test that places anything fails for a reason that has
+ *  nothing to do with what it was testing. That is exactly what happened
+ *  the first time the cap was switched on.
+ *
+ *  It is also the only way the cap can be tested at all: the test for it
+ *  has to place five and be refused the sixth, which is impossible for
+ *  somebody who may already have placed four.
+ *
+ *  Five random characters rather than a counter, because two test FILES
+ *  each get their own copy of this module and must not land on the same
+ *  name. The login fallback below still covers the one-in-sixty-million
+ *  case where they do. */
+const RUN = Math.random().toString(36).slice(2, 7);
+
 /** Sign this session in as `name`, belonging to `household` (null for a
  *  guest everywhere).
  *
- *  Registers, and falls back to signing in when the name is already taken.
- *  That fallback is what keeps the suite re-runnable: an account name is
- *  unique for ever, so the second run of a test that registered "Alice"
- *  would otherwise be refused and every assertion after it would fail
- *  against a signed-out session. The spec runs against a persistent
- *  database with no per-test reset — see the note at the top of this file.
+ *  The name carries RUN, so every run of this file works with accounts of
+ *  its own — see the note on RUN above for why a permanent Alice stopped
+ *  being usable. Registration should therefore always succeed; the fallback
+ *  to signing in is kept because it costs a line and covers a stamp
+ *  collision, and because the suite ran on it for months.
  *
  *  No household code is passed, which works because CI and a local dev
  *  server run with HOUSEHOLD_CODES unset, so no house requires one. A
@@ -135,7 +156,7 @@ const PASSWORD = "a good long passphrase";
  *  the house in the name makes that collision impossible instead of a thing
  *  to remember. */
 async function signIn(s: Session, name: string, household: string | null): Promise<string> {
-  const account = `${name} of ${household ?? "nowhere"}`;
+  const account = `${name} of ${household ?? "nowhere"} ${RUN}`;
   const made = await s.post("/register", {
     name: account,
     password: PASSWORD,
@@ -885,31 +906,42 @@ describe("the sign-in wall", () => {
 });
 
 describe("what a guest is offered", () => {
-  // Found by looking at the page, not by a test. The room's hotspot panel
+  // Found by looking at the page, not by a test. The room's furniture
   // offered "Add a note — Place on the table", anchored at #compose, to a
   // guest who has no composer: a link to a form that is not on the page,
   // for the one action the house refuses them. Every HTML assertion passed
   // while it was there, because none of them knew to look.
-  it("offers a guest no shortcut to a composer they do not have", async () => {
+  //
+  // So the assertion is now the general shape of that bug rather than the
+  // one instance of it: a link into this page must land on something the
+  // page actually has. The room is built out of exactly such links — the
+  // table and the board are both reached by one — so a piece of furniture
+  // pointing at a drawer that was not rendered would fail here too.
+  it("points no in-page link at something this page does not have", async () => {
     const guest = session();
     await guest.get("/");
     await signIn(guest, "Hotspot Guest", "nghe-an");
     try {
       const page = markup(await (await guest.get("/house/canberra")).text());
-      // The composer really is absent...
+      // The composer really is absent for a guest...
       expect(page).not.toContain('id="compose"');
-      // ...so nothing may point at it.
+      // ...so nothing may point at it, by any wording.
       expect(page).not.toContain('href="#compose"');
-      expect(page).not.toContain("Add a note");
-      // What they MAY do is still offered.
+      // And the same question asked of every other anchor on the page.
+      const targets = [...page.matchAll(/href="#([a-zA-Z][\w-]*)"/g)].map((m) => m[1]);
+      expect(targets.length, "no in-page links at all, so this proves nothing").toBeGreaterThan(0);
+      for (const id of targets) {
+        expect(page, `a link points at #${id}, which is not on the page`).toContain(`id="${id}"`);
+      }
+      // What a guest MAY do is still offered.
       expect(page).toContain("Add your perspective");
     } finally {
       await guest.post("/leave", {});
     }
   });
 
-  it("still offers the household their own composer and its shortcut", async () => {
-    // The other half: removing the hotspot for everybody would be a
+  it("still offers the household their own composer, on the table", async () => {
+    // The other half: removing the composer for everybody would be a
     // different bug, and one this test would have caught.
     const host = session();
     await host.get("/");
@@ -917,8 +949,10 @@ describe("what a guest is offered", () => {
     try {
       const page = markup(await (await host.get("/house/canberra")).text());
       expect(page).toContain('id="compose"');
-      expect(page).toContain('href="#compose"');
-      expect(page).toContain("Add a note");
+      // Reached by going to the table, which is where you would put a note
+      // down. The drawer it names has to exist — see the test above.
+      expect(page).toContain('href="#table"');
+      expect(page).toContain('id="table"');
     } finally {
       await host.post("/leave", {});
     }
@@ -1035,9 +1069,11 @@ describe("the table reads as a conversation", () => {
     }
   });
 
-  it("leaves every other house's composer where it was", async () => {
-    // The other three houses are not conversations: you are filing a thing
-    // there, not answering somebody, and the composer stays in the panel.
+  it("puts a household composer on the table, not out in the room", async () => {
+    // The other three houses are not conversations and are no longer lists
+    // either: the room shows furniture, and you write a note at the table.
+    // So the composer is INSIDE the table drawer — which is also what makes
+    // the five-a-day line next to it true of the place you are standing.
     const s = session();
     await s.get("/");
     await signIn(s, "Chat Shape Home", "canberra");
@@ -1045,10 +1081,17 @@ describe("the table reads as a conversation", () => {
       const page = markup(await (await s.get("/house/canberra")).text());
       expect(page).not.toContain("room-collection conversation");
       expect(page).not.toContain('<div class="composer">');
-      // Still has one, just in the panel: the composer comes after the
-      // panel opens, not inside the message list.
-      expect(page).toContain('id="compose"');
-      expect(page.indexOf('class="panel-stack"')).toBeLessThan(page.indexOf('id="compose"'));
+
+      const drawer = page.indexOf('<dialog class="drawer" id="table"');
+      const compose = page.indexOf('id="compose"');
+      const drawerEnd = page.indexOf("</dialog>", drawer);
+
+      expect(drawer, "the room has no table").toBeGreaterThan(-1);
+      expect(compose, "the household has no composer at all").toBeGreaterThan(-1);
+      // Order is the assertion, because the class names are in the inlined
+      // stylesheet too — see `markup` at the top of this file.
+      expect(drawer).toBeLessThan(compose);
+      expect(compose).toBeLessThan(drawerEnd);
     } finally {
       await s.post("/leave", {});
     }
@@ -1443,6 +1486,89 @@ describe("the shelf, as three albums", () => {
         if (/<span class="page-no">Page \d+<\/span>/.test(page)) numbered += 1;
       }
       expect(numbered, `${pages.length} pages, ${numbered} of them numbered`).toBe(pages.length);
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+});
+
+describe("the room, as furniture", () => {
+  // Both of these use `hanoi`, which the comment at the top of this file
+  // allocates to the refusal test. That sharing is safe in the way the
+  // game test's is: neither of these asserts "in the room" or "on the
+  // shelf" about anything, so an extra presence witness cannot change
+  // either answer.
+
+  it("takes five notes from one person in a day, then says why the sixth is refused", async () => {
+    // The cap needs an account with a clean day behind it, which is what
+    // RUN at the top of this file is for: against a database that is never
+    // reset, a permanent account walks in with its five already spent.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Five A Day", "hanoi");
+    try {
+      const stamp = Date.now();
+      for (let i = 1; i <= 5; i++) {
+        const put = await s.post("/place", {
+          house: "hanoi",
+          title: `Note ${i}`,
+          body: `cap test ${i} of ${stamp}`,
+        });
+        const said = new URL(put.headers.get("location") ?? "", baseUrl).searchParams.get("said") ?? "";
+        expect(said, `note ${i} of five came back refused`).toBe("");
+      }
+
+      const sixth = await s.post("/place", {
+        house: "hanoi",
+        title: "Note 6",
+        body: `cap test 6 of ${stamp}`,
+      });
+      const refused = new URL(sixth.headers.get("location") ?? "", baseUrl).searchParams.get("said") ?? "";
+      // Words, never silence: a button that appears to do nothing teaches
+      // people the app is broken; being told the rule teaches the rule.
+      expect(refused, "the sixth note was dropped without a word").toContain("five on this table today");
+      // And it says where the five went, not only that there is no room.
+      expect(refused).toContain("note board");
+
+      const table = markup(await (await s.get("/house/hanoi/room")).text());
+      expect(table, "the sixth note was refused and kept anyway").not.toContain(`cap test 6 of ${stamp}`);
+      expect(table, "the fifth note is not on the table").toContain(`cap test 5 of ${stamp}`);
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("ships both drawers open, with every note in them and no dead controls", async () => {
+    // Two of CLAUDE.md's rules at once. A control the script has not
+    // reached yet must not look like a control; and no note may exist only
+    // behind a click that a reader with no script cannot make.
+    const s = session();
+    await s.get("/");
+    await signIn(s, "No Drawer Script", "hanoi");
+    try {
+      const body = `drawer test ${Date.now()}`;
+      await s.post("/place", { house: "hanoi", title: "A drawer test", body });
+      const page = markup(await (await s.get("/house/hanoi")).text());
+
+      expect(page).toContain('<dialog class="drawer" id="table"');
+      expect(page).toContain('id="board"');
+      // data-drawer is written by the script and by nothing else, so the
+      // served page has neither drawer shut.
+      expect(page, "a drawer arrives shut, before any script has run").not.toContain('data-drawer="shut"');
+
+      // The note is on the board as well as on the table, so nothing in
+      // this room is reachable only by opening something.
+      const board = page.indexOf('id="board-list"');
+      expect(board, "the room has no note board").toBeGreaterThan(-1);
+      expect(page.indexOf(body, board), "the note is not on the board").toBeGreaterThan(-1);
+      // Sorted by day, which is what a board is.
+      expect(page.slice(board)).toMatch(/<span class="board-when">Today<\/span>/);
+
+      const closers = [...page.matchAll(/<button[^>]*class="drawer-close"[^>]*>/g)].map((m) => m[0]);
+      expect(closers.length, "no drawer-close buttons in the markup at all").toBe(2);
+      for (const b of closers) {
+        expect(b, `a drawer-close ships visible: ${b}`).toContain("hidden");
+      }
     } finally {
       await s.post("/leave", {});
     }

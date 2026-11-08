@@ -260,3 +260,66 @@ describe("the shelf's filters", () => {
     expect(things.shelfFor("meeting", "alice", { q: "unkept" })).toEqual([]);
   });
 });
+
+// The table holds today; the board holds every day. Tested here rather than
+// over HTTP because the interesting case is a note left YESTERDAY, and the
+// only way to have one of those through the app is to have been here
+// yesterday. A throwaway database can be given one.
+describe("what is on the table, and what is on the board", () => {
+  it("leaves yesterday's note off the table and keeps it on the board, under its own day", async () => {
+    const { things } = await boot();
+    const { db } = await import("../src/db.ts");
+
+    things.place("canberra", "alice", "Today", "put down today");
+    const older = things.place("canberra", "alice", "Before", "put down yesterday");
+    // Backdated by hand. Nothing in the app can write this: a note's day is
+    // the day it was placed, which is the whole reason the sweep onto the
+    // board needs no sweeping.
+    db.prepare("UPDATE things SET created_at = datetime('now', '-1 day') WHERE id = ?").run(older);
+
+    expect(things.onTable("canberra", "bob").map((t) => t.body)).toEqual(["put down today"]);
+
+    const board = things.noteBoard("canberra", "bob");
+    expect(board.length, "the board does not split the two days").toBe(2);
+    expect(board[0]!.day).toBe(things.today());
+    expect(board[0]!.things.map((t) => t.body)).toEqual(["put down today"]);
+    expect(board[1]!.things.map((t) => t.body)).toEqual(["put down yesterday"]);
+    // Nothing was deleted, moved or expired to get there.
+    expect(things.inRoom("canberra", "bob").length).toBe(2);
+  });
+
+  it("counts a day's five per person, and only where there is a table to fill", async () => {
+    const { things } = await boot();
+    for (let i = 0; i < 5; i++) {
+      expect(typeof things.place("canberra", "alice", `n${i}`, `note ${i}`)).toBe("number");
+    }
+    expect(things.place("canberra", "alice", "n5", "note five")).toBe("table-full");
+    expect(things.notesLeftToday("canberra", "alice")).toBe(0);
+
+    // Somebody else's day is their own: a table nobody can use up for you.
+    expect(typeof things.place("canberra", "bob", "theirs", "bob's note")).toBe("number");
+    expect(things.notesLeftToday("canberra", "bob")).toBe(4);
+
+    // The meeting house has no table. A conversation that took five lines
+    // a day would not be a conversation.
+    for (let i = 0; i < 7; i++) {
+      expect(typeof things.place("meeting", "alice", "", `said ${i}`)).toBe("number");
+    }
+    expect(things.notesLeftToday("meeting", "alice")).toBe(5);
+  });
+
+  it("never lets a full table stop somebody keeping something together", async () => {
+    // The cap is a limit on STARTING and on nothing else. If a full table
+    // could stop a thing being corroborated, the one rule this app is
+    // built on would hold only on quiet days.
+    const { things } = await boot();
+    const mine = things.place("canberra", "bob", "His first steps", "he walked across the room");
+    expect(typeof mine).toBe("number");
+    for (let i = 0; i < 5; i++) things.place("canberra", "alice", `n${i}`, `note ${i}`);
+    expect(things.place("canberra", "alice", "n5", "one too many")).toBe("table-full");
+
+    expect(typeof things.addPerspective(mine as number, "alice", "I was holding the door")).toBe("number");
+    expect(things.keepTogether(mine as number, "alice")).toBeNull();
+    expect(things.onShelf("canberra", "alice").map((t) => t.body)).toEqual(["he walked across the room"]);
+  });
+});

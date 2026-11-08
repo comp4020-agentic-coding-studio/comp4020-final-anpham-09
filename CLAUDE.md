@@ -36,6 +36,29 @@ change would make any line here false, the change is wrong, not the line.
   alone in Canberra, so if responding were also the household's own, nothing
   he placed at home could ever reach his own shelf and the rule this app is
   built on would hold for everyone except him.
+- **A table holds five notes a day, per person, and that is a limit on
+  STARTING something and on nothing else.** Writing your side of what is
+  already in a room, and keeping it together, are never capped and must
+  never become capped: if a full table could stop a thing being
+  corroborated, the one rule this app is built on would hold only on quiet
+  days. Counted per person so nobody can use up somebody else's day, and
+  not counted at all in the meeting house, where a remark is not a note
+  left on a surface — a conversation that took five lines a day would not
+  be a conversation. A sixth note is refused in words that say where the
+  five went, never dropped.
+- **Nothing is swept onto the note board, because nothing has to be.** A
+  note is on the table if it was left today and on the board whichever day
+  it was left; both are read off the timestamp the note already carries.
+  There is no nightly job, no "archived" column and nothing to go wrong if
+  the machine is asleep at midnight. Same reasoning as the shelf's
+  `onShelf`. Do not add a flag, and do not move a row.
+- **Today is UTC**, because `created_at` is UTC and a day the app and the
+  database disagreed about would refuse a note for a day it was not on. One
+  function answers it, `today()` in `src/things.ts`, and the count and the
+  table both ask it. The cost is real and the README says so: the table
+  turns over at 7am in Nghe An and Hanoi, 11am in Canberra. A local
+  midnight would need a timezone stored per account, and the account is a
+  name, a password and a household.
 - **Never claim privacy the app does not have.** The deployment is a public
   URL. The README says so plainly rather than implying the village is sealed.
 
@@ -219,6 +242,29 @@ it before calling a visual change done.
   `prefers-reduced-motion: reduce`; the book still opens and the pages still
   change, they just do not swing. No memory may ever exist only on a page
   the reader cannot reach without JavaScript.
+- **A household room shows furniture, not contents, and that is the fourth
+  JavaScript exception** — written down here before building it, per the
+  rule above. A room has a table and a shelf. Today's notes are on the
+  table, every note the room has ever held is on the note board behind it,
+  and the kept memories are in the album on the shelf; you see any of them
+  by going to it. The two drawers are `<dialog>` elements, which are
+  ordinary open blocks until something calls `showModal()`, and the first
+  thing the script does is shut them. So with a script blocked the room is
+  the whole list it always was: the table open under the scene with today's
+  notes and the composer in it, the board open under that with every note
+  under the day it was left, and the furniture plain links down to them. No
+  note may ever exist only behind a click. The board is a complete record
+  including today, which is also what makes the five-a-day cap a limit on
+  how fast a room fills rather than a way to lose something. The meeting
+  house is exempt and must stay exempt: it is a conversation, the messages
+  are the room, and putting them in a drawer would undo the argument the
+  README makes for its shape.
+- **A drawer is a sibling of the fragment inside it, never its parent.**
+  `#room` and `#board-list` are swapped by `innerHTML` when the stream says
+  something changed, and replacing the markup that CONTAINS an open
+  `<dialog>` destroys the dialog and slams the drawer shut on whoever was
+  reading it. Each live region is fetched and swapped on its own, which is
+  why the board has a fragment route of its own.
 - **A typing event must never trigger a resync.** The SSE contract is "any
   event means refetch", and the payload has always been an opaque string the
   client ignores. The client branches on the `typing:` prefix and returns;

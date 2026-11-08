@@ -83,14 +83,24 @@ button, summary, a { touch-action: manipulation; }
 .home-page .scene-eyebrow { font-size: .65rem; margin-top: .5rem; }
 .home-page .scene-presence { margin-top: 1rem; }
 .home-page > .scene-room { min-height: min(61svh, 540px); }
-.room-hotspots { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-a.room-hotspot { position: absolute; top: 190px; right: 8%; display: flex; align-items: center; gap: 1rem; background: var(--paper); color: var(--ink); padding: 1rem 1.3rem; min-height: 72px; border-radius: 13px; box-shadow: var(--shadow-float); text-decoration: none; pointer-events: auto; }
-a.room-hotspot:not(.album-hotspot) { top: 325px; right: 46%; }
-.room-hotspot strong, .room-hotspot small { display: block; }
-.room-hotspot strong { font-family: var(--display); font-size: .9rem; }
-.room-hotspot small { font-size: .75rem; margin-top: .2rem; }
-.hotspot-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; font-size: 1.6rem; background: var(--hearth-fill); color: var(--on-hearth); }
-.album-hotspot .hotspot-icon { background: var(--sage-deep); }
+.room-furniture { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+a.furniture { position: absolute; top: 190px; right: 8%; display: flex; align-items: center; gap: 1rem; background: var(--paper); color: var(--ink); padding: 1rem 1.3rem; min-height: 72px; border-radius: 13px; box-shadow: var(--shadow-float); text-decoration: none; pointer-events: auto; }
+a.furniture-table { top: 325px; right: 46%; }
+.furniture-words { display: grid; }
+.furniture-go { margin-left: auto; color: var(--ink-soft); }
+.furniture-words strong { font-family: var(--display); font-size: .9rem; }
+.furniture-words small { font-size: .75rem; margin-top: .2rem; color: var(--ink-soft); }
+.furniture-art { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; font-size: 1.6rem; background: var(--hearth-fill); color: var(--on-hearth); }
+.furniture-shelf .furniture-art { background: var(--sage-deep); }
+/* A household room keeps one column now: the notes are on the table and
+   the album is on the shelf, so there is no list for a panel to sit beside.
+   What is left is the rule the house runs on, and it gets the same paper
+   card the room list used to have — lying over the foot of the photograph,
+   where that card always lay. Without it the two paragraphs read as debris
+   left on the grass, which is what the first draft of this looked like. */
+.home-page .layout-house.room-only { grid-template-columns: minmax(0, 40rem); justify-content: center; }
+.home-page .room-only .panel-stack { padding: 1.3rem 1.5rem; gap: .9rem;
+  background: var(--paper); border-radius: 20px; box-shadow: var(--shadow-float); }
 .home-page .layout-house { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 1.25rem; max-width: 100rem; padding: 0 2rem; margin: 0 auto; align-items: start; }
 .room-collection { min-width: 0; }
 .home-page .room-collection { padding: 1.5rem; background: var(--paper); border-radius: 20px; box-shadow: var(--shadow-float); }
@@ -416,8 +426,8 @@ li.card-shelf { border-left: 1px solid var(--rule); padding-top: 12px; box-shado
 
 @media (prefers-reduced-motion: no-preference) {
   .scene-village .scene-copy, .room-collection { animation: settle-in .4s ease-out both; }
-  .float-card, .room-hotspot, .house-album { transition: transform .2s ease, box-shadow .2s ease; }
-  .room-hotspot:hover, .house-album:hover { transform: translateY(-3px); box-shadow: var(--shadow-float); }
+  .float-card, a.furniture, .house-album { transition: transform .2s ease, box-shadow .2s ease; }
+  a.furniture:hover, .house-album:hover { transform: translateY(-3px); box-shadow: var(--shadow-float); }
   details.rules[open] { animation: drawer-in .22s ease-out; }
   @keyframes settle-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
   @keyframes drawer-in { from { opacity: 0; translate: 16px 0; } to { opacity: 1; translate: 0 0; } }
@@ -445,8 +455,8 @@ li.card-shelf { border-left: 1px solid var(--rule); padding-top: 12px; box-shado
   .meeting-page .layout-house { margin-top: 1.25rem; }
   .home-page .layout-house { grid-template-columns: 1fr; }
   .home-page > .scene-room { min-height: 470px; padding: 1.5rem; }
-  a.room-hotspot { right: 4%; top: 300px; }
-  a.room-hotspot:not(.album-hotspot) { right: auto; left: 4%; top: 300px; }
+  a.furniture { right: 4%; top: 300px; }
+  a.furniture-table { right: auto; left: 4%; top: 300px; }
   .home-page .panel-stack { display: flex; flex-direction: column; }
   .home-page .memory-compose { order: -1; margin-bottom: 1rem; }
   .home-page .room-collection { padding: 1.1rem; }
@@ -467,9 +477,9 @@ li.card-shelf { border-left: 1px solid var(--rule); padding-top: 12px; box-shado
   .home-page .scene-eyebrow { max-width: 230px; line-height: 1.6; }
   .home-page .scene-copy .lede { max-width: 270px; font-size: 1rem; }
   .home-page > .scene-room { min-height: 510px; }
-  .room-hotspots { inset: auto; position: relative; display: grid; gap: .65rem; margin: 1rem 0; }
-  a.room-hotspot, a.room-hotspot:not(.album-hotspot) { position: static; padding: .7rem 1rem; min-height: 64px; }
-  .room-hotspot > span:last-child { margin-left: auto; }
+  .room-furniture { inset: auto; position: relative; display: grid; gap: .65rem; margin: 1rem 0; }
+  a.furniture, a.furniture-table { position: static; padding: .7rem 1rem; min-height: 64px; }
+  .furniture-go { margin-left: auto; }
   .house-page > .scene-room > .scene-photo { top: 0; height: 100svh; object-position: 40% top; }
   .home-page .layout-house { padding: 0 .8rem; }
   .meeting-page { padding: 0 .6rem 1rem; }

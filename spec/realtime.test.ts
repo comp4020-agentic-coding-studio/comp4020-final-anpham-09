@@ -25,7 +25,7 @@ async function join(name: string, home: string): Promise<string> {
   // its household is fixed when it is made, so the same name wanting two
   // different houses across two files would be one account with whichever
   // ran first. See the longer note on signIn in spec/routes.test.ts.
-  const account = `${name} of ${home}`;
+  const account = accountName(name, home);
   const first = await fetch(new URL("/", baseUrl), { redirect: "manual" });
   const cookie = (first.headers.get("set-cookie") ?? "").split(";")[0];
   const send = async (path: string, body: Record<string, string>): Promise<string> => {
@@ -50,8 +50,14 @@ async function join(name: string, home: string): Promise<string> {
 
 /** The account name join() actually registers, for a test asserting on a
  *  displayed name. Kept next to join so the two cannot drift apart. */
+/** New on every run of this file, and part of every account name it makes:
+ *  a table holds five notes a day per person and this database is never
+ *  reset, so a permanent account runs out of table. The longer version of
+ *  this note is on RUN in spec/routes.test.ts. */
+const RUN = Math.random().toString(36).slice(2, 7);
+
 function accountName(name: string, home: string): string {
-  return `${name} of ${home}`;
+  return `${name} of ${home} ${RUN}`;
 }
 
 /** Resolves with the first `data:` line the stream sends, or rejects on the

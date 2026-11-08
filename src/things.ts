@@ -32,9 +32,63 @@ export interface ThingView {
   viewerHasPerspective: boolean;
 }
 
-export type PlaceRefusal = "unknown-house" | "blank-title" | "blank-body";
+export type PlaceRefusal = "unknown-house" | "blank-title" | "blank-body" | "table-full";
 export type PerspectiveRefusal = "unknown-thing" | "blank-body";
 export type KeepRefusal = "unknown-thing" | "own-thing" | "already" | "no-perspective" | null;
+
+/** Five notes a day on a table, counted per person, per room.
+ *
+ *  This is a limit on STARTING something and on nothing else. Writing your
+ *  side of what is already there, and keeping it together, are never
+ *  capped — if they were, a full table could stop a thing from ever being
+ *  corroborated, and the one rule this whole app is built on would hold
+ *  only on quiet days.
+ *
+ *  Counted per person rather than per table, so nobody can use up somebody
+ *  else's day; and not counted at all in the meeting house, where what you
+ *  put down is a remark in a conversation rather than a note left on a
+ *  surface. A chat that took five lines a day would not be a chat.
+ */
+export const NOTES_A_DAY = 5;
+
+/** The app's day, UTC, spelled the way SQLite spells it.
+ *
+ *  Which day it is gets asked twice — once to count what you have already
+ *  put down, once to decide what is still on the table — and the two
+ *  answers have to be the same answer, or a note could be refused for a
+ *  day it is not on. So both come from here, and it is the database's clock
+ *  rather than Node's, because `created_at` is the database's clock too.
+ *
+ *  UTC, like every other time in this app. The consequence is real and the
+ *  README says it rather than hiding it: the table turns over at 7am in
+ *  Nghe An and Hanoi and 11am in Canberra, not at midnight. A local
+ *  midnight would need a timezone stored per account, and the app keeps a
+ *  name, a password and a household and nothing else. */
+export function today(): string {
+  return (db.prepare("SELECT date('now') AS day").get() as { day: string }).day;
+}
+
+/** How many notes this person has already put down in this room today. */
+export function notesToday(houseSlug: string, person: string): number {
+  const house = houseBySlug(houseSlug);
+  if (!house) return 0;
+  const row = db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM things
+        WHERE house_id = ? AND placed_by = ? AND date(created_at) = ?`,
+    )
+    .get(house.id, person, today()) as { n: number };
+  return row.n;
+}
+
+/** How many more they may leave there before the day turns. The meeting
+ *  house has no table to fill, so it always has room. */
+export function notesLeftToday(houseSlug: string, person: string): number {
+  const house = houseBySlug(houseSlug);
+  if (!house) return 0;
+  if (house.kind === "meeting") return NOTES_A_DAY;
+  return Math.max(0, NOTES_A_DAY - notesToday(houseSlug, person));
+}
 
 /** Placing is not keeping. The thing goes into the room either way, as the
  *  creator's own record of it — IN_ROOM. It becomes a shared memory only
@@ -62,6 +116,15 @@ export function place(
   // to. The meeting house is a conversation — a remark at the table is not
   // an artefact and titling it would be a small lie about what it is.
   if (!trimmedTitle && house.kind !== "meeting") return "blank-title";
+
+  // The table holds five of yours a day. Asked here rather than in the
+  // route, so every path that places anything meets it — a hand-made POST
+  // and a replayed one included. It is the last question asked, because a
+  // note with nothing in it was never going to take up a place on the
+  // table anyway.
+  if (house.kind !== "meeting" && notesToday(house.slug, placedBy) >= NOTES_A_DAY) {
+    return "table-full";
+  }
 
   const trimmedDate = eventDate?.trim().slice(0, 40) || null;
   const info = db
@@ -188,6 +251,58 @@ export function inRoom(houseSlug: string, viewer: string): ThingView[] {
 
 export function onShelf(houseSlug: string, viewer: string): ThingView[] {
   return viewsFor(houseSlug, viewer, true);
+}
+
+/** What is on the table: the notes put down in this room today, and
+ *  nothing else.
+ *
+ *  Derived from the day each note already carries, never stored — so there
+ *  is no nightly sweep to run, nothing to go wrong if the machine is asleep
+ *  at midnight, and no column that could disagree with the timestamp beside
+ *  it. The day turns and the table is empty because "was this put down
+ *  today" has a new answer, not because anything was moved. Same reasoning
+ *  as `onShelf`. */
+export function onTable(houseSlug: string, viewer: string): ThingView[] {
+  const day = today();
+  return inRoom(houseSlug, viewer).filter((t) => t.createdAt.slice(0, 10) === day);
+}
+
+export interface NoteDay {
+  /** YYYY-MM-DD, UTC. */
+  day: string;
+  things: ThingView[];
+}
+
+/** The note board: every note this room holds, in days, newest day first
+ *  and newest note first inside a day.
+ *
+ *  Today is a day like any other on it. A board that started at yesterday
+ *  would be a board you could not trust, and including today is also what
+ *  guarantees no note ever exists only on the table — which is what makes
+ *  the five-a-day cap a limit on how fast the room fills rather than a way
+ *  to lose something.
+ *
+ *  Grouped here rather than in SQL so that the card a day holds is the same
+ *  ThingView the table shows — a board can never disagree with the table
+ *  about what a note says or who kept it.
+ *
+ *  Sorted by day explicitly, rather than leaning on `inRoom`'s id order. In
+ *  this app the two agree, because `created_at` is written by the database
+ *  at insert and never touched again — but "sorted by date" is what a board
+ *  IS, and a board that was only sorted by date because of a coincidence in
+ *  another function is a board that could stop being sorted without anybody
+ *  touching it. Found by a test that backdated a row. */
+export function noteBoard(houseSlug: string, viewer: string): NoteDay[] {
+  const byDay = new Map<string, ThingView[]>();
+  for (const t of inRoom(houseSlug, viewer)) {
+    const day = t.createdAt.slice(0, 10);
+    const already = byDay.get(day);
+    if (already) already.push(t);
+    else byDay.set(day, [t]);
+  }
+  return [...byDay.entries()]
+    .sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0))
+    .map(([day, things]) => ({ day, things }));
 }
 
 export interface ShelfFilters {
