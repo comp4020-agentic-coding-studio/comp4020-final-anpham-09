@@ -103,6 +103,23 @@ at them, which works only because that spec runs the real script.
 some things are only visible to somebody using the app who did not
 build it.
 
+## A product rule the tests could not afford
+
+A table now holds five notes a day — the table's five, shared. The rule is
+four lines of SQL; what it cost was the suite. Placing tests spend a
+house's day, and the local database is never reset, so the suite passed
+once a day and then failed with refusals about a rule it was not testing.
+CI never met this: its `/data` is a tmpfs, empty every run. The spec now
+starts its own server on a throwaway database whenever `APP_URL` is unset,
+which also retires the stale-source footgun above.
+
+Two tests then passed for the wrong reason, the shape this file keeps
+finding. "The composer stays in the panel" stayed green after the composer
+moved into the table drawer, because it compared positions and the drawer
+happens to come later. And the note board read as sorted by date only
+because `created_at` rises with `id`; a test that backdated a row said
+otherwise.
+
 ## The one practice that paid in advance
 
 Sowing travels stone by stone now, and CLAUDE.md had already decided how: a
@@ -121,5 +138,9 @@ failure left a game seated and the next test refused a chair. Three
 debugging sessions, each ending in clearing it by hand — the
 re-run-until-green habit this file exists to catch ([`da629bd`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/da629bd)).
 
+It paid a third time: the rule that a control the script has not reached
+must not look like one was written down after the shelf shipped dead
+buttons, and the drawers were built against it.
+
 `CLAUDE.md` holds what the argument forbids; `spec/` holds what can be
-tested — now 234 tests, each broken once before being trusted.
+tested — now 241 tests, each broken once before being trusted.

@@ -2186,19 +2186,19 @@ export function housePage(
     '<svg viewBox="0 0 32 24" width="29" height="22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 11h28M6 11v11M26 11v11M11 11V4h10v7"/></svg>';
   const SHELF_ART =
     '<svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 5Q6 2 3 5v15q5-3 9 0 4-3 9 0V5q-3-3-9 0zM12 5v15"/></svg>';
-  // How many notes are on the table today, and how many of them are this
-  // viewer's remaining five. The count is rendered once, with the page, and
-  // that is correct for as long as it is on screen: the cap is per person,
-  // so somebody else leaving a note cannot change it, and your own note
-  // arrives by a POST that redirects to a freshly rendered page.
+  // How much room is left on the table today. Everybody's, because the
+  // table is everybody's — so unlike a per-person count this one CAN go
+  // out of date while the page is open, if somebody in the same house
+  // leaves a note. It is inside the drawer, which the live stream
+  // refreshes on every event, and the count rides along with it.
   const leftToday = notes?.left ?? NOTES_A_DAY;
   const leftLine = !mayPutDown
     ? "Read what is here, add your side"
     : leftToday === 0
-      ? "Full for today — five is a day's worth"
+      ? "Full for today — five is what it holds"
       : leftToday === 1
-        ? "One more note today"
-        : `${leftToday} more notes today`;
+        ? "Room for one more today"
+        : `Room for ${leftToday} more today`;
   const onTableNow = things.length === 1 ? "1 note today" : `${things.length} notes today`;
   const boardTotal = (notes?.days ?? []).reduce((n, d) => n + d.things.length, 0);
   const furniture = `<div class="room-furniture">
@@ -2222,7 +2222,7 @@ export function housePage(
   const tableFoot = !mayPutDown
     ? `<p class="body-sm">You're a guest in this house, so starting something new here is for the people who live in it. You can still write your side of anything on this table or on the board and keep it together — that's how it reaches their shelf.</p>`
     : leftToday === 0
-      ? `<p class="body-sm"><strong>You've left five notes here today.</strong> That's what this table holds in a day. They're all on the note board, and tomorrow's table starts empty. Writing your side of something already here, and keeping it together, are never capped.</p>`
+      ? `<p class="body-sm"><strong>This table has its five for today.</strong> That's what it holds in a day, whoever leaves them — it's a surface, not storage. They're all on the note board, and tomorrow's table starts empty. Writing your side of something already here, and keeping it together, are never capped.</p>`
       : composerBlock;
 
   // --- The drawers ---

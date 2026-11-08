@@ -261,7 +261,7 @@ const REFUSALS: Record<
   // The table is a surface, not a quota: what is refused is leaving a sixth
   // note on it today, and the five already there are named so the sentence
   // says where they went rather than only what cannot happen.
-  "table-full": "Five notes is a day\'s worth, and you\'ve left five on this table today. They\'re all on the note board, and tomorrow\'s table starts empty.",
+  "table-full": "This table holds five notes a day and today\'s five are on it. They\'re all on the note board, and tomorrow\'s table starts empty.",
   "unknown-thing": "That isn't here any more, so nothing was recorded.",
   "own-thing": "You put this down, so you can't be the one who keeps it together too. A memory is something two of you add to.",
   already: "You'd already kept this together. One person is one keeper, however many times they click.",
@@ -675,7 +675,7 @@ const server = createServer((req, res) => {
             ? undefined
             : {
                 days: noteBoard(house.slug, who),
-                left: notesLeftToday(house.slug, who),
+                left: notesLeftToday(house.slug),
                 today: today(),
               },
         ),

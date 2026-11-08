@@ -27,19 +27,21 @@ Houses, then, not a feed. A feed has one direction and nowhere to stand.
 
 And a room is a room: it holds furniture, not a list. The notes are on the
 table, the album is on the shelf, and you see either by going to it. Each
-home keeps its own album — Nghe An's, Hanoi's, mine in Canberra — because
-that is how a family keeps them: a book per household that somebody has to
-take down and open. The meeting house has neither. A remark there belongs
-to whoever was in the room, and giving it a book would make it a fourth
-home it was never meant to be.
+home keeps its own album — Nghe An's, Hanoi's, mine in Canberra — a book
+per household that somebody has to take down and open. The meeting house
+has neither: a remark there belongs to whoever was in the room, and giving
+it a book would make it a fourth home.
 
-A table is a surface, not storage, so it holds five notes a day each. The
-day turns and it is clear: every note is on the note board behind it, under
-the day it was left. Nothing is swept there — being on the table means
-having been left today, which the timestamp already answers. Five is the
-only number here that refuses anything, and it refuses only starting:
-writing your side of what is already here is never capped, or a busy
-Tuesday could stop a memory being a memory.
+A table is a surface, not storage, so it holds five notes a day — the
+table's five, shared, not five each. Six of us around one table do not get
+thirty notes a day any more than we get thirty plates, and a per-person
+five would be a quota, which is a thing an app gives you rather than a
+thing a room has. The day turns and the table is clear: every note is on
+the note board behind it, under the day it was left, and nothing was swept
+there — it is simply no longer today. Five is the only number here that
+refuses anything, and it refuses only starting: writing your side of what
+is already here is never capped, or a busy Tuesday could stop a memory
+being a memory.
 
 ## What I read
 
@@ -63,9 +65,10 @@ not start something in a house that is not theirs; a password is never
 stored, only a salted hash of one; placing and playing work with JavaScript
 off; every memory kept is in the markup, so neither an album page nor a
 drawer hides one from a reader with no script; the message box is nine tab
-stops away rather than six hundred; the sixth note of a day is refused in
-words, while a full table never stops anybody writing their side of
-something; yesterday's note is off the table and on the board; a page is
+stops away rather than six hundred; five notes fill a table between
+everybody and the sixth is refused in words, while a full table never stops
+anybody writing their side of something; yesterday's note is off the table
+and on the board; a page is
 gzipped for a browser that asks and sent plain to one that refuses; points
 are conserved across every move of a game; and a change reaches another
 session in under a second, measured at five milliseconds. All 241

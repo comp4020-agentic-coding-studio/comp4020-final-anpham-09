@@ -10,7 +10,8 @@
     "check:evidence": "node scripts/check-evidence.ts",
     "test": "vitest run",
     "dev": "node src/server.ts",
-    "start": "node src/server.ts"
+    "start": "node src/server.ts",
+    "dev:fresh": "DATABASE_PATH=\"$(mktemp -d)/app.db\" node src/server.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",

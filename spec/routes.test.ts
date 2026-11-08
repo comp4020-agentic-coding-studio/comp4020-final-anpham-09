@@ -3,22 +3,45 @@ import { expect, inject, it, describe } from "vitest";
 // Against the RUNNING app, because these are about what a browser gets.
 const baseUrl = inject("baseUrl");
 
-// Presence has a real 45-second TTL and this file runs against the real dev
-// server's persistent database — there is no per-test reset. A test that
-// enters a house leaves a live witness behind for up to 45 seconds, so any
-// other test that places something in the SAME house within that window gets
-// an unwanted extra witness and its "in the room" assertion turns into "on
-// the shelf". Each presence-sensitive test below therefore gets its own
-// house: the form-POST test uses `canberra`, the refusal test uses `hanoi`.
-// `meeting` is shared with Task 8's real-time tests and now also with the
-// game test at the bottom of this file, because the game lives only in the
-// meeting house and there is nowhere else to put it. That sharing is safe
-// in a way the others are not: the game test places nothing, so no "in the
-// room" assertion anywhere can be disturbed by the witness it leaves. Do
-// not consolidate the rest onto one house — that reintroduces the flakiness
-// this comment is here to prevent. Each such test also leaves on its way
-// out (see below), so the suite is safely re-runnable without waiting out
-// the TTL.
+// Presence has a real 45-second TTL and this file runs against a server, not
+// a database it owns. A test that enters a house leaves a live witness
+// behind for up to 45 seconds, so any other test that places something in
+// the SAME house within that window gets an unwanted extra witness. Each
+// such test therefore gets its own house. `meeting` is shared with Task 8's
+// real-time tests and with the game test at the bottom of this file,
+// because the game lives only in the meeting house and there is nowhere
+// else to put it; that sharing is safe in a way the others are not, since
+// the game test places nothing. Each test also leaves on its way out.
+//
+// A SECOND budget now shares this table, and it is the tighter of the two.
+// A household table holds FIVE notes a day between everybody — not five
+// each — so the three household houses are fifteen successful placements
+// per day, for the whole suite, and the app is right to refuse the
+// sixteenth. The allocation:
+//
+//   canberra   4  the form POST, both escaping tests, and the
+//                 household-of-one test
+//   hanoi      5  the five-a-day test alone, which fills a table on
+//                 purpose and so cannot share one
+//   nghe-an    4  the own-thing refusal, the album markup test, the
+//                 drawer test, and (in spec/realtime.test.ts) the
+//                 not-shelved-by-presence test
+//
+// Canberra's fifth place is deliberately NOT spent. A full table shows the
+// sentence saying so instead of the composer — correctly, since a form that
+// will always be refused is a button that teaches people the app is broken
+// — and two tests below read Canberra's page to check WHERE the composer
+// is. Spend that slot and they fail with the composer simply absent, which
+// is a confusing way to be told about a rule in another file. A new test
+// that must place in a household house takes Nghe An's fifth and updates
+// this table; after that, use `meeting`, which has no table and no cap, or
+// make it a unit test in spec/village.test.ts.
+//
+// Because the count is per house per DAY, the suite needs a database that
+// has not already spent today's notes. CI runs the image with a throwaway
+// /data, which is fresh every run; locally, `pnpm dev:fresh` is the same
+// thing. A placing test that fails saying the table is full is telling you
+// the server is on a database that has already been used today.
 
 /** How many message slips the room is showing. Used to assert that
  *  something wrote NOTHING, which a length comparison on the whole page
@@ -267,27 +290,27 @@ describe("what a browser gets", () => {
     // test would pass on the wrong refusal.
     const alice = session();
     await alice.get("/");
-    await signIn(alice, "Alice", "hanoi");
-    // Bob is a guest in Hanoi, which is the point: a guest may still write
+    await signIn(alice, "Alice", "nghe-an");
+    // Bob is a guest in Nghe An, which is the point: a guest may still write
     // their side and keep it, and that is what makes Alice's own attempt
     // the only thing being refused here.
     const bob = session();
     await bob.get("/");
-    await signIn(bob, "Bob", "nghe-an");
+    await signIn(bob, "Bob", "hanoi");
 
     try {
-      await alice.get("/house/hanoi");
-      await alice.post("/place", { house: "hanoi", title: "A refusal test", body: "alice put this down herself" });
+      await alice.get("/house/nghe-an");
+      await alice.post("/place", { house: "nghe-an", title: "A refusal test", body: "alice put this down herself" });
 
       // Only a non-placer is offered the take-it-in form, so Bob's view is where
       // the thing's id is visible at all.
-      const asBob = await (await bob.get("/house/hanoi/room")).text();
+      const asBob = await (await bob.get("/house/nghe-an/room")).text();
       const found = /name="thing" value="(\d+)"/.exec(asBob);
       expect(found, "no take-it-in form found in Bob's view of the room").not.toBeNull();
 
       // Alice posts it by hand: the button is absent for her, and the server must
       // refuse the request anyway, in words.
-      const refused = await alice.post("/take", { thing: found![1], house: "hanoi" });
+      const refused = await alice.post("/take", { thing: found![1], house: "nghe-an" });
       expect(refused.status).toBe(303);
       const location = refused.headers.get("location") ?? "";
       const said = new URL(location, "http://x").searchParams.get("said") ?? "";
@@ -412,28 +435,34 @@ describe("what a browser gets", () => {
     await signIn(bob, "Bob", "canberra");
 
     try {
-      await alice.get("/house/canberra");
+      // At the table, not in a house. One person keeping something twice at
+      // once is the same race wherever it happens, and the meeting house is
+      // the one room with no table to fill — see the allocation at the top
+      // of this file. It is safe to share here for the same reason the game
+      // test is: keeping now needs a written perspective and an explicit
+      // action, so a stray presence witness cannot shelve anything.
+      await alice.get("/house/meeting");
       const marker = `multitab-${Date.now()}`;
-      await alice.post("/place", { house: "canberra", title: "A multi-tab test", body: `thing to keep ${marker}` });
+      await alice.post("/place", { house: "meeting", title: "A multi-tab test", body: `thing to keep ${marker}` });
 
-      const asBob = await (await bob.get("/house/canberra/room")).text();
-      const match = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?name="thing" value="(\\d+)"`).exec(asBob);
+      const asBob = await (await bob.get("/house/meeting/room")).text();
+      const match = new RegExp(`<li class="thing thread-msg"(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?name="thing" value="(\\d+)"`).exec(asBob);
       expect(match, "no take-it-in form found near the thing just placed").not.toBeNull();
       const thingId = match![1];
 
-      await bob.post("/perspectives", { thing: thingId, house: "canberra", body: "I remember this too" });
+      await bob.post("/perspectives", { thing: thingId, house: "meeting", body: "I remember this too" });
 
       // Two "tabs" — same cookie jar, same person — racing to submit the same
       // keep action concurrently, not one after another.
       const [first, second] = await Promise.all([
-        bob.post("/take", { thing: thingId, house: "canberra" }),
-        bob.post("/take", { thing: thingId, house: "canberra" }),
+        bob.post("/take", { thing: thingId, house: "meeting" }),
+        bob.post("/take", { thing: thingId, house: "meeting" }),
       ]);
       expect(first.status).toBe(303);
       expect(second.status).toBe(303);
 
-      const room = await (await alice.get("/house/canberra/room")).text();
-      const item = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?</li>`).exec(room);
+      const room = await (await alice.get("/house/meeting/room")).text();
+      const item = new RegExp(`<li class="thing thread-msg"(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?</li>`).exec(room);
       expect(item, "the thing is not in the room view").not.toBeNull();
       expect(item![0]).toContain("On the shelf");
       // Bob's name appears exactly once in the "kept together by" note — not
@@ -1362,26 +1391,26 @@ describe("the shelf, as three albums", () => {
     const an = session();
     const mum = session();
     await an.get("/");
-    await signIn(an, "Page One", "canberra");
+    await signIn(an, "Page One", "nghe-an");
     await mum.get("/");
-    await signIn(mum, "Page Two", "nghe-an");
+    await signIn(mum, "Page Two", "canberra");
     try {
       const body = `album test ${Date.now()}`;
-      await an.post("/place", { house: "canberra", title: "An album memory", body });
+      await an.post("/place", { house: "nghe-an", title: "An album memory", body });
 
-      const room = await (await mum.get("/house/canberra/room")).text();
+      const room = await (await mum.get("/house/nghe-an/room")).text();
       const thing = new RegExp(`<li class="thing">(?:(?!</li>)[\\s\\S])*?${body}[\\s\\S]*?</li>`).exec(room);
       expect(thing, "the thing is not in the room").not.toBeNull();
       const id = /name="thing" value="(\d+)"/.exec(thing![0])?.[1];
       expect(id).toBeTruthy();
-      await mum.post("/perspectives", { thing: id!, house: "canberra", body: "I remember this" });
-      await mum.post("/take", { thing: id!, house: "canberra" });
+      await mum.post("/perspectives", { thing: id!, house: "nghe-an", body: "I remember this" });
+      await mum.post("/take", { thing: id!, house: "nghe-an" });
 
       const shelf = markup(await (await an.get("/shelf")).text());
       expect(shelf, "a kept memory is missing from the shelf markup").toContain(body);
-      // And it is inside Canberra's album, not loose on the page.
-      const album = /data-album="canberra"[\s\S]*?(?=data-album="|<\/main>)/.exec(shelf);
-      expect(album, "no canberra album").not.toBeNull();
+      // And it is inside Nghe An's album, not loose on the page.
+      const album = /data-album="nghe-an"[\s\S]*?(?=data-album="|<\/main>)/.exec(shelf);
+      expect(album, "no nghe-an album").not.toBeNull();
       expect(album![0]).toContain(body);
     } finally {
       await an.post("/leave", {});
@@ -1493,22 +1522,25 @@ describe("the shelf, as three albums", () => {
 });
 
 describe("the room, as furniture", () => {
-  // Both of these use `hanoi`, which the comment at the top of this file
-  // allocates to the refusal test. That sharing is safe in the way the
-  // game test's is: neither of these asserts "in the room" or "on the
-  // shelf" about anything, so an extra presence witness cannot change
-  // either answer.
+  // The first of these has `hanoi` to itself, and the allocation table at
+  // the top of this file says so: it fills a table on purpose, so there is
+  // nothing left of that day for anybody else. The second shares `nghe-an`,
+  // which is safe because it asserts nothing about "in the room" or "on the
+  // shelf" and so cannot be disturbed by a presence witness.
 
-  it("takes five notes from one person in a day, then says why the sixth is refused", async () => {
-    // The cap needs an account with a clean day behind it, which is what
-    // RUN at the top of this file is for: against a database that is never
-    // reset, a permanent account walks in with its five already spent.
+  it("takes five notes a day from a table, then says why the sixth is refused", async () => {
+    // Two accounts, because the five belong to the TABLE: four from one
+    // person and one from another fill it just the same, and a test that
+    // used one account could pass against a per-person cap too.
     const s = session();
+    const other = session();
     await s.get("/");
+    await other.get("/");
     await signIn(s, "Five A Day", "hanoi");
+    await signIn(other, "Also Hanoi", "hanoi");
     try {
       const stamp = Date.now();
-      for (let i = 1; i <= 5; i++) {
+      for (let i = 1; i <= 4; i++) {
         const put = await s.post("/place", {
           house: "hanoi",
           title: `Note ${i}`,
@@ -1517,8 +1549,19 @@ describe("the room, as furniture", () => {
         const said = new URL(put.headers.get("location") ?? "", baseUrl).searchParams.get("said") ?? "";
         expect(said, `note ${i} of five came back refused`).toBe("");
       }
+      const fifth = await other.post("/place", {
+        house: "hanoi",
+        title: "Note 5",
+        body: `cap test 5 of ${stamp}`,
+      });
+      expect(
+        new URL(fifth.headers.get("location") ?? "", baseUrl).searchParams.get("said") ?? "",
+        "the fifth note, from a second person, was refused",
+      ).toBe("");
 
-      const sixth = await s.post("/place", {
+      // And now the table is full for everybody, not just for whoever left
+      // the last one.
+      const sixth = await other.post("/place", {
         house: "hanoi",
         title: "Note 6",
         body: `cap test 6 of ${stamp}`,
@@ -1526,15 +1569,26 @@ describe("the room, as furniture", () => {
       const refused = new URL(sixth.headers.get("location") ?? "", baseUrl).searchParams.get("said") ?? "";
       // Words, never silence: a button that appears to do nothing teaches
       // people the app is broken; being told the rule teaches the rule.
-      expect(refused, "the sixth note was dropped without a word").toContain("five on this table today");
+      expect(refused, "the sixth note was dropped without a word").toContain("holds five notes a day");
       // And it says where the five went, not only that there is no room.
       expect(refused).toContain("note board");
+      // The first person is refused too — one table, one five.
+      const hers = await s.post("/place", {
+        house: "hanoi",
+        title: "Note 7",
+        body: `cap test 7 of ${stamp}`,
+      });
+      expect(
+        new URL(hers.headers.get("location") ?? "", baseUrl).searchParams.get("said") ?? "",
+        "the table was full for one person and not the other",
+      ).toContain("holds five notes a day");
 
       const table = markup(await (await s.get("/house/hanoi/room")).text());
       expect(table, "the sixth note was refused and kept anyway").not.toContain(`cap test 6 of ${stamp}`);
       expect(table, "the fifth note is not on the table").toContain(`cap test 5 of ${stamp}`);
     } finally {
       await s.post("/leave", {});
+      await other.post("/leave", {});
     }
   });
 
@@ -1544,11 +1598,11 @@ describe("the room, as furniture", () => {
     // behind a click that a reader with no script cannot make.
     const s = session();
     await s.get("/");
-    await signIn(s, "No Drawer Script", "hanoi");
+    await signIn(s, "No Drawer Script", "nghe-an");
     try {
       const body = `drawer test ${Date.now()}`;
-      await s.post("/place", { house: "hanoi", title: "A drawer test", body });
-      const page = markup(await (await s.get("/house/hanoi")).text());
+      await s.post("/place", { house: "nghe-an", title: "A drawer test", body });
+      const page = markup(await (await s.get("/house/nghe-an")).text());
 
       expect(page).toContain('<dialog class="drawer" id="table"');
       expect(page).toContain('id="board"');

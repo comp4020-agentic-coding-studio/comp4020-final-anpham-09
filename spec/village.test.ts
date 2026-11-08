@@ -288,24 +288,28 @@ describe("what is on the table, and what is on the board", () => {
     expect(things.inRoom("canberra", "bob").length).toBe(2);
   });
 
-  it("counts a day's five per person, and only where there is a table to fill", async () => {
+  it("counts the table's five, not each person's, and only where there is a table", async () => {
     const { things } = await boot();
-    for (let i = 0; i < 5; i++) {
+    // Four from one person and one from another fill the same table: six
+    // people around one do not get thirty notes a day between them.
+    for (let i = 0; i < 4; i++) {
       expect(typeof things.place("canberra", "alice", `n${i}`, `note ${i}`)).toBe("number");
     }
-    expect(things.place("canberra", "alice", "n5", "note five")).toBe("table-full");
-    expect(things.notesLeftToday("canberra", "alice")).toBe(0);
-
-    // Somebody else's day is their own: a table nobody can use up for you.
+    expect(things.notesLeftToday("canberra")).toBe(1);
     expect(typeof things.place("canberra", "bob", "theirs", "bob's note")).toBe("number");
-    expect(things.notesLeftToday("canberra", "bob")).toBe(4);
+    expect(things.notesLeftToday("canberra")).toBe(0);
+    expect(things.place("canberra", "alice", "n5", "note five")).toBe("table-full");
+    expect(things.place("canberra", "bob", "n5", "theirs too")).toBe("table-full");
+
+    // Another house is another table.
+    expect(typeof things.place("hanoi", "alice", "elsewhere", "another table")).toBe("number");
 
     // The meeting house has no table. A conversation that took five lines
     // a day would not be a conversation.
     for (let i = 0; i < 7; i++) {
       expect(typeof things.place("meeting", "alice", "", `said ${i}`)).toBe("number");
     }
-    expect(things.notesLeftToday("meeting", "alice")).toBe(5);
+    expect(things.notesLeftToday("meeting")).toBe(5);
   });
 
   it("never lets a full table stop somebody keeping something together", async () => {
@@ -315,7 +319,7 @@ describe("what is on the table, and what is on the board", () => {
     const { things } = await boot();
     const mine = things.place("canberra", "bob", "His first steps", "he walked across the room");
     expect(typeof mine).toBe("number");
-    for (let i = 0; i < 5; i++) things.place("canberra", "alice", `n${i}`, `note ${i}`);
+    for (let i = 0; i < 4; i++) things.place("canberra", "alice", `n${i}`, `note ${i}`);
     expect(things.place("canberra", "alice", "n5", "one too many")).toBe("table-full");
 
     expect(typeof things.addPerspective(mine as number, "alice", "I was holding the door")).toBe("number");

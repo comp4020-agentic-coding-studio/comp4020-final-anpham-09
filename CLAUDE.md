@@ -36,16 +36,20 @@ change would make any line here false, the change is wrong, not the line.
   alone in Canberra, so if responding were also the household's own, nothing
   he placed at home could ever reach his own shelf and the rule this app is
   built on would hold for everyone except him.
-- **A table holds five notes a day, per person, and that is a limit on
-  STARTING something and on nothing else.** Writing your side of what is
-  already in a room, and keeping it together, are never capped and must
-  never become capped: if a full table could stop a thing being
-  corroborated, the one rule this app is built on would hold only on quiet
-  days. Counted per person so nobody can use up somebody else's day, and
-  not counted at all in the meeting house, where a remark is not a note
-  left on a surface — a conversation that took five lines a day would not
-  be a conversation. A sixth note is refused in words that say where the
-  five went, never dropped.
+- **A table holds five notes a day — the TABLE's five, not each person's —
+  and that is a limit on STARTING something and on nothing else.** Six
+  people around one table do not get thirty notes a day between them any
+  more than they get thirty plates: a surface holds what it holds, and
+  whoever is there shares it. A per-person five would be a quota, which is
+  something an app gives you; this is meant to be something the room has.
+  Writing your side of what is already in a room, and keeping it together,
+  are never capped and must never become capped: if a full table could stop
+  a thing being corroborated, the one rule this app is built on would hold
+  only on quiet days. Not counted at all in the meeting house, where a
+  remark is not a note left on a surface — a conversation that took five
+  lines a day would not be a conversation. A sixth note is refused in words
+  that say where the five went, never dropped, and a full table shows that
+  sentence in place of the composer rather than a form that cannot work.
 - **Nothing is swept onto the note board, because nothing has to be.** A
   note is on the table if it was left today and on the board whichever day
   it was left; both are read off the timestamp the note already carries.
@@ -103,11 +107,31 @@ score. Remove that test and the exception stops being defensible.
 - **A test that has never been seen to fail is not evidence.** Break the
   behaviour it guards, confirm it goes red, restore. Several tests in this
   repo did not go red and were rewritten: they were asserting nothing.
-- **The HTTP tests run against a server that is already running.** `pnpm dev`
-  is plain `node src/server.ts` with no watcher, so breaking a source file
-  proves nothing until the server is restarted. Three "breaks" were recorded
-  as isolating before this was noticed; the process under test still held the
-  unbroken source.
+- **The HTTP tests run against a server, and which one depends on `APP_URL`.**
+  CI sets it, builds the Dockerfile and starts the image with a throwaway
+  `/data`, so what passes there is what deploys. With `APP_URL` unset,
+  `spec/global-setup.ts` starts a server itself, on a free port and a
+  throwaway database, and stops it afterwards.
+  - That is not a convenience. A household table holds five notes a day per
+    HOUSE, so a database that has already been used today has no room in it,
+    and every placing test is refused for a reason that has nothing to do
+    with what it was testing. A fresh database per run is the only
+    arrangement in which the cap and the suite can both be true.
+  - It also retires a footgun recorded here three times: a hand-started
+    server has no watcher, so it holds the source it booted with and
+    breaking a file proved nothing until it was restarted. Three "breaks"
+    were recorded as isolating before that was noticed.
+  - `pnpm dev` is unchanged and keeps `.data/app.db`, so the village you
+    browse survives running the checks. `pnpm dev:fresh` is the same server
+    on an empty one.
+- **The suite has fifteen household placements a day, and spends fourteen.**
+  Three household houses, five notes each, and the app is right to refuse
+  the sixteenth. `spec/routes.test.ts` carries the allocation beside the
+  presence one; keep it accurate. Canberra's fifth place is deliberately
+  unspent, because a full table shows a sentence instead of a composer and
+  two tests read that page to check where the composer is. A new test that
+  must place in a household house should use the meeting house, which has
+  no table and no cap, or be a unit test in `spec/village.test.ts`.
 - **Never assert on a page without stripping the stylesheet first.** Every
   page inlines the whole of it, and it names the same classes the markup uses
   — so `toContain("pit-pick")` can never fail and `not.toContain` can never

@@ -36,7 +36,13 @@ export type PlaceRefusal = "unknown-house" | "blank-title" | "blank-body" | "tab
 export type PerspectiveRefusal = "unknown-thing" | "blank-body";
 export type KeepRefusal = "unknown-thing" | "own-thing" | "already" | "no-perspective" | null;
 
-/** Five notes a day on a table, counted per person, per room.
+/** Five notes a day on a table — the TABLE's five, not each person's.
+ *
+ *  A table is a surface. Six people around one do not get thirty notes a
+ *  day between them any more than they get thirty plates: what the surface
+ *  holds is what it holds, and whoever is there shares it. That is the
+ *  point of the number. A per-person five would be a quota, which is a
+ *  thing an app gives you, and this is meant to be a thing the room has.
  *
  *  This is a limit on STARTING something and on nothing else. Writing your
  *  side of what is already there, and keeping it together, are never
@@ -44,10 +50,9 @@ export type KeepRefusal = "unknown-thing" | "own-thing" | "already" | "no-perspe
  *  corroborated, and the one rule this whole app is built on would hold
  *  only on quiet days.
  *
- *  Counted per person rather than per table, so nobody can use up somebody
- *  else's day; and not counted at all in the meeting house, where what you
- *  put down is a remark in a conversation rather than a note left on a
- *  surface. A chat that took five lines a day would not be a chat.
+ *  Not counted at all in the meeting house, where what you put down is a
+ *  remark in a conversation rather than a note left on a surface. A chat
+ *  that took five lines a day would not be a chat.
  */
 export const NOTES_A_DAY = 5;
 
@@ -68,26 +73,27 @@ export function today(): string {
   return (db.prepare("SELECT date('now') AS day").get() as { day: string }).day;
 }
 
-/** How many notes this person has already put down in this room today. */
-export function notesToday(houseSlug: string, person: string): number {
+/** How many notes are on this room's table today — everybody's, because
+ *  the table is everybody's. */
+export function notesToday(houseSlug: string): number {
   const house = houseBySlug(houseSlug);
   if (!house) return 0;
   const row = db
     .prepare(
       `SELECT COUNT(*) AS n FROM things
-        WHERE house_id = ? AND placed_by = ? AND date(created_at) = ?`,
+        WHERE house_id = ? AND date(created_at) = ?`,
     )
-    .get(house.id, person, today()) as { n: number };
+    .get(house.id, today()) as { n: number };
   return row.n;
 }
 
-/** How many more they may leave there before the day turns. The meeting
- *  house has no table to fill, so it always has room. */
-export function notesLeftToday(houseSlug: string, person: string): number {
+/** How much room is left on it before the day turns. The meeting house has
+ *  no table to fill, so it always has room. */
+export function notesLeftToday(houseSlug: string): number {
   const house = houseBySlug(houseSlug);
   if (!house) return 0;
   if (house.kind === "meeting") return NOTES_A_DAY;
-  return Math.max(0, NOTES_A_DAY - notesToday(houseSlug, person));
+  return Math.max(0, NOTES_A_DAY - notesToday(houseSlug));
 }
 
 /** Placing is not keeping. The thing goes into the room either way, as the
@@ -117,12 +123,12 @@ export function place(
   // an artefact and titling it would be a small lie about what it is.
   if (!trimmedTitle && house.kind !== "meeting") return "blank-title";
 
-  // The table holds five of yours a day. Asked here rather than in the
-  // route, so every path that places anything meets it — a hand-made POST
-  // and a replayed one included. It is the last question asked, because a
-  // note with nothing in it was never going to take up a place on the
-  // table anyway.
-  if (house.kind !== "meeting" && notesToday(house.slug, placedBy) >= NOTES_A_DAY) {
+  // The table holds five a day between everybody. Asked here rather than
+  // in the route, so every path that places anything meets it — a
+  // hand-made POST and a replayed one included. It is the last question
+  // asked, because a note with nothing in it was never going to take up a
+  // place on the table anyway.
+  if (house.kind !== "meeting" && notesToday(house.slug) >= NOTES_A_DAY) {
     return "table-full";
   }
 
