@@ -200,11 +200,17 @@ it before calling a visual change done.
   about information, so no words or counts live only in the animation.
 - **The shelf's albums are the third exception**, written down here before
   building them. Each household's kept memories are a book: three of them
-  stand closed on a shelf, and opening one takes it down into a two-leaf
-  spread held open over the page — four memories to a spread, two to a
-  leaf, leaves numbered one by one the way a book numbers them, and the
-  spread is the unit that turns. The arrow keys turn it too, which is
-  what the line along the bottom of the leaves says they do.
+  stand closed on a shelf, and opening one takes it down into a book
+  held open over the page, two pages at a time. **A page is the unit
+  that turns and the unit that carries a number**, and one turn moves
+  the book by ONE page: the page on the right slides across to the left
+  and a new one comes down beside it. Turning by the pair instead
+  replaces both sides at once, which is a slide show with a crease down
+  it. Two memories to a page, numbered on the page itself so the running
+  head and the spoken announcement cannot drift apart. The arrow keys
+  turn it too, which is what the line along the bottom says they do.
+  Where there is only room for one page, one page opens and a turn still
+  moves by one.
   With a script blocked there is no shelf of covers and no spread — every
   album renders open, a heading and all of its memories, and the cover is a
   plain link down to them. Nothing is hidden behind a page that cannot be

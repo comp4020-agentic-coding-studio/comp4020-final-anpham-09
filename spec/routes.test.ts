@@ -1420,36 +1420,29 @@ describe("the shelf, as three albums", () => {
     }
   });
 
-  it("puts four memories on a spread at most, two to a leaf", async () => {
-    // A page is a spread: two leaves, two memories each. More than that
-    // and the turning stops meaning anything, because the whole album is
-    // on the first page. Confirmed red by raising PER_PAGE.
+  it("puts two memories on a page, and numbers every page", async () => {
+    // A page is the thing that turns AND the thing that carries a
+    // number, so one turn moves the book by one page. Two memories is
+    // what fits a page without scrolling it; more and the turning stops
+    // meaning anything because the album is all on page one. Confirmed
+    // red by raising PER_PAGE, and again by dropping the running head.
     const s = session();
     await s.get("/");
-    await signIn(s, "Four A Page", "canberra");
+    await signIn(s, "Two A Page", "canberra");
     try {
       const shelf = markup(await (await s.get("/shelf")).text());
       const pages = shelf.split('<div class="page"').slice(1);
       expect(pages.length, "no pages on the shelf").toBeGreaterThan(0);
+      let numbered = 0;
       for (const page of pages) {
-        // The chunk runs to the start of the NEXT page, which is where a
-        // page ends. Cutting at the first </div> instead would stop
-        // inside the first card's own body and count almost nothing —
-        // the assertions below would then be unfailable.
-        const leaves = (page.match(/<div class="leaf">/g) ?? []).length;
         const cards = (page.match(/class="thing card-shelf"/g) ?? []).length;
-        expect(leaves, `a spread with ${leaves} leaves`).toBeLessThanOrEqual(2);
-        expect(cards, `a spread carrying ${cards} memories`).toBeLessThanOrEqual(4);
-        // And per leaf, not just per spread. Without this the whole
-        // assertion passes with three memories on the left leaf and one
-        // on the right, which is not a book, it is a column with a line
-        // down it. Found by breaking PER_LEAF and watching this stay
-        // green.
-        for (const leaf of page.split('<div class="leaf">').slice(1)) {
-          const onLeaf = (leaf.split('<div class="leaf">')[0].match(/class="thing card-shelf"/g) ?? []).length;
-          expect(onLeaf, `a leaf carrying ${onLeaf} memories`).toBeLessThanOrEqual(2);
-        }
+        expect(cards, `a page carrying ${cards} memories`).toBeLessThanOrEqual(2);
+        // And it says which page it is, on the page itself — the script
+        // reads that back rather than counting, so the running head and
+        // the announcement cannot drift apart.
+        if (/<span class="page-no">Page \d+<\/span>/.test(page)) numbered += 1;
       }
+      expect(numbered, `${pages.length} pages, ${numbered} of them numbered`).toBe(pages.length);
     } finally {
       await s.post("/leave", {});
     }

@@ -761,19 +761,19 @@ a.album-cover:focus-visible { outline: 3px solid var(--hearth); outline-offset: 
     var(--leaf);
 }
 
-/* The running head: what book this is on the verso, what everything on
-   the page has in common on the recto, and the leaf's own number. */
-.leaf-head {
+/* The running head: which album this page belongs to, and its number.
+   The same on every page, because a page slides from the right side to
+   the left as the book is turned and a head that said which side it was
+   on would be wrong one turn later. */
+.page-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: .75rem; margin: 0 0 .9rem; padding-bottom: .5rem;
   border-bottom: 1px solid var(--rule);
 }
-.leaf-where { display: inline-flex; align-items: center; gap: .45rem;
+.page-where { display: inline-flex; align-items: center; gap: .45rem;
   font-family: var(--display); font-weight: 700; font-size: .95rem; }
-.leaf-where-recto { font-family: var(--body); font-weight: 500; font-size: .8125rem;
-  font-style: italic; color: var(--ink-soft); }
-.leaf-dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--leather); }
-.leaf-no {
+.page-dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--leather); }
+.page-no {
   font-size: .6875rem; letter-spacing: .08em; text-transform: uppercase;
   color: var(--ink-soft); padding: .22rem .5rem; border: 1px solid var(--rule);
   border-radius: .2rem; background: var(--leaf-card); font-variant-numeric: tabular-nums;
@@ -781,22 +781,24 @@ a.album-cover:focus-visible { outline: 3px solid var(--hearth); outline-offset: 
 }
 
 .album-pages { display: grid; flex: 1; min-height: 0; }
-/* A scrollbar inside the book must not eat the page number out of the
+/* Two pages side by side, with the binding between them. Hidden pages
+   are not grid items, so whichever two are showing fall into the two
+   columns in order — nothing has to be told which side it is on, which
+   is what lets a page slide from one to the other.
+
+   A scrollbar inside the book must not eat the page number out of the
    running head, which is what it did on a phone. */
-.album[data-open="true"] .album-pages { overflow: auto; scrollbar-gutter: stable; padding-right: .2rem; }
-.page { padding: .2rem 0 0; }
+.album[data-open="true"] .album-pages {
+  grid-template-columns: 1fr 1fr; gap: 0 4.25rem; align-content: start;
+  overflow: auto; scrollbar-gutter: stable; padding-right: .2rem;
+}
 /* :not([hidden]) is load-bearing, not decoration. A display declaration
    here outranks the UA's own rule hiding [hidden] elements, so without it
-   the script hides a page, the page goes on rendering, and all thirty-two
-   of them stack up behind a control that says "Page 1 of 32". Found by
+   the script hides a page, the page goes on rendering, and the whole
+   album stacks up behind a control that says "Page 1 of 66". Found by
    looking at the screen, not by a test. */
-.album[data-open="true"] .page:not([hidden]) {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0 4.25rem; align-content: start;
-}
-.leaf { display: grid; align-content: start; }
+.page:not([hidden]) { display: grid; align-content: start; padding: .2rem 0 0; }
 .page-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: .85rem; align-content: start; }
-.leaf + .leaf { margin-top: 1.4rem; }
-.album[data-open="true"] .leaf + .leaf { margin-top: 0; }
 .page-empty { padding: 1.1rem 0; }
 /* Stacked, with no script, one page has to end before the next begins. */
 .album-pages > .page + .page { margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); }
@@ -854,9 +856,8 @@ a.album-cover:focus-visible { outline: 3px solid var(--hearth); outline-offset: 
      for a thumb arrow to sit off. The labelled footer buttons and the
      arrow keys are still both there. */
   .album[data-open="true"] .album-book { width: min(100% - 1.25rem, 72rem); padding: 6px; }
-  .album[data-open="true"] .page:not([hidden]) { grid-template-columns: 1fr; gap: 1.4rem; }
+  .album[data-open="true"] .album-pages { grid-template-columns: 1fr; }
   .album[data-open="true"] .book-inner { background: var(--leaf); }
-  .album[data-open="true"] .leaf + .leaf { margin-top: 0; }
   .book-arrow:not([hidden]) { display: none; }
 }
 @media (max-width: 480px) {
@@ -899,17 +900,26 @@ a.album-cover:focus-visible { outline: 3px solid var(--hearth); outline-offset: 
     from { opacity: 1; transform: perspective(1800px) rotateY(0) scale(1); }
     to   { opacity: 0; transform: perspective(1800px) rotateY(-74deg) scale(.92); }
   }
-  .album-pages { perspective: 1600px; }
-  .page { transform-origin: left center; backface-visibility: hidden; }
-  .page[data-turning="next"] { animation: leaf-next .3s ease-in; }
-  .page[data-turning="back"] { animation: leaf-back .3s ease-out; }
-  @keyframes leaf-next {
-    from { opacity: 1; transform: rotateY(0); }
-    to   { opacity: 0; transform: rotateY(-62deg); }
-  }
-  @keyframes leaf-back {
-    from { opacity: 0; transform: rotateY(62deg); }
+  /* Turning. One page moves: the leaf that was on the right comes down
+     onto the left, hinged at the binding, and the page it covers is not
+     animated out because it did not go anywhere — it was covered. The
+     page that appears in the space left behind simply arrives. */
+  .album-pages { perspective: 1800px; }
+  .page { backface-visibility: hidden; }
+  .page[data-turn="to-left"] { transform-origin: right center; animation: leaf-to-left .36s cubic-bezier(.3,.7,.3,1); }
+  .page[data-turn="to-right"] { transform-origin: left center; animation: leaf-to-right .36s cubic-bezier(.3,.7,.3,1); }
+  .page[data-turn="arrive"] { animation: leaf-arrive .36s ease-out; }
+  @keyframes leaf-to-left {
+    from { opacity: .35; transform: rotateY(82deg); }
     to   { opacity: 1; transform: rotateY(0); }
+  }
+  @keyframes leaf-to-right {
+    from { opacity: .35; transform: rotateY(-82deg); }
+    to   { opacity: 1; transform: rotateY(0); }
+  }
+  @keyframes leaf-arrive {
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 }
 
@@ -2376,47 +2386,30 @@ export function shelfPage(
    *  Four is a leaf you can read without scrolling and few enough that
    *  turning feels like turning. Two made Canberra's 122 kept memories
    *  into sixty-one pages, which is a flick-book rather than an album. */
-  const PER_PAGE = 4;
-  const PER_LEAF = 2;
+  /** Two memories to a page. A page is a page: the thing that carries a
+   *  number and the thing that turns are now the same object, which is
+   *  what a book does and what the last arrangement got wrong — it
+   *  numbered leaves but turned them in pairs, so every turn replaced
+   *  both sides at once and nothing ever "slid across". */
+  const PER_PAGE = 2;
   const pagesOf = (things: ThingView[], h: House): string[] => {
+    // Every page carries the same running head — the album it belongs to
+    // and its own number. A head that said "left" or "right" would be
+    // wrong the moment that page slid to the other side, which is the
+    // whole point of turning one page at a time.
+    const head = (no: number): string =>
+      `<p class="page-head"><span class="page-where"><span class="page-dot" aria-hidden="true"></span>${esc(h.name)}</span><span class="page-no">Page ${no}</span></p>`;
     if (!things.length) {
       return [
-        `<div class="page page-empty" data-where="No pages yet"><div class="leaf"><p class="leaf-head"><span class="leaf-where"><span class="leaf-dot" aria-hidden="true"></span>${esc(h.name)}</span><span class="leaf-no">Page 1</span></p><p class="empty">Nothing kept in ${esc(h.name)} yet.</p><p class="note">Put something down there, and keep it together with somebody else.</p></div></div>`,
+        `<div class="page page-empty" data-no="1">${head(1)}<p class="empty">Nothing kept in ${esc(h.name)} yet.</p><p class="note">Put something down there, and keep it together with somebody else.</p></div>`,
       ];
     }
-    // Leaves are numbered one by one, the way a book numbers them, so the
-    // open spread reads "Page 3" on the left and "Page 4" on the right.
-    // The spread is the unit that TURNS; the leaf is the unit that gets a
-    // number. Conflating them is what made the old control say "Page 1 of
-    // 32" over four memories.
-    const leafCount = Math.ceil(things.length / PER_LEAF);
     const out: string[] = [];
     for (let i = 0; i < things.length; i += PER_PAGE) {
-      // A spread is the left leaf and the right one, two memories each.
-      // Open, that is what a book looks like; one column on a phone, and
-      // stacked down the page with no script, it is the same four
-      // memories in the same order either way.
-      const spread = things.slice(i, i + PER_PAGE);
-      const first = i / PER_LEAF + 1;
-      const leaves = [spread.slice(0, PER_LEAF), spread.slice(PER_LEAF)]
-        .filter((leaf) => leaf.length)
-        .map((leaf, side) => {
-          // A verso carries the book's name and a recto says what every
-          // card on it has in common. Both are true of the page under
-          // them, which a decorative running head would not be.
-          const head = side === 0
-            ? `<span class="leaf-where"><span class="leaf-dot" aria-hidden="true"></span>${esc(h.name)}</span>`
-            : `<span class="leaf-where leaf-where-recto">Kept together</span>`;
-          return `<div class="leaf"><p class="leaf-head">${head}<span class="leaf-no">Page ${first + side}</span></p><ol class="page-cards">${
-            leaf.map((t) => shelfCard(t, h)).join("")
-          }</ol></div>`;
-        })
-        .join("");
-      const last = Math.min(first + 1, leafCount);
-      const where = first === last
-        ? `Page ${first} of ${leafCount}`
-        : `Pages ${first} and ${last} of ${leafCount}`;
-      out.push(`<div class="page" data-where="${esc(where)}">${leaves}</div>`);
+      const no = i / PER_PAGE + 1;
+      out.push(`<div class="page" data-no="${no}">${head(no)}<ol class="page-cards">${
+        things.slice(i, i + PER_PAGE).map((t) => shelfCard(t, h)).join("")
+      }</ol></div>`);
     }
     return out;
   };
@@ -2528,6 +2521,14 @@ export function shelfPage(
       const bookcase = document.querySelector(".bookcase");
       if (bookcase) bookcase.classList.add("standing");
 
+      // Two pages open at once where there is room for two, and one
+      // turn moves by ONE page: the page on the right slides across to
+      // the left and a new one comes down beside it. Turning by the pair
+      // would replace both sides at once, which is a slide show with a
+      // crease down it rather than a book.
+      const twoUp = typeof window.matchMedia === "function"
+        && window.matchMedia("(min-width: 761px)");
+
       for (const album of document.querySelectorAll(".album")) {
         const pages = [...album.querySelectorAll(".page")];
         const foot = album.querySelector(".book-foot");
@@ -2547,25 +2548,42 @@ export function shelfPage(
         if (typeof book.showModal !== "function") continue;
 
         let at = 0;
+        const open2 = () => Boolean(twoUp && twoUp.matches) && pages.length > 1;
+        const perView = () => (open2() ? 2 : 1);
+        const lastAt = () => Math.max(0, pages.length - perView());
 
         const show = () => {
-          pages.forEach((p, i) => { p.hidden = i !== at; });
-          // The page itself says where it is — the server numbered the
-          // leaves, so the spread and the announcement cannot drift apart.
-          if (where) where.textContent = pages[at].dataset.where || "";
+          const n = perView();
+          at = Math.max(0, Math.min(at, lastAt()));
+          // Hidden pages are not grid items, so the two that are left
+          // fall into the two columns in order and nothing has to be
+          // told which side it is on.
+          pages.forEach((p, i) => { p.hidden = i < at || i >= at + n; });
+          if (where) {
+            const first = at + 1;
+            const last = Math.min(at + n, pages.length);
+            where.textContent = first === last
+              ? "Page " + first + " of " + pages.length
+              : "Pages " + first + " and " + last + " of " + pages.length;
+          }
           for (const b of backs) b.disabled = at === 0;
-          for (const n of nexts) n.disabled = at === pages.length - 1;
+          for (const x of nexts) x.disabled = at >= lastAt();
         };
 
         foot.hidden = false;
-        // One spread is not something you turn, and a book with nothing
-        // to turn gets no controls rather than dead ones.
+        // One page is not something you turn, and a book with nothing to
+        // turn gets no controls rather than dead ones.
         if (pages.length > 1) {
           if (turnBox) turnBox.hidden = false;
           for (const a of arrows) a.hidden = false;
         }
         show();
         album.setAttribute("data-open", "false");
+        // Going from one page open to two, or back, can leave the window
+        // past the end of the book.
+        if (twoUp && typeof twoUp.addEventListener === "function") {
+          twoUp.addEventListener("change", show);
+        }
 
         const open = () => {
           at = 0;
@@ -2600,24 +2618,35 @@ export function shelfPage(
           cover.focus();
         });
 
+        const mark = (page, how) => {
+          if (!page) return;
+          page.setAttribute("data-turn", how);
+          setTimeout(() => page.removeAttribute("data-turn"), 380);
+        };
+
         const goTo = (want, dir) => {
-          if (want < 0 || want >= pages.length || want === at) return;
-          const leaving = pages[at];
-          at = want;
-          if (!motionOk) { show(); return; }
-          // The leaf that is going swings away, then the new one arrives.
-          leaving.setAttribute("data-turning", dir);
-          setTimeout(() => {
-            leaving.removeAttribute("data-turning");
-            show();
-            const arriving = pages[at];
-            arriving.setAttribute("data-turning", dir === "next" ? "back" : "next");
-            setTimeout(() => arriving.removeAttribute("data-turning"), 300);
-          }, 290);
+          const limit = lastAt();
+          const next = Math.max(0, Math.min(want, limit));
+          if (next === at) return;
+          const n = perView();
+          at = next;
+          show();
+          if (!motionOk) return;
+          // The page that slid across swings down from the side it came
+          // from; the one that is new beside it simply arrives. The page
+          // that left is not animated out, because it did not leave —
+          // the turning leaf came down on top of it.
+          if (dir === "next") {
+            mark(pages[at], "to-left");
+            if (n > 1) mark(pages[at + 1], "arrive");
+          } else {
+            if (n > 1) mark(pages[at + 1], "to-right");
+            mark(pages[at], n > 1 ? "arrive" : "to-right");
+          }
         };
 
         for (const b of backs) b.addEventListener("click", () => goTo(at - 1, "back"));
-        for (const n of nexts) n.addEventListener("click", () => goTo(at + 1, "next"));
+        for (const x of nexts) x.addEventListener("click", () => goTo(at + 1, "next"));
 
         // The arrow keys turn the page, which is what the footer says
         // they do. Only while this book is open, and never while
