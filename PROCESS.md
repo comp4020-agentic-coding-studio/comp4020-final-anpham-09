@@ -19,7 +19,9 @@ writing: Node running TypeScript directly, no build step, one dependency, SSE
 over WebSockets because every action is already a form POST and the server
 only has to say "something changed". Propagation measured at 5 ms against a
 brief asking 1000 ([`b637dc7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/b637dc7)). How the agent work is organised is its own
-decision, recorded in [ADR 0001](docs/adr/0001-agent-workflow.md).
+decision, recorded in [ADR 0001](docs/adr/0001-agent-workflow.md). What
+the stack cost, and the four alternatives I turned down, are in
+[ADR 0002](docs/adr/0002-stack.md).
 
 ## The rule, and the one I replaced
 
