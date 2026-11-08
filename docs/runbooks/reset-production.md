@@ -14,11 +14,22 @@ Run this once, when accounts first deploy, and never casually afterwards.
 
 ## Why this is allowed
 
-"Nothing can be deleted" protects memories. At the time of writing production
-held none: 26 things, 82 keepings and **0 perspectives**. The 0 perspectives
-predate the rule requiring one, and 33 keepings already had the same name on
-both sides of the shelf rule. The people were fixtures, including `Alice`,
-`Bob`, `Player One`, `DEPLOY CHECK A` and `No Script`.
+"Nothing can be deleted" protects memories. Production holds none. Checked
+again on 2026-11-08, the evening before the final: **27 things, 82 keepings,
+0 perspectives**, 88 people across names that are plainly fixtures — `Alice`
+26 times, `Bob` 15, plus `Player One`, `Player Two`, `No Script`,
+`Fragment One`, `Fragment Two`, `Typist`.
+
+Zero perspectives is the decisive number. Since 2026-10-15 a thing cannot
+reach a shelf without one, so a shelf of 82 keepings and no perspectives is
+a shelf of nothing anybody chose to keep. Reading the titles confirms it:
+`bob was here for this 1792503394938`, `xss-perspective-...`,
+`<script>window.xss-...`. These are the suite's own leavings.
+
+The gate below said `things is 26` when it was written in October. It is 27
+now — one more test run. If this document ever refuses to let you continue
+over a number like that, check whether the ROWS are real before loosening
+it; the count moving is expected, a real memory appearing is not.
 
 Once the family has put a real thing in the village, this procedure is over.
 Deleting then would be the thing the rule forbids.
@@ -79,7 +90,7 @@ removes all three files.
    ```
 
    **Hard stop conditions. Stop, and do not continue, unless all of these hold:**
-   - `things` is 26
+   - `things` is 27
    - `keepings` is 82
    - `perspectives` is 0
 
