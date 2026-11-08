@@ -1406,18 +1406,21 @@ describe("the shelf, as three albums", () => {
     await signIn(s, "No Script", "canberra");
     try {
       const shelf = markup(await (await s.get("/shelf")).text());
-      for (const tag of shelf.match(/<p class="(?:book-head|album-turn)"[^>]*>/g) ?? []) {
+      const controls = shelf.match(/<(?:p|span|button)[^>]*class="(?:book-foot|book-turn|book-arrow[^"]*)"[^>]*>/g) ?? [];
+      expect(controls.length, "no script-only controls found to check").toBeGreaterThan(2);
+      for (const tag of controls) {
         expect(tag, `a script-only control ships visible: ${tag}`).toContain("hidden");
       }
-      // And there is at least one of each to have checked.
-      expect(shelf).toContain('<p class="book-head" hidden>');
-      expect(shelf).toContain('<p class="album-turn" hidden>');
+      // And one of each really is in there to have been checked.
+      expect(shelf).toContain('<p class="book-foot" hidden>');
+      expect(shelf).toContain('<span class="book-turn" hidden>');
+      expect(shelf).toContain('class="book-arrow turn-next" tabindex="-1" aria-hidden="true" hidden');
     } finally {
       await s.post("/leave", {});
     }
   });
 
-  it("puts no more than four memories on a page, across at most two leaves", async () => {
+  it("puts four memories on a spread at most, two to a leaf", async () => {
     // A page is a spread: two leaves, two memories each. More than that
     // and the turning stops meaning anything, because the whole album is
     // on the first page. Confirmed red by raising PER_PAGE.
@@ -1433,10 +1436,19 @@ describe("the shelf, as three albums", () => {
         // page ends. Cutting at the first </div> instead would stop
         // inside the first card's own body and count almost nothing —
         // the assertions below would then be unfailable.
-        const leaves = (page.match(/<ol class="page-cards leaf">/g) ?? []).length;
+        const leaves = (page.match(/<div class="leaf">/g) ?? []).length;
         const cards = (page.match(/class="thing card-shelf"/g) ?? []).length;
-        expect(leaves, `a page with ${leaves} leaves`).toBeLessThanOrEqual(2);
-        expect(cards, `a page carrying ${cards} memories`).toBeLessThanOrEqual(4);
+        expect(leaves, `a spread with ${leaves} leaves`).toBeLessThanOrEqual(2);
+        expect(cards, `a spread carrying ${cards} memories`).toBeLessThanOrEqual(4);
+        // And per leaf, not just per spread. Without this the whole
+        // assertion passes with three memories on the left leaf and one
+        // on the right, which is not a book, it is a column with a line
+        // down it. Found by breaking PER_LEAF and watching this stay
+        // green.
+        for (const leaf of page.split('<div class="leaf">').slice(1)) {
+          const onLeaf = (leaf.split('<div class="leaf">')[0].match(/class="thing card-shelf"/g) ?? []).length;
+          expect(onLeaf, `a leaf carrying ${onLeaf} memories`).toBeLessThanOrEqual(2);
+        }
       }
     } finally {
       await s.post("/leave", {});

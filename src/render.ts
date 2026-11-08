@@ -47,6 +47,10 @@ const STYLE = `
      Canberra, and the foil 6.3:1 on the darkest of the three. */
   --book-nghe-an:#7B2014; --book-hanoi:#174534; --book-canberra:#1E2E52;
   --book-foil:#E7C698; --on-book:#FAF2E8; --book-edge:#EAE2D2;
+  /* Inside an opened book: the leaf, and the lighter piece pasted onto
+     it. The card has to be the brighter of the two in both themes, or a
+     memory stops looking like something laid on the page. */
+  --leaf:#F2EADC; --leaf-card:#FDFAF4;
   --scrim:rgba(30,16,10,.58);
   --shadow-1:0 2px 8px -2px rgba(56,27,19,.05), 0 4px 16px -4px rgba(56,27,19,.06);
   --shadow-2:0 4px 12px -2px rgba(56,27,19,.08), 0 8px 24px -4px rgba(56,27,19,.08);
@@ -76,6 +80,7 @@ const STYLE = `
        an object and becomes a hole. Re-measured on the lifted ones. */
     --book-nghe-an:#8E3326; --book-hanoi:#1F5A45; --book-canberra:#2E4578;
     --book-foil:#E0BE8E; --on-book:#F7EFE4; --book-edge:#4A3D32;
+    --leaf:#221B17; --leaf-card:#302722;
     --scrim:rgba(0,0,0,.7);
     --shadow-1:0 2px 8px -2px rgba(0,0,0,.35), 0 4px 16px -4px rgba(0,0,0,.40);
     --shadow-2:0 4px 12px -2px rgba(0,0,0,.45), 0 8px 24px -4px rgba(0,0,0,.50);
@@ -713,76 +718,146 @@ a.album-cover:focus-visible { outline: 3px solid var(--hearth); outline-offset: 
 /* Shut. Set by the script and by nothing else, which is why a reader with
    no script never meets a book that will not open. */
 .album[data-open="false"] .album-book { display: none; }
+/* Open, it is a book held open in front of you: the board you just lifted
+   is the frame, the two leaves are inside it, and the turn arrows sit off
+   the fore-edges where a thumb would be. The frame carries this
+   household's leather, so the thing on screen is the book you took down
+   and not a panel that happens to hold its pages. */
 .album[data-open="true"] .album-book {
-  position: fixed; inset: 0; margin: auto; padding: 0;
-  width: min(100% - 1.5rem, 64rem); height: min(100% - 1.5rem, 52rem);
-  background: var(--paper);
-  border-radius: .3rem 1rem 1rem .3rem;
-  box-shadow: var(--shadow-float), inset 0 0 0 1px var(--rule);
-  overflow: hidden;
+  position: fixed; inset: 0; margin: auto;
+  width: min(100% - 5.5rem, 72rem); height: min(100% - 3rem, 50rem);
+  padding: 10px; overflow: visible;
+  border-radius: .65rem;
+  background: linear-gradient(145deg,
+    color-mix(in srgb, var(--scene-shadow) 58%, var(--leather)),
+    color-mix(in srgb, var(--scene-shadow) 76%, var(--leather)));
+  box-shadow: 0 34px 80px -26px var(--scene-shadow),
+              inset 0 0 0 1px color-mix(in srgb, var(--book-foil) 26%, transparent);
 }
 .album-book::backdrop { background: var(--scrim); }
 
 .book-inner { display: flex; flex-direction: column; height: 100%; }
+/* The leaves. One paper surface with the binding shaded down the middle
+   of it, rather than two boxes with a line between them: an opened book
+   is one sheet of light with a valley in it. */
 .album[data-open="true"] .book-inner {
-  padding: 1rem 1.25rem 1rem 1.25rem;
-  /* The binding runs down the middle of an opened book, not down its
-     edge. */
+  padding: 1.15rem 1.5rem .85rem;
+  border-radius: .35rem; overflow: hidden;
   background:
-    linear-gradient(90deg, transparent calc(50% - 13px),
-      color-mix(in srgb, var(--rule) 60%, transparent) calc(50% - 13px),
-      color-mix(in srgb, var(--rule) 24%, transparent) 50%,
-      color-mix(in srgb, var(--rule) 60%, transparent) calc(50% + 13px),
-      transparent calc(50% + 13px));
+    /* The fold itself. --scene-shadow does not flip with the theme, so
+       the valley below it only reads on light paper; this hairline is
+       drawn in --rule, which does flip, and keeps the binding visible in
+       the dark one. */
+    linear-gradient(90deg, transparent calc(50% - 1px),
+      var(--rule) calc(50% - 1px), var(--rule) calc(50% + 1px),
+      transparent calc(50% + 1px)),
+    linear-gradient(90deg, transparent calc(50% - 34px),
+      color-mix(in srgb, var(--scene-shadow) 5%, transparent) calc(50% - 34px),
+      color-mix(in srgb, var(--scene-shadow) 13%, transparent) calc(50% - 9px),
+      color-mix(in srgb, var(--scene-shadow) 17%, transparent) 50%,
+      color-mix(in srgb, var(--scene-shadow) 13%, transparent) calc(50% + 9px),
+      color-mix(in srgb, var(--scene-shadow) 5%, transparent) calc(50% + 34px),
+      transparent calc(50% + 34px)),
+    var(--leaf);
 }
-/* Both of these carry the hidden attribute in the markup and have it
-   taken off by the script, so :not([hidden]) is the same load-bearing
-   selector as on .page: a display declaration outranks the UA rule that
-   hides them, and without it a reader with no script is shown a "Close
-   the book" button and a pair of turn controls that cannot do anything.
-   A button that appears to do nothing is the one thing CLAUDE.md will not
-   have on a page. */
-.book-head:not([hidden]) { display: flex; align-items: center; justify-content: space-between;
-  gap: 1rem; margin: 0 0 .6rem; }
-.book-head-name { font-family: var(--display); font-weight: 700; font-size: 1.15rem; }
-.album-close { font-size: .8125rem; padding: .55rem .85rem; }
+
+/* The running head: what book this is on the verso, what everything on
+   the page has in common on the recto, and the leaf's own number. */
+.leaf-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; margin: 0 0 .9rem; padding-bottom: .5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.leaf-where { display: inline-flex; align-items: center; gap: .45rem;
+  font-family: var(--display); font-weight: 700; font-size: .95rem; }
+.leaf-where-recto { font-family: var(--body); font-weight: 500; font-size: .8125rem;
+  font-style: italic; color: var(--ink-soft); }
+.leaf-dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--leather); }
+.leaf-no {
+  font-size: .6875rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-soft); padding: .22rem .5rem; border: 1px solid var(--rule);
+  border-radius: .2rem; background: var(--leaf-card); font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
 .album-pages { display: grid; flex: 1; min-height: 0; }
-.album[data-open="true"] .album-pages { overflow: auto; }
+/* A scrollbar inside the book must not eat the page number out of the
+   running head, which is what it did on a phone. */
+.album[data-open="true"] .album-pages { overflow: auto; scrollbar-gutter: stable; padding-right: .2rem; }
 .page { padding: .2rem 0 0; }
 /* :not([hidden]) is load-bearing, not decoration. A display declaration
    here outranks the UA's own rule hiding [hidden] elements, so without it
    the script hides a page, the page goes on rendering, and all thirty-two
    of them stack up behind a control that says "Page 1 of 32". Found by
    looking at the screen, not by a test. */
-.album[data-open="true"] .page:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2.4rem; align-content: start; }
-.leaf, .page-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; align-content: start; }
-.leaf + .leaf { margin-top: 1rem; }
+.album[data-open="true"] .page:not([hidden]) {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0 4.25rem; align-content: start;
+}
+.leaf { display: grid; align-content: start; }
+.page-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: .85rem; align-content: start; }
+.leaf + .leaf { margin-top: 1.4rem; }
 .album[data-open="true"] .leaf + .leaf { margin-top: 0; }
 .page-empty { padding: 1.1rem 0; }
 /* Stacked, with no script, one page has to end before the next begins. */
 .album-pages > .page + .page { margin-top: 1.1rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); }
 .album[data-open="true"] .album-pages > .page + .page { margin: 0; padding-top: .2rem; border-top: 0; }
-/* Inside a page the cards are the paper itself, not boxes on top of it. */
+/* Down the page with no script the cards are the paper itself, not boxes
+   on top of it. */
 .page .card-shelf { background: none; border: 0; box-shadow: none; border-radius: 0; }
 .page .card-shelf + .card-shelf { border-top: 1px solid var(--rule); padding-top: 1rem; }
-
-.album-turn:not([hidden]) {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 1rem; margin: .9rem 0 0;
+/* In the open book they are pasted in: separate pieces lying on the leaf,
+   which is what a photograph album actually looks like. */
+.album[data-open="true"] .page .card-shelf {
+  background: var(--leaf-card); border: 1px solid var(--rule);
+  border-radius: .45rem; padding: .9rem 1rem; box-shadow: var(--shadow-1);
 }
-.album-turn button { font-size: .8125rem; padding: .55rem .9rem; }
-.album-turn button[disabled] { opacity: .35; cursor: default; }
+.album[data-open="true"] .page .card-shelf + .card-shelf { border-top: 1px solid var(--rule); padding-top: .9rem; }
+
+/* The colophon line along the bottom of the leaves. */
+.book-foot:not([hidden]) {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: .5rem 1rem; margin: .7rem 0 0; padding-top: .65rem;
+  border-top: 1px solid var(--rule);
+}
+.book-mark { display: inline-flex; align-items: center; gap: .4rem;
+  font-family: var(--display); font-style: italic; font-size: .8125rem; color: var(--ink-soft); }
+.book-turn:not([hidden]) { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .5rem .75rem; }
+.book-hint { font-size: .75rem; color: var(--ink-soft); }
+.book-hint kbd { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; font-size: .8125rem;
+  line-height: 1; border: 1px solid var(--rule); border-radius: .2rem; padding: .1rem .34rem;
+  background: var(--leaf-card); }
+.book-turn button, .album-close { font-size: .8125rem; padding: .55rem .9rem; min-height: 44px; }
+.book-turn button[disabled] { opacity: .35; cursor: default; }
 .album-where { font-size: .8125rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+/* The thumb arrows, off the fore-edges. Duplicates of the footer buttons
+   for a mouse, which is why the markup puts them out of the tab order:
+   one Back and one Next for anybody not using a pointer. */
+.book-arrow:not([hidden]) {
+  position: absolute; top: 50%; translate: 0 -50%;
+  display: flex; align-items: center; justify-content: center;
+  width: 58px; height: 58px; padding: 0 0 .22rem; border-radius: 50%;
+  font-family: var(--display); font-size: 2.1rem; line-height: 1;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--rule); box-shadow: var(--shadow-float); cursor: pointer;
+}
+.book-arrow.turn-back { left: -29px; }
+.book-arrow.turn-next { right: -29px; }
+.book-arrow:hover { background: var(--card-raised); }
+.book-arrow[disabled] { opacity: .3; cursor: default; }
 
 /* Three books do not fit across a phone, and an open spread is two pages
    wide only where there is room for two pages. */
 @media (max-width: 760px) {
   .bookcase.standing { grid-template-columns: 1fr 1fr; gap: .9rem; }
-  .album[data-open="true"] .page:not([hidden]) { grid-template-columns: 1fr; gap: 1rem; }
-  .album[data-open="true"] .book-inner { background: none; }
-  .album[data-open="true"] .leaf + .leaf {
-    margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); }
+  /* One leaf at a time, so there is no binding to shade and no fore-edge
+     for a thumb arrow to sit off. The labelled footer buttons and the
+     arrow keys are still both there. */
+  .album[data-open="true"] .album-book { width: min(100% - 1.25rem, 72rem); padding: 6px; }
+  .album[data-open="true"] .page:not([hidden]) { grid-template-columns: 1fr; gap: 1.4rem; }
+  .album[data-open="true"] .book-inner { background: var(--leaf); }
+  .album[data-open="true"] .leaf + .leaf { margin-top: 0; }
+  .book-arrow:not([hidden]) { display: none; }
 }
 @media (max-width: 480px) {
   .bookcase.standing { grid-template-columns: 1fr; padding: 1.5rem 1rem 0; }
@@ -795,10 +870,15 @@ a.album-cover:focus-visible { outline: 3px solid var(--hearth); outline-offset: 
   a.album-cover::before { inset: 6px 7px 6px 24px; }
   .album::before { left: 9px; }
   .album-book { padding: .8rem .85rem .9rem 30px; }
-  .album[data-open="true"] .book-inner { padding: .85rem .9rem; }
+  .album[data-open="true"] .book-inner { padding: .9rem .95rem .7rem; }
   .album-house { font-size: 1.15rem; }
-  /* The turn controls wrap rather than squeeze the page number out. */
-  .album-turn { flex-wrap: wrap; justify-content: center; gap: .5rem .75rem; }
+  /* The colophon goes; at this width the page number and the two buttons
+     are what the bottom of the book is for. */
+  .book-mark { display: none; }
+  /* And a keyboard hint on a phone is advice nobody there can take. */
+  .book-hint { display: none; }
+  .book-foot:not([hidden]) { justify-content: center; gap: .5rem; }
+  .book-turn:not([hidden]) { justify-content: center; }
 }
 
 /* Opening, shutting and turning. All of it inside the motion query: with
@@ -2297,24 +2377,46 @@ export function shelfPage(
    *  turning feels like turning. Two made Canberra's 122 kept memories
    *  into sixty-one pages, which is a flick-book rather than an album. */
   const PER_PAGE = 4;
+  const PER_LEAF = 2;
   const pagesOf = (things: ThingView[], h: House): string[] => {
     if (!things.length) {
       return [
-        `<div class="page page-empty"><p class="empty">Nothing kept in ${esc(h.name)} yet.</p><p class="note">Put something down there, and keep it together with somebody else.</p></div>`,
+        `<div class="page page-empty" data-where="No pages yet"><div class="leaf"><p class="leaf-head"><span class="leaf-where"><span class="leaf-dot" aria-hidden="true"></span>${esc(h.name)}</span><span class="leaf-no">Page 1</span></p><p class="empty">Nothing kept in ${esc(h.name)} yet.</p><p class="note">Put something down there, and keep it together with somebody else.</p></div></div>`,
       ];
     }
+    // Leaves are numbered one by one, the way a book numbers them, so the
+    // open spread reads "Page 3" on the left and "Page 4" on the right.
+    // The spread is the unit that TURNS; the leaf is the unit that gets a
+    // number. Conflating them is what made the old control say "Page 1 of
+    // 32" over four memories.
+    const leafCount = Math.ceil(things.length / PER_LEAF);
     const out: string[] = [];
     for (let i = 0; i < things.length; i += PER_PAGE) {
-      // A page is a spread: the left leaf and the right one, two memories
-      // each. Open, that is what a book looks like; shut into one column
-      // on a phone, and stacked down the page with no script, it is the
-      // same four memories in the same order either way.
+      // A spread is the left leaf and the right one, two memories each.
+      // Open, that is what a book looks like; one column on a phone, and
+      // stacked down the page with no script, it is the same four
+      // memories in the same order either way.
       const spread = things.slice(i, i + PER_PAGE);
-      const leaves = [spread.slice(0, 2), spread.slice(2)]
+      const first = i / PER_LEAF + 1;
+      const leaves = [spread.slice(0, PER_LEAF), spread.slice(PER_LEAF)]
         .filter((leaf) => leaf.length)
-        .map((leaf) => `<ol class="page-cards leaf">${leaf.map((t) => shelfCard(t, h)).join("")}</ol>`)
+        .map((leaf, side) => {
+          // A verso carries the book's name and a recto says what every
+          // card on it has in common. Both are true of the page under
+          // them, which a decorative running head would not be.
+          const head = side === 0
+            ? `<span class="leaf-where"><span class="leaf-dot" aria-hidden="true"></span>${esc(h.name)}</span>`
+            : `<span class="leaf-where leaf-where-recto">Kept together</span>`;
+          return `<div class="leaf"><p class="leaf-head">${head}<span class="leaf-no">Page ${first + side}</span></p><ol class="page-cards">${
+            leaf.map((t) => shelfCard(t, h)).join("")
+          }</ol></div>`;
+        })
         .join("");
-      out.push(`<div class="page">${leaves}</div>`);
+      const last = Math.min(first + 1, leafCount);
+      const where = first === last
+        ? `Page ${first} of ${leafCount}`
+        : `Pages ${first} and ${last} of ${leafCount}`;
+      out.push(`<div class="page" data-where="${esc(where)}">${leaves}</div>`);
     }
     return out;
   };
@@ -2344,17 +2446,24 @@ export function shelfPage(
         </h2>
         <dialog class="album-book" id="${id}" aria-labelledby="${id}-title">
           <div class="book-inner">
-            <p class="book-head" hidden>
-              <span class="book-head-name">${esc(h.name)}</span>
+            <div class="album-pages">${pages.join("")}</div>
+            <p class="book-foot" hidden>
+              <span class="book-mark"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 5Q6 2 3 5v15q5-3 9 0 4-3 9 0V5q-3-3-9 0zM12 5v15"/></svg>The village</span>
+              <span class="book-turn" hidden>
+                <span class="book-hint">Use <kbd>←</kbd> and <kbd>→</kbd> to turn</span>
+                <button type="button" class="turn-back">‹ Back</button>
+                <span class="album-where" aria-live="polite"></span>
+                <button type="button" class="turn-next">Next ›</button>
+              </span>
               <button type="button" class="album-close" autofocus>Close the book</button>
             </p>
-            <div class="album-pages">${pages.join("")}</div>
-            <p class="album-turn" hidden>
-              <button type="button" class="turn-back">‹ Back</button>
-              <span class="album-where" aria-live="polite">Page 1 of ${pages.length}</span>
-              <button type="button" class="turn-next">Next ›</button>
-            </p>
           </div>
+          <!-- The same two actions as the footer buttons, for a hand with a
+               mouse. They are aria-hidden and out of the tab order on
+               purpose: a keyboard or a screen reader gets exactly one Back
+               and one Next, the labelled pair, plus the arrow keys. -->
+          <button type="button" class="book-arrow turn-back" tabindex="-1" aria-hidden="true" hidden>‹</button>
+          <button type="button" class="book-arrow turn-next" tabindex="-1" aria-hidden="true" hidden>›</button>
         </dialog>
       </article>`;
     })
@@ -2421,15 +2530,18 @@ export function shelfPage(
 
       for (const album of document.querySelectorAll(".album")) {
         const pages = [...album.querySelectorAll(".page")];
-        const turn = album.querySelector(".album-turn");
-        const head = album.querySelector(".book-head");
+        const foot = album.querySelector(".book-foot");
+        const turnBox = album.querySelector(".book-turn");
         const where = album.querySelector(".album-where");
-        const back = album.querySelector(".turn-back");
-        const next = album.querySelector(".turn-next");
+        // Two of each: the labelled footer button and the arrow sitting
+        // off the fore-edge, which is the same action for a mouse.
+        const backs = [...album.querySelectorAll(".turn-back")];
+        const nexts = [...album.querySelectorAll(".turn-next")];
+        const arrows = [...album.querySelectorAll(".book-arrow")];
         const cover = album.querySelector(".album-cover");
         const book = album.querySelector(".album-book");
         const close = album.querySelector(".album-close");
-        if (!pages.length || !turn || !cover || !book || !close) continue;
+        if (!pages.length || !foot || !cover || !book || !close) continue;
         // An old browser without <dialog> keeps the open book it was
         // sent rather than being handed a cover that will not open.
         if (typeof book.showModal !== "function") continue;
@@ -2438,15 +2550,20 @@ export function shelfPage(
 
         const show = () => {
           pages.forEach((p, i) => { p.hidden = i !== at; });
-          where.textContent = "Page " + (at + 1) + " of " + pages.length;
-          back.disabled = at === 0;
-          next.disabled = at === pages.length - 1;
+          // The page itself says where it is — the server numbered the
+          // leaves, so the spread and the announcement cannot drift apart.
+          if (where) where.textContent = pages[at].dataset.where || "";
+          for (const b of backs) b.disabled = at === 0;
+          for (const n of nexts) n.disabled = at === pages.length - 1;
         };
 
-        if (head) head.hidden = false;
-        // A one-page album needs no controls: a book with a single leaf
-        // is not something you turn.
-        if (pages.length > 1) turn.hidden = false;
+        foot.hidden = false;
+        // One spread is not something you turn, and a book with nothing
+        // to turn gets no controls rather than dead ones.
+        if (pages.length > 1) {
+          if (turnBox) turnBox.hidden = false;
+          for (const a of arrows) a.hidden = false;
+        }
         show();
         album.setAttribute("data-open", "false");
 
@@ -2499,8 +2616,19 @@ export function shelfPage(
           }, 290);
         };
 
-        back.addEventListener("click", () => goTo(at - 1, "back"));
-        next.addEventListener("click", () => goTo(at + 1, "next"));
+        for (const b of backs) b.addEventListener("click", () => goTo(at - 1, "back"));
+        for (const n of nexts) n.addEventListener("click", () => goTo(at + 1, "next"));
+
+        // The arrow keys turn the page, which is what the footer says
+        // they do. Only while this book is open, and never while
+        // somebody is typing into something.
+        book.addEventListener("keydown", (e) => {
+          if (e.metaKey || e.ctrlKey || e.altKey) return;
+          const tag = (e.target.tagName || "").toLowerCase();
+          if (tag === "input" || tag === "textarea" || tag === "select") return;
+          if (e.key === "ArrowLeft") { e.preventDefault(); goTo(at - 1, "back"); }
+          if (e.key === "ArrowRight") { e.preventDefault(); goTo(at + 1, "next"); }
+        });
       }
     </script>`,
     me,

@@ -201,7 +201,10 @@ it before calling a visual change done.
 - **The shelf's albums are the third exception**, written down here before
   building them. Each household's kept memories are a book: three of them
   stand closed on a shelf, and opening one takes it down into a two-leaf
-  spread over the page, four memories to a spread, turned a leaf at a time.
+  spread held open over the page — four memories to a spread, two to a
+  leaf, leaves numbered one by one the way a book numbers them, and the
+  spread is the unit that turns. The arrow keys turn it too, which is
+  what the line along the bottom of the leaves says they do.
   With a script blocked there is no shelf of covers and no spread — every
   album renders open, a heading and all of its memories, and the cover is a
   plain link down to them. Nothing is hidden behind a page that cannot be
