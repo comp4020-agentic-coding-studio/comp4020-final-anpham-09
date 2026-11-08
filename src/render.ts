@@ -1418,7 +1418,7 @@ export function timeAgo(iso: string): string {
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
-    if (days === 1) return "yesterday";
+  if (days === 1) return "yesterday";
   if (days < 7) return `${days}d ago`;
   // Past a week, the date rather than a count of days — but the DATE, not
   // the timestamp. This used to print the stored value whole, so a message
