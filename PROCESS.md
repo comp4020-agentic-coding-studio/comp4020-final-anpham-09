@@ -18,7 +18,8 @@ The stack had to stop being interesting, because four-fifths of the mark is
 writing: Node running TypeScript directly, no build step, one dependency, SSE
 over WebSockets because every action is already a form POST and the server
 only has to say "something changed". Propagation measured at 5 ms against a
-brief asking 1000 ([`b637dc7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/b637dc7)).
+brief asking 1000 ([`b637dc7`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/b637dc7)). How the agent work is organised is its own
+decision, recorded in [ADR 0001](docs/adr/0001-agent-workflow.md).
 
 ## The rule, and the one I replaced
 
@@ -54,7 +55,7 @@ here" filtered by display name, so two people sharing one saw nobody ([`a2bd36b`
 `fetch` normalises the path before sending — chasing why found a real bug
 three layers away, the join gate answering every unknown path `200
 text/html` ([`7ae2670`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/7ae2670)); assertions made vacuous by the inlined
-stylesheet, which names the very classes the markup uses; an album test that
+stylesheet, which names the classes the markup uses; an album test that
 passes whether or not pages after the first render, since a new memory lands
 on page one.
 
@@ -83,8 +84,7 @@ test could catch it: a test starts with a fresh cookie
 The brief's top band for the artefact is keyboard, resize, a slow
 connection — quoted in my design spec in October, never measured. The
 chat layout I shipped an hour earlier made the message box tab stop 606 of
-609 ([`3d14eb8`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/3d14eb8)), and nothing was compressed at all:
-316KB a page, 31KB gzipped ([`74fc5c3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/74fc5c3)).
+609 ([`3d14eb8`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/3d14eb8)), and nothing was compressed: 316KB a page, 31KB gzipped ([`74fc5c3`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/74fc5c3)).
 
 **A passing test is evidence about the test until you see it fail**, and
 some things are only visible to somebody using the app.
@@ -92,22 +92,20 @@ some things are only visible to somebody using the app.
 ## A product rule the tests could not afford
 
 A table now holds five notes a day — the table's five, shared. The rule is four lines of SQL; the cost was the suite. Placing tests spend a house's
-day and the local database is never reset, so the suite passed once a day, then failed with refusals about a rule it
-was not testing. CI never met
+day and the local database is never reset, so the suite passed once a day, then failed with refusals about another
+rule. CI never met
 this: its `/data` is a tmpfs. The spec now starts its own server on a
-throwaway database when `APP_URL` is unset, retiring the stale-source footgun above too. A test then passed for the wrong reason, the
+throwaway database when `APP_URL` is unset, retiring the stale-source footgun above. A test then passed for the wrong reason, the
 shape this file keeps finding: "the composer stays in the panel" stayed
-green after the composer moved into the drawer, because it compared
-positions and the drawer comes later.
+green after the composer moved into the drawer, because it only compared positions.
 
 ## The one practice that paid in advance
 
 Sowing travels stone by stone now, and CLAUDE.md had already decided how: a
-JavaScript exception is *written down there before it is built*, and the
-feature must be absent rather than broken without a script. Committing that
-first ([`41f1471`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/41f1471)) shaped the design — the client only
-retells a move the server already recorded, and never computes a position of
-its own.
+JavaScript exception is *written down there before it is built*, and must be
+absent rather than broken without a script. Committing that first
+([`41f1471`](https://github.com/comp4020-agentic-coding-studio/comp4020-final-anpham-09/commit/41f1471)) shaped the design — the client only retells
+a move the server recorded, never computing a position of its own.
 
 Every other safeguard in this file was added after something had already gone
 wrong. It paid again on the shelf: writing that exception down first is what
