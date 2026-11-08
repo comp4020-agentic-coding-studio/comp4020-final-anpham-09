@@ -23,6 +23,22 @@
 // same local file the dev server uses. To change a password in production,
 // run it there — never against a copy, which would be overwritten by the
 // next deploy.
+//
+// IN PRODUCTION THIS FILE IS NOT PRESENT. The Dockerfile copies src/,
+// package.json, README.md and img/ only, so there is no scripts/ on the
+// machine and `pnpm set-password` does not exist there. src/accounts.ts IS
+// on the machine, so the equivalent is:
+//
+//   flyctl ssh console -a <app> -C \
+//     "node --input-type=module -e 'const {setPassword}=await import(\"/app/src/accounts.ts\"); console.log(setPassword(\"<name>\", process.env.NEW_PW) ?? \"ok\")'" \
+//     --env NEW_PW="$p"
+//
+// That passes the password in an environment variable rather than on stdin,
+// because `ssh console -C` does not forward stdin. An env var is readable
+// through /proc by anything else on that machine — acceptable on a
+// single-tenant box, weaker than the stdin path here, and the reason this
+// note exists rather than the workaround being discovered later. Copying
+// scripts/ into the image would restore the stdin path.
 
 const name = process.argv[2];
 
