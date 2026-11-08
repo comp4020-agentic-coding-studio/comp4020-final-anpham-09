@@ -190,6 +190,14 @@ it before calling a visual change done.
   board the server sent. It is skipped entirely under
   `prefers-reduced-motion: reduce`, which is a preference about motion and not
   about information, so no words or counts live only in the animation.
+- **The shelf's albums are the third exception**, written down here before
+  building them. Each household's kept memories are a book you open and turn
+  the pages of. With a script blocked every album renders open — a heading
+  and all of its memories, nothing hidden behind a page that cannot be
+  turned — so the shelf is still a complete, readable list of everything
+  kept. The turning is skipped under `prefers-reduced-motion: reduce`; pages
+  still change, they just do not animate. No memory may ever exist only on a
+  page the reader cannot reach without JavaScript.
 - **A typing event must never trigger a resync.** The SSE contract is "any
   event means refetch", and the payload has always been an opaque string the
   client ignores. The client branches on the `typing:` prefix and returns;

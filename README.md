@@ -25,6 +25,13 @@ the day. Nothing is withheld and nothing expires.
 
 Houses, then, not a feed. A feed has one direction and nowhere to stand.
 
+And three albums, not one wall. Each home keeps its own — Nghe An's, Hanoi's,
+mine in Canberra — because that is how a family actually keeps them: a book
+per household, on a shelf, that somebody has to take down and open. The
+meeting house has no album. A remark at the table belongs to whoever was
+there rather than to a house, and giving it a book would make the table into
+a fourth home it was never meant to be.
+
 ## What I read
 
 **Robin Sloan, [An app can be a home-cooked meal](https://www.robinsloan.com/notes/home-cooked-app/) (2020).**
