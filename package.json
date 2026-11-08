@@ -11,7 +11,8 @@
     "test": "vitest run",
     "dev": "node src/server.ts",
     "start": "node src/server.ts",
-    "dev:fresh": "DATABASE_PATH=\"$(mktemp -d)/app.db\" node src/server.ts"
+    "dev:fresh": "DATABASE_PATH=\"$(mktemp -d)/app.db\" node src/server.ts",
+    "set-password": "node scripts/set-password.ts"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",

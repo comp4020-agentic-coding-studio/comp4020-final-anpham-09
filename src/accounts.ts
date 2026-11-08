@@ -108,3 +108,33 @@ export function storedPasswordFor(name: string): string | undefined {
     | undefined;
   return row?.password;
 }
+
+/** Why a password could not be changed. Shares two members with
+ *  RegisterRefusal deliberately: the length rule is the same rule, and a
+ *  password that would be refused at registration must not be settable
+ *  through a side door. */
+export type SetPasswordRefusal = "blank-password" | "password-too-short" | "no-such-account";
+
+/** Replace the password on an account that already exists.
+ *
+ *  This is NOT account recovery, and there is deliberately no route to it:
+ *  the app collects no email, so there is nobody to prove a request came
+ *  from. It is a hand tool, run on the machine by whoever already has the
+ *  database — which is the only person who could have changed the column
+ *  with sqlite3 anyway. Writing it down as a script makes that operation
+ *  hashed, length-checked and testable rather than a hand-rolled UPDATE.
+ *
+ *  Only the password column moves. The household stays, and nothing the
+ *  account placed is touched: identity is the name, so every memory,
+ *  perspective and keeping still points at the same person afterwards. */
+export function setPassword(name: string, password: string): SetPasswordRefusal | null {
+  const trimmed = name.trim();
+  // Same order and the same rules as createAccount: a password refused at
+  // registration must not be acceptable here.
+  if (!password) return "blank-password";
+  if (password.length < MIN_PASSWORD) return "password-too-short";
+  if (!accountExists(trimmed)) return "no-such-account";
+
+  db.prepare("UPDATE accounts SET password = ? WHERE name = ?").run(hashKey(password), trimmed);
+  return null;
+}

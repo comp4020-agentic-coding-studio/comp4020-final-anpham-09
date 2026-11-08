@@ -27,8 +27,13 @@ change would make any line here false, the change is wrong, not the line.
   person with two browsers into two people and let Mum keep her own thing.
 - **Never store a password.** Only a scrypt hash of one, with a per-account
   salt, so two people who choose the same password do not share a row that
-  says so. There is no reset, because resetting one needs an address to
-  send it to and this app collects no addresses.
+  says so. There is no reset *route*, because resetting one needs an address
+  to send it to and this app collects no addresses. `pnpm set-password`
+  changes one by hand, on the machine, run by whoever already holds the
+  database — the only person who could have edited the column anyway. It
+  takes the password on stdin, never as an argument. It must never grow a
+  route: the moment a password can be changed over HTTP, something has to
+  prove the request came from the account's owner, and nothing here can.
 - **A guest may respond, never start.** Starting something in a home is for
   the people who live in it. Writing your side of what is already there and
   keeping it together is for anybody signed in, in any house. These are two

@@ -97,3 +97,48 @@ describe("signing in", () => {
     expect(accounts.storedPasswordFor("Mum")).not.toBe(stored);
   });
 });
+
+describe("setting a password on an account that already exists", () => {
+  it("replaces the password, so the old one stops working and the new one starts", async () => {
+    const accounts = await boot();
+    accounts.createAccount("An", "the forgotten passphrase", "canberra");
+
+    expect(accounts.setPassword("An", "the new passphrase")).toBe(null);
+    expect(accounts.verifyPassword("An", "the new passphrase")).toBe(true);
+    // The old one must actually stop working, or this is a second door
+    // rather than a replaced lock.
+    expect(accounts.verifyPassword("An", "the forgotten passphrase")).toBe(false);
+  });
+
+  it("leaves the household alone — a password is not a change of address", async () => {
+    const accounts = await boot();
+    accounts.createAccount("An", "the forgotten passphrase", "canberra");
+    accounts.setPassword("An", "the new passphrase");
+    expect(accounts.householdOf("An")).toBe("canberra");
+  });
+
+  it("refuses a name nobody registered, rather than quietly making one", async () => {
+    const accounts = await boot();
+    expect(accounts.setPassword("Nobody", "a good long passphrase")).toBe("no-such-account");
+    expect(accounts.accountExists("Nobody")).toBe(false);
+  });
+
+  it("holds the new password to the same length rule as a new account", async () => {
+    const accounts = await boot();
+    accounts.createAccount("An", "the forgotten passphrase", "canberra");
+    expect(accounts.setPassword("An", "short")).toBe("password-too-short");
+    expect(accounts.setPassword("An", "")).toBe("blank-password");
+    // A refused change must leave the old password working.
+    expect(accounts.verifyPassword("An", "the forgotten passphrase")).toBe(true);
+  });
+
+  it("still stores only a salted hash, never the password", async () => {
+    const accounts = await boot();
+    accounts.createAccount("An", "the forgotten passphrase", "canberra");
+    const secret = "the new passphrase";
+    accounts.setPassword("An", secret);
+    const stored = accounts.storedPasswordFor("An");
+    expect(stored).not.toContain(secret);
+    expect(stored).toMatch(/^[0-9a-f]+:[0-9a-f]{128}$/);
+  });
+});
