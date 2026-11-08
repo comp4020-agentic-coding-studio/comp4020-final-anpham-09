@@ -641,6 +641,22 @@ ul.pit-row { list-style: none; margin: 0; padding: 0; display: grid;
 .album-turn button[disabled] { opacity: .35; cursor: default; }
 .album-where { font-size: .8125rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 
+/* On a phone the binding costs too much of the column, so the book keeps
+   its spine but gives the page back most of that width. Measured: at
+   360px the 46px inset left 258px of text; this returns about 40 of it. */
+@media (max-width: 480px) {
+  .album { background:
+    linear-gradient(90deg, var(--spine-deep) 0 14px, var(--spine) 14px 17px, transparent 17px),
+    linear-gradient(135deg, var(--card) 0%, var(--card-raised) 100%); }
+  .album::before { left: 7px; }
+  .album-open { padding: .9rem 1rem .9rem 26px; }
+  .album-book { padding: 0 .8rem .9rem 26px; }
+  .page { padding: .9rem .85rem; }
+  .album-house { font-size: 1.15rem; }
+  /* The turn controls stack rather than squeeze the page number out. */
+  .album-turn { flex-wrap: wrap; justify-content: center; gap: .5rem .75rem; }
+}
+
 /* Opening and turning. All of it inside the motion query: with reduced
    motion the pages still change, they simply do not swing. The closed
    cover is applied by the script, so a reader with no script never meets
