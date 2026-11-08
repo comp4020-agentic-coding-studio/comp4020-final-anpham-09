@@ -26,22 +26,19 @@ the day. Nothing is withheld and nothing expires.
 Houses, then, not a feed. A feed has one direction and nowhere to stand.
 
 And a room is a room: it holds furniture, not a list. The notes are on the
-table, the album is on the shelf, and you see either by going to it. Each
-home keeps its own album — Nghe An's, Hanoi's, mine in Canberra — a book
-per household that somebody has to take down and open. The meeting house
-has neither: a remark there belongs to whoever was in the room, and giving
-it a book would make it a fourth home.
+table, the album is on the shelf, and you go to one or the other. Each home
+keeps its own album, a book per household somebody has to take down and
+open. The meeting house has neither: a remark there belongs to whoever was
+in the room.
 
 A table is a surface, not storage, so it holds five notes a day — the
-table's five, shared, not five each. Six of us around one table do not get
-thirty notes a day any more than we get thirty plates, and a per-person
-five would be a quota, which is a thing an app gives you rather than a
-thing a room has. The day turns and the table is clear: every note is on
-the note board behind it, under the day it was left, and nothing was swept
-there — it is simply no longer today. Five is the only number here that
-refuses anything, and it refuses only starting: writing your side of what
-is already here is never capped, or a busy Tuesday could stop a memory
-being a memory.
+table's five, shared, not five each. Six of us around one table no more get
+thirty notes a day than thirty plates, and a per-person five is a quota,
+which is a thing an app gives you rather than a thing a room has. The day
+turns and the table is clear: every note is on the note board behind it,
+under the day it was left. Five is the only number here that refuses
+anything, and it refuses only starting — writing your side of what is
+already here is never capped.
 
 ## What I read
 
@@ -68,10 +65,9 @@ drawer hides one from a reader with no script; the message box is nine tab
 stops away rather than six hundred; five notes fill a table between
 everybody and the sixth is refused in words, while a full table never stops
 anybody writing their side of something; yesterday's note is off the table
-and on the board; a page is
-gzipped for a browser that asks and sent plain to one that refuses; points
-are conserved across every move of a game; and a change reaches another
-session in under a second, measured at five milliseconds. All 241
+and on the board; points are conserved across every move of a game; and a
+change reaches another session in under a second, measured at five
+milliseconds. All 241
 tests were checked by breaking what they guard and confirming red. Several
 didn't, so they were asserting nothing, and were rewritten.
 
@@ -79,9 +75,9 @@ Not enforced:
 
 - A password proves who holds a browser; nothing proves who is at the
   keyboard. Somebody who hands over their password hands over their name.
-- Ten wrong passwords in a minute, per name, is as far as the app slows
-  guessing down. There is no lockout: unlocking one needs an address to
-  send to, and this app has none.
+- Ten wrong passwords a minute, per name, is as far as the app slows
+  guessing down. Unlocking an account needs an address to send to, so
+  there is no lockout.
 - A room shows its two hundred newest things; nothing reaches the older ones.
 - A body over 280 characters is trimmed, not refused — the one place the app
   acts without words.
@@ -94,10 +90,9 @@ shelf is worth coming back to.
 
 ## What I built, and what I didn't
 
-A game was the thing I most wanted and nearly cut; it was a sequence, not a
-cut. **Ô ăn quan** is the game my parents played as children — two rows of
-five, a quan at each end. A finished game is a score, not a memory, so it
-reaches the shelf the way everything else does. A game somebody walks away from has no
+**Ô ăn quan** is the game my parents played as children — two rows of five,
+a quan at each end. A finished game is a score, not a memory, so it reaches
+the shelf the way everything else does. One somebody walks away from has no
 score, and the app doesn't offer to keep it.
 
 No notifications, no *private* messages — the meeting house is a group
@@ -106,37 +101,33 @@ recipient field. Nothing can be deleted or edited. Still cut: photo uploads,
 likes, tags, the other games the mockups drew.
 
 The meeting house looks like the group chat this app was written against,
-deliberately. The problem with the
-chat was never its shape — a bottom-anchored scroll of short messages is
-simply what talking looks like — it was that nothing said there could ever
-become anything. So the shape is borrowed and the ending is not: every
-message here carries the same two-state label as everything in the houses,
-and any of them can be taken up by somebody else and kept. A remark at the
-table is one perspective away from being a memory, which is why the
-keep-together control is on every message rather than behind a menu.
+deliberately. The chat's problem was never its shape — a bottom-anchored
+scroll of short messages is what talking looks like — but that nothing said
+there could become anything. So the shape is borrowed and the ending is
+not: every message carries the same two-state label as everything in the
+houses, and any of them can be taken up by somebody else and kept. A remark
+at the table is one perspective away from being a memory.
 
 This file said "no accounts" until the cookie turned out to be doing the job
 of one, badly. Identity was the browser, so Mum on her phone and Mum on her
 laptop were two people, and she could keep a thing together with herself.
 The rule that a memory needs two of you was true of browsers, not people.
 
-So you register: a name, a password, and which house is yours. Nothing else
-— no email, no reset, no profile. The account is who you are on every
-device, which is what makes the shelf rule a rule about people.
+So you register — a name, a password, which house is yours, and nothing
+else. The account is who you are on every device, which is what makes the
+shelf rule a rule about people. Claiming a house needs that household's
+code, since this is a public URL and anybody who found it could otherwise
+put something in my parents' room; one code per house, because two people
+who live somewhere share a front door. Registering without a code is a real
+account that belongs to no house.
 
-Claiming a house needs that household's code, because this is a public URL
-and without one anybody who found it could put something in my parents'
-room. One code per house rather than per person: two people who live
-somewhere share a front door. Registering without a code is a real account
-that belongs to no house.
+Belonging decides one thing only: whether you can **start** something
+there. Anybody signed in can write their side of what is in any room and
+keep it. I live alone in Canberra: if responding were the household's own
+too, nothing I put down at home could ever be corroborated, and the rule
+this app is built on would work for everyone except me.
 
-Belonging to a house decides one thing only: whether you can **start**
-something there. Anybody signed in can write their side of what is in any
-room and keep it together, which is deliberate. I live alone in Canberra:
-if responding were the household's own too, nothing I put down at home
-could ever be corroborated, and the rule this app is built on would work
-for everyone except me.
-
-One concession to JavaScript: the line saying somebody is typing. With a
-script blocked it never appears and nothing else changes — every action here
-is a form POST, including a move.
+JavaScript adds four things and takes none away: the typing line, the
+travelling stones, the books that open, the drawers that shut. Blocked,
+each is simply absent and the rest is unchanged — every action here is a
+form POST, including a move.
