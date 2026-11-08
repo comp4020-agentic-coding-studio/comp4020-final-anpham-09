@@ -26,6 +26,8 @@ import { clearMember, displayName, ensurePerson, getPerson, isMember, nameForPer
 import { codeOpens, codeProblems, householdNeedsCode, mayPlace, mayRespond } from "./members.ts";
 import { accountExists, createAccount, householdOf, verifyPassword, type RegisterRefusal } from "./accounts.ts";
 import { enter, leave, whereEveryoneIs, whoIsIn } from "./presence.ts";
+import { MAX_PHOTO_BYTES, readPhoto, storePhoto, type PhotoRefusal } from "./photos.ts";
+import { boundaryOf, fieldsOf, fileOf, parseMultipart } from "./multipart.ts";
 import { boardFragment, esc, housePage, loginPage, mapPage, markdown, page, registerPage, roomFragment, shelfPage, tableFragment } from "./render.ts";
 import {
   addPerspective,
@@ -136,15 +138,42 @@ const IMAGES_DIR = fileURLToPath(new URL("../img/", import.meta.url));
 
 class BodyTooLarge extends Error {}
 
-async function formData(req: IncomingMessage): Promise<URLSearchParams> {
+/** Read a request body, refusing one that is too big to hold. The cap is
+ *  the ordinary one, unless the body is allowed to carry a photograph. */
+async function readBody(req: IncomingMessage, cap: number): Promise<Buffer> {
   const chunks: Buffer[] = [];
   let total = 0;
   for await (const chunk of req) {
     total += (chunk as Buffer).length;
-    if (total > MAX_BODY_BYTES) throw new BodyTooLarge();
+    // Counted as it arrives, not after: the point of the cap is that the
+    // whole body never exists in memory on a 256MB machine.
+    if (total > cap) throw new BodyTooLarge();
     chunks.push(chunk as Buffer);
   }
-  return new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
+  return Buffer.concat(chunks);
+}
+
+async function formData(req: IncomingMessage): Promise<URLSearchParams> {
+  return new URLSearchParams((await readBody(req, MAX_BODY_BYTES)).toString("utf8"));
+}
+
+/** The fields and the one photograph from a form that may carry either
+ *  shape. Every other route keeps using `formData`: only the composer
+ *  sends multipart, and only because a file cannot be urlencoded.
+ *
+ *  The allowance over MAX_PHOTO_BYTES is for the rest of the form and the
+ *  multipart framing around it, so that a photograph of exactly the
+ *  largest allowed size is refused by `storePhoto` in words rather than by
+ *  the body cap with a bare 413. */
+async function formWithPhoto(
+  req: IncomingMessage,
+): Promise<{ form: URLSearchParams; photo?: Buffer }> {
+  const boundary = boundaryOf(req.headers["content-type"]);
+  if (!boundary) return { form: await formData(req) };
+  const body = await readBody(req, MAX_PHOTO_BYTES + 64 * 1024);
+  const parts = parseMultipart(body, boundary);
+  const photo = fileOf(parts, "photo");
+  return photo ? { form: fieldsOf(parts), photo } : { form: fieldsOf(parts) };
 }
 
 /** Below this, compressing costs more than it saves: the CPU and the extra
@@ -227,6 +256,7 @@ const isJoinablePath = (p: string): boolean =>
 const REFUSALS: Record<
   | PersonRefusal
   | PlaceRefusal
+  | PhotoRefusal
   | PerspectiveRefusal
   | NonNullable<KeepRefusal>
   | SitRefusal
@@ -258,6 +288,12 @@ const REFUSALS: Record<
   "blank-name": "The app needs something to call you.",
   "blank-title": "A thing in a house needs something to call it. At the table, a line on its own is enough.",
   "blank-body": "There's nothing there to put down.",
+  // The three a photograph can produce. Each says what to do next,
+  // because a refusal that only says no leaves somebody pressing the
+  // same button again.
+  "photo-too-big": "That picture is over four megabytes, which is more than this little machine will hold. Send a smaller one, or none \u2014 a memory is still a memory without a picture.",
+  "photo-not-an-image": "That file isn't a picture the app can read. JPEG, PNG and WebP are what it knows.",
+  "photo-unnamed": "Something went wrong storing that picture, so nothing was written. Nothing you typed was lost \u2014 try putting it down again.",
   // The table is a surface, not a quota: what is refused is leaving a sixth
   // note on it today, and the five already there are named so the sentence
   // says where they went rather than only what cannot happen.
@@ -344,6 +380,31 @@ const server = createServer((req, res) => {
     // it is on a laptop. Digits are allowed for those widths. The extension
     // is an explicit alternation rather than a character class so a request
     // for any other format is a 404 rather than a read.
+        // A photograph on a memory. Separate from /img, which serves the
+    // pictures that are part of the interface: these are content, they can
+    // arrive after the image was built, and they live on the volume. One
+    // route reads both places — see src/photos.ts.
+    const photo = /^\/photo\/([a-z0-9][a-z0-9-]{0,63}\.(?:jpg|png|webp))$/.exec(path);
+    if (method === "GET" && photo) {
+      const found = readPhoto(photo[1]);
+      if (!found) {
+        // Never a 500 for a missing file, and never a different answer for
+        // "no such name" than for "no such file": a 404 either way is also
+        // what stops this route being asked which names exist.
+        res.writeHead(404).end();
+        return;
+      }
+      res.writeHead(200, {
+        "content-type": found.type,
+        "content-length": found.data.length,
+        // A photograph under a generated name never changes, so it can be
+        // cached hard. A year, and immutable.
+        "cache-control": "public, max-age=31536000, immutable",
+      });
+      res.end(found.data);
+      return;
+    }
+
     const img = /^\/img\/([a-z0-9-]+)\.(jpg|webp)$/.exec(path);
     if (method === "GET" && img) {
       const filePath = join(IMAGES_DIR, `${img[1]}.${img[2]}`);
@@ -855,8 +916,8 @@ const server = createServer((req, res) => {
       return;
     }
 
-    if (req.method === "POST" && path === "/place") {
-      const form = await formData(req);
+        if (req.method === "POST" && path === "/place") {
+      const { form, photo: picture } = await formWithPhoto(req);
       const slug = (form.get("house") ?? "").trim();
       const placeHouse = houseBySlug(slug);
       if (placeHouse && !mayStartIn(placeHouse)) {
@@ -864,13 +925,34 @@ const server = createServer((req, res) => {
         seeOther(res, said(backTo(slug), REFUSALS["guests-cannot-start"]), setCookie);
         return;
       }
-      const result = place(slug, who, form.get("title") ?? "", form.get("body") ?? "", form.get("event_date") ?? undefined);
+      // The picture is written before the row, so a thing never points at a
+      // file that does not exist. The other way round would leave an orphan
+      // file whenever the words were refused, which is the cheaper mistake
+      // to clean up but the one that quietly fills a 1GB volume.
+      let photoName: string | undefined;
+      if (picture) {
+        const stored = storePhoto(picture);
+        if (stored === "photo-too-big" || stored === "photo-not-an-image") {
+          logAction("place-refused", actor(me, token), { house: slug, reason: stored });
+          seeOther(res, said(backTo(slug), REFUSALS[stored]), setCookie);
+          return;
+        }
+        photoName = stored;
+      }
+      const result = place(
+        slug,
+        who,
+        form.get("title") ?? "",
+        form.get("body") ?? "",
+        form.get("event_date") ?? undefined,
+        photoName,
+      );
       if (typeof result === "string") {
         logAction("place-refused", actor(me, token), { house: slug, reason: result });
         seeOther(res, said(backTo(slug), REFUSALS[result]), setCookie);
         return;
       }
-      logAction("place", actor(me, token), { house: slug, thing: result });
+            logAction("place", actor(me, token), { house: slug, thing: result, photo: Boolean(photoName) });
       publish(slug, "placed");
       seeOther(res, backTo(slug), setCookie);
       return;

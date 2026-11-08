@@ -84,6 +84,21 @@ describe("the source files", () => {
     const events = readFileSync(new URL("events.ts", SRC), "utf8");
     expect(events).not.toContain("node:http");
   });
+
+  it("keeps node:http out of the multipart reader", () => {
+    // Same rule, and for a sharper reason: this is the one module that
+    // parses bytes a stranger sent. Keeping the request object out of it is
+    // what lets spec/multipart.test.ts feed it bodies no browser would
+    // send — a boundary with nothing after it, a part with no name, a file
+    // ending on a bare CR — without standing a server up to do it.
+    const multipart = readFileSync(new URL("multipart.ts", SRC), "utf8");
+    // Matched as a string LITERAL rather than as bare text, unlike the
+    // check above: that file's own header comment names the rule it is
+    // keeping, in backticks, and a blunt substring search reads the rule
+    // as a breach of itself. This still catches an import, a require and
+    // a dynamic one, which is the whole hazard.
+    expect(multipart).not.toMatch(/["']node:http["']/);
+  });
 });
 
 describe("the routes act as a person, never as a browser", () => {

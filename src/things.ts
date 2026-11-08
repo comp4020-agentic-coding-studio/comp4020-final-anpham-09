@@ -1,6 +1,7 @@
 import { db } from "./db.ts";
 import { houseBySlug } from "./houses.ts";
 import { nameForPersonId } from "./people.ts";
+import { isPhotoName } from "./photos.ts";
 
 export interface Perspective {
   author: string;
@@ -13,6 +14,9 @@ export interface ThingView {
   id: number;
   title: string;
   body: string;
+  /** The file name of the one photograph on this thing, or null. Never a
+   *  path: see src/photos.ts. */
+  photo: string | null;
   eventDate: string | null;
   placedBy: string;
   placedByName: string;
@@ -32,7 +36,12 @@ export interface ThingView {
   viewerHasPerspective: boolean;
 }
 
-export type PlaceRefusal = "unknown-house" | "blank-title" | "blank-body" | "table-full";
+export type PlaceRefusal =
+  | "unknown-house"
+  | "blank-title"
+  | "blank-body"
+  | "table-full"
+  | "photo-unnamed";
 export type PerspectiveRefusal = "unknown-thing" | "blank-body";
 export type KeepRefusal = "unknown-thing" | "own-thing" | "already" | "no-perspective" | null;
 
@@ -107,6 +116,10 @@ export function place(
   title: string,
   body: string,
   eventDate?: string,
+  /** A file name that src/photos.ts has already written. Checked again
+   *  here, because this is the function every path to a row goes through
+   *  and a path in this column would become a path in an img src. */
+  photo?: string,
 ): number | PlaceRefusal {
   const trimmedTitle = title.trim().slice(0, 120);
   const trimmedBody = body.trim().slice(0, 280);
@@ -132,12 +145,15 @@ export function place(
     return "table-full";
   }
 
-  const trimmedDate = eventDate?.trim().slice(0, 40) || null;
+    const trimmedDate = eventDate?.trim().slice(0, 40) || null;
+  const picture = photo?.trim() || null;
+  if (picture !== null && !isPhotoName(picture)) return "photo-unnamed";
   const info = db
     .prepare(
-      "INSERT INTO things (house_id, placed_by, title, body, event_date) VALUES (?, ?, ?, ?, ?)",
+      `INSERT INTO things (house_id, placed_by, title, body, event_date, photo)
+       VALUES (?, ?, ?, ?, ?, ?)`,
     )
-    .run(house.id, placedBy, trimmedTitle, trimmedBody, trimmedDate);
+    .run(house.id, placedBy, trimmedTitle, trimmedBody, trimmedDate, picture);
   return Number(info.lastInsertRowid);
 }
 
@@ -199,17 +215,18 @@ function viewsFor(houseSlug: string, viewer: string, shelfOnly: boolean): ThingV
   if (!house) return [];
   const rows = db
     .prepare(
-      `SELECT t.id, t.title, t.body, t.event_date AS eventDate,
+            `SELECT t.id, t.title, t.body, t.event_date AS eventDate, t.photo,
               t.placed_by AS placedBy, t.created_at AS createdAt
          FROM things t
         WHERE t.house_id = ?
         ORDER BY t.id DESC
         LIMIT 200`,
     )
-    .all(house.id) as Array<{
+        .all(house.id) as Array<{
     id: number;
     title: string;
     body: string;
+    photo: string | null;
     eventDate: string | null;
     placedBy: string;
     createdAt: string;
@@ -228,9 +245,10 @@ function viewsFor(houseSlug: string, viewer: string, shelfOnly: boolean): ThingV
       perspectivesFor.all(r.id) as Array<{ author: string; body: string; createdAt: string }>
     ).map((p) => ({ ...p, authorName: nameForPersonId(p.author) }));
     return {
-      id: r.id,
+            id: r.id,
       title: r.title,
       body: r.body,
+      photo: r.photo,
       eventDate: r.eventDate,
       placedBy: r.placedBy,
       placedByName: nameForPersonId(r.placedBy),

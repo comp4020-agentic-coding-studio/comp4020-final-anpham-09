@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, inject, it, describe } from "vitest";
 
 // Against the RUNNING app, because these are about what a browser gets.
@@ -1625,6 +1626,129 @@ describe("the room, as furniture", () => {
       }
     } finally {
       await s.post("/leave", {});
+    }
+  });
+});
+
+describe("a memory that carries a photograph", () => {
+  // These use `meeting`, which has no table and so no five-a-day budget to
+  // spend — see the allocation at the top of this file. A remark at the
+  // table takes a picture the same way a note in a house does, so the one
+  // uncapped room is also a fair place to test it.
+
+  /** A real multipart POST, the way a browser sends the composer. `fetch`
+   *  builds the body, which is deliberate: a parser tested only against
+   *  bodies this suite also wrote would agree with itself. */
+  async function placeWithPhoto(
+    s: Session,
+    fields: Record<string, string>,
+    file: { name: string; type: string; bytes: Uint8Array<ArrayBuffer> } | null,
+  ): Promise<string> {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(fields)) form.append(k, v);
+    if (file) form.append("photo", new Blob([file.bytes], { type: file.type }), file.name);
+    const res = await fetch(new URL("/place", baseUrl), {
+      method: "POST",
+      headers: { cookie: s.cookie() },
+      body: form,
+      redirect: "manual",
+    });
+    expect(res.status).toBe(303);
+    const to = res.headers.get("location") ?? "";
+    return new URL(to, baseUrl).searchParams.get("said") ?? "";
+  }
+
+  it("keeps the picture with the words, and serves it back byte for byte", async () => {
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Photo Keeper", "canberra");
+    try {
+      const file = readFileSync("img/family/an-duy-candle-1100x733.jpg");
+      const bytes = new Uint8Array(file.buffer.slice(file.byteOffset, file.byteOffset + file.byteLength)) as Uint8Array<ArrayBuffer>;
+      const marker = `photo test ${Date.now()}`;
+      const said = await placeWithPhoto(s, { house: "meeting", title: "", body: marker }, {
+        name: "whatever the browser called it.jpg",
+        type: "image/jpeg",
+        bytes,
+      });
+      expect(said, `the photograph was refused: ${said}`).toBe("");
+
+      const room = markup(await (await s.get("/house/meeting/room")).text());
+      const item = new RegExp(`<li class="thing thread-msg"(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?</li>`).exec(room);
+      expect(item, "the thing just placed is not in the room").not.toBeNull();
+
+      const src = /src="(\/photo\/[a-z0-9-]+\.jpg)"/.exec(item![0]);
+      expect(src, "the memory carries no picture").not.toBeNull();
+      // The name is the app's own, never the one the upload arrived with.
+      expect(src![1]).not.toContain("whatever");
+      // Both dimensions are on the element, or every card jumps as the
+      // picture loads.
+      expect(item![0]).toMatch(/width="1100" height="733"/);
+      // Empty alt inside a figure: the caption is the description, and the
+      // app will not invent one.
+      expect(item![0]).toContain('alt=""');
+      expect(item![0]).toContain("<figcaption");
+
+      const got = await s.get(src![1]);
+      expect(got.status).toBe(200);
+      expect(got.headers.get("content-type")).toBe("image/jpeg");
+      const served = new Uint8Array(await got.arrayBuffer());
+      expect(served.length, "the served picture is not the size of the one sent").toBe(bytes.length);
+      expect(Buffer.from(served).equals(Buffer.from(bytes))).toBe(true);
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("refuses a file that is not a picture, in words, and writes nothing", async () => {
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Photo Refuser", "canberra");
+    try {
+      const marker = `not a picture ${Date.now()}`;
+      const said = await placeWithPhoto(s, { house: "meeting", title: "", body: marker }, {
+        name: "sneaky.jpg",
+        type: "image/jpeg",
+        bytes: new TextEncoder().encode("<!doctype html><script>alert(1)</script>") as Uint8Array<ArrayBuffer>,
+      });
+      expect(said, "a file that is not a picture was accepted").toContain("isn't a picture the app can read");
+      // The words were refused along with the picture, so nothing is half
+      // written: no row pointing at a file that was never stored.
+      const room = markup(await (await s.get("/house/meeting/room")).text());
+      expect(room).not.toContain(marker);
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("still takes a memory with no picture at all, and renders no empty frame", async () => {
+    const s = session();
+    await s.get("/");
+    await signIn(s, "Photo Absent", "canberra");
+    try {
+      const marker = `no picture ${Date.now()}`;
+      const said = await placeWithPhoto(s, { house: "meeting", title: "", body: marker }, null);
+      expect(said).toBe("");
+      const room = markup(await (await s.get("/house/meeting/room")).text());
+      const item = new RegExp(`<li class="thing thread-msg"(?:(?!</li>)[\\s\\S])*?${marker}[\\s\\S]*?</li>`).exec(room);
+      expect(item, "the thing just placed is not in the room").not.toBeNull();
+      expect(item![0], "a memory with no picture rendered a figure anyway").not.toContain("<figure");
+      expect(item![0]).toContain('<p class="body">');
+    } finally {
+      await s.post("/leave", {});
+    }
+  });
+
+  it("answers 404 for a photograph name that tries to leave the directory", async () => {
+    const s = session();
+    await s.get("/");
+    // Not a traversal test through `fetch`, which normalises `..` away
+    // before sending — see the note on the path-character test above. This
+    // asks the question the route can actually be asked: a name the route's
+    // own pattern must not match.
+    for (const name of ["..%2F..%2Fpackage.json", "a.svg", "A.jpg", "sub%2Fa.jpg", "a.jpg.exe"]) {
+      const res = await s.get(`/photo/${name}`);
+      expect(res.status, `/photo/${name} did not 404`).toBe(404);
     }
   });
 });

@@ -215,6 +215,14 @@ if (!thingsColumns.has("event_date")) {
 if (!thingsColumns.has("game_id")) {
   db.exec("ALTER TABLE things ADD COLUMN game_id INTEGER REFERENCES games(id)");
 }
+// One photograph per thing, as a file name and never a path — src/photos.ts
+// owns what a valid name is and which of the two directories it is read
+// from. Nullable because almost nothing has one: the app kept photographs
+// out entirely until the family asked for them, and a memory is still a
+// memory without one.
+if (!thingsColumns.has("photo")) {
+  db.exec("ALTER TABLE things ADD COLUMN photo TEXT");
+}
 
 // Houses are fixed furniture, not user-created content: the village is this
 // family's three homes and the place they meet, and nothing in the app adds

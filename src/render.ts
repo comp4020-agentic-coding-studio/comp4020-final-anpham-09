@@ -6,6 +6,7 @@ import { isQuanPit } from "./oanquan.ts";
 import { displayName, getPerson, type Person } from "./people.ts";
 import { householdOf } from "./accounts.ts";
 import { NOTES_A_DAY, type NoteDay, type ThingView } from "./things.ts";
+import { sizeOfName } from "./photos.ts";
 
 export const esc = (s: string): string =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -1071,6 +1072,26 @@ li.card-shelf:nth-of-type(odd), li.card-shelf:nth-of-type(even) { transform: non
 .drawer-foot .memory-compose { gap: .35rem; }
 a.drawer-link { font-size: .85rem; min-height: 44px; display: inline-flex; align-items: center; }
 
+/* --- A photograph on a memory --- */
+/* The picture and the words are one thing, so they are one <figure>: the
+   caption IS the description, which is why the image's alt is empty. */
+.thing-figure { margin: 0 0 .25rem; display: grid; gap: .5rem; }
+.thing-photo {
+  display: block; width: auto; height: auto;
+  /* The box is the picture. Sizing it to the column instead would letterbox
+     every portrait photograph against a panel of empty paper, which is what
+     the first version of this did. Both intrinsic dimensions are on the
+     element, so the browser knows the shape before the bytes arrive and the
+     card is never the wrong height. */
+  max-width: 100%; max-height: 20rem;
+  border-radius: .5rem;
+}
+.thing-figure .body { margin: 0; }
+.album[data-open="true"] .thing-photo { max-height: 13rem; }
+.optional-photo > summary { cursor: pointer; }
+.optional-photo input[type="file"] { font-size: .8125rem; }
+.optional-photo .note { margin-top: .35rem; }
+
 /* --- The note board --- */
 /* Sorted by the day each note was left, because that is the one order an
    archive of a family's days can be read in. */
@@ -1218,6 +1239,30 @@ const names = (list: string[]): string =>
  *  person was there for, kept together on purpose. The app never collapses
  *  them, and never implies presence alone is what moved it — see
  *  `consequenceLine` for the same rule applied to what happens next. */
+/** A memory's photograph, with the memory's own words as its caption.
+ *
+ *  `alt` is empty on purpose, and that is the accessible answer rather than
+ *  a lapse: the app has no idea what is in the picture, and a description
+ *  it invented would be exactly the false label the house pictures are
+ *  careful not to be. An empty alt inside a <figure> says "the caption is
+ *  the description", and the caption is what the person who was there
+ *  actually wrote.
+ *
+ *  Width and height come out of the file name, which carries the size the
+ *  bytes themselves reported — so the card is the right height before the
+ *  picture arrives and nothing on the page jumps.
+ */
+function bodyWithPhoto(t: ThingView): string {
+  const words = `<p class="body">${esc(t.body)}</p>`;
+  if (!t.photo) return words;
+  const size = sizeOfName(t.photo);
+  const dims = size ? ` width="${size.w}" height="${size.h}"` : "";
+  return `<figure class="thing-figure">
+    <img class="thing-photo" src="/photo/${esc(t.photo)}"${dims} alt="" loading="lazy" decoding="async">
+    <figcaption class="body">${esc(t.body)}</figcaption>
+  </figure>`;
+}
+
 function stateLine(t: ThingView): string {
   if (!t.onShelf) {
     return `<span class="state" data-state="in-the-room">In the room</span>
@@ -1284,7 +1329,7 @@ function dateMeta(t: ThingView): string {
 function thingItem(t: ThingView, houseSlug: string): string {
   return `<li class="thing">
     ${titleLine(t)}
-    <p class="body">${esc(t.body)}</p>
+    ${bodyWithPhoto(t)}
     ${dateMeta(t)}
     ${stateRow(t)}
     ${perspectivesList(t)}
@@ -1380,8 +1425,8 @@ function threadMessage(t: ThingView, houseSlug: string, sameSender = false): str
     <div class="thread-body">
       <p class="thread-meta"><strong>${esc(t.placedByName)}</strong> ${homeChip(t.placedBy)}
         <span class="thread-time">${esc(timeAgo(t.createdAt))}</span></p>
-      ${titleLine(t)}
-      <p class="body">${esc(t.body)}</p>
+            ${titleLine(t)}
+      ${bodyWithPhoto(t)}
       ${eventAndKeptMeta(t)}
       ${stateRow(t)}
       ${perspectivesList(t)}
@@ -2103,7 +2148,7 @@ export function housePage(
   // messages at the table, in the side panel everywhere else. Same form
   // either way — a plain POST to /place that works with JavaScript off.
   const composerBlock = mayPutDown
-    ? `<form method="post" action="/place" id="compose" class="${isMeeting ? "say" : "memory-compose"}">
+    ? `<form method="post" action="/place" id="compose" enctype="multipart/form-data" class="${isMeeting ? "say" : "memory-compose"}">
             ${isMeeting ? "" : '<h3>Add a note to the table</h3>'}
             <input type="hidden" name="house" value="${esc(house.slug)}">
             ${
@@ -2114,12 +2159,16 @@ export function housePage(
             }
             <label for="body"${isMeeting ? ' class="visually-hidden"' : ""}>${esc(composeLabel)}</label>
             ${isMeeting ? '<input id="body" name="body" required maxlength="280" placeholder="Send a message…" autocomplete="off">' : '<textarea id="body" name="body" required maxlength="280" rows="4" placeholder="What do you want to remember?"></textarea>'}
-            ${
+                        ${
               isMeeting
                 ? ""
                 : `<details class="optional-date"><summary>Add a date <span class="note">(optional)</span></summary><label for="event_date">When did this happen?</label>
             <input id="event_date" name="event_date" maxlength="40" placeholder="March 2019, or any time you like"></details>`
             }
+            <details class="optional-photo"><summary>Add a picture <span class="note">(optional)</span></summary>
+            <label for="photo">One photograph, up to four megabytes</label>
+            <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
+            <p class="note">It goes with these words and stays with them. There is no album of pictures on their own.</p></details>
             <button class="primary">${esc(composeButton)}</button>
           </form>`
     : "";
@@ -2676,9 +2725,9 @@ function keptSpan(things: ThingView[]): string {
 function shelfCard(t: ThingView, house: House): string {
   const everyone = [t.placedByName, ...t.keeperNames];
   return `<li class="thing card-shelf">
-    <div class="card-shelf-body">
+        <div class="card-shelf-body">
       ${titleLine(t, "h3")}
-      <p class="body">${esc(t.body)}</p>
+      ${bodyWithPhoto(t)}
       ${t.perspectives.length ? perspectivesList(t) : ""}
     </div>
     <div class="card-shelf-foot">

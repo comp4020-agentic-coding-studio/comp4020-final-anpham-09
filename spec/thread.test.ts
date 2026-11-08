@@ -16,6 +16,7 @@ const view = (over: Partial<ThingView> = {}): ThingView => ({
   id: 1,
   title: "",
   body: "I used to play this after school.",
+  photo: null,
   eventDate: null,
   placedBy: "dad",
   placedByName: "Dad",

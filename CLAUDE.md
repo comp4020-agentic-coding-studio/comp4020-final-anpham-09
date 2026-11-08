@@ -63,8 +63,31 @@ change would make any line here false, the change is wrong, not the line.
   turns over at 7am in Nghe An and Hanoi, 11am in Canberra. A local
   midnight would need a timezone stored per account, and the account is a
   name, a password and a household.
+- **A photograph belongs to a memory, and there is no album of pictures on
+  their own.** One picture per thing, carried with the words somebody wrote
+  and reaching the shelf only when the memory does. This is the README's
+  argument about photo services applied rather than abandoned: what fails
+  there is keeping everything sorted by date with no idea which mattered,
+  and a picture that only exists because two people agreed the moment was
+  worth keeping is the opposite of that. A gallery view, a photos tab, or
+  anything that lets pictures be browsed apart from their words would undo
+  it.
+- **The app never says what is in a photograph.** `alt` is empty and the
+  picture sits in a `<figure>` whose caption is the person's own words, so
+  the description a reader gets is the one somebody who was there wrote. An
+  invented description is the same false label as a stand-in picture
+  claiming to be the real place. If alt text is ever wanted, ask the person
+  for it; do not generate it.
+- **A stored photograph is named by the app, and its format is read from
+  its bytes.** The filename on an upload is the one form field that arrives
+  already shaped like a path, and the content-type is a claim by whoever
+  sent the request. `src/photos.ts` generates the name and sniffs the magic
+  number; nothing else may write into the photo directory.
 - **Never claim privacy the app does not have.** The deployment is a public
-  URL. The README says so plainly rather than implying the village is sealed.
+  URL, and since the family's own photographs are now in the repository and
+  on that URL, it is a public URL with pictures of a child on it. That was
+  the owner's decision, made with the consequence in front of him; the
+  README must not describe the village as private.
 
 ## Rules that live in the schema, not just in code
 
@@ -197,6 +220,13 @@ it before calling a visual change done.
   Known, documented in the README, not silently worked around.
 - **`src/events.ts` has no `node:http` import.** That is what makes real-time
   testable without starting a server. Keep it that way.
+- **`src/multipart.ts` has no `node:http` import either**, and that one
+  matters more: it is the only code in the app that parses bytes a stranger
+  sent, so it has to be testable against bodies no browser would ever send.
+  `spec/sources.test.ts` guards both. The parser exists at all because of
+  the one-dependency rule below — a form carrying a photograph is the only
+  thing in the village that is not urlencoded, and eighty lines cost less
+  than a package on a 256MB machine.
 - **`src/oanquan.ts` has no imports at all.** The rules are pure functions
   over a board value, which is what lets the conservation property test play
   thousands of games with no database and no server. An import of `./db.ts`
@@ -305,6 +335,10 @@ it before calling a visual change done.
   headings, paragraphs, lists, blockquotes, fenced code and inline
   bold/italic/code/links — and nothing else. Write `README.md` inside that
   subset, with exactly one `#` heading.
-- **House pictures are stand-ins** until the family takes real ones, and the
-  caption under each says so. A picture that implies it is the real place when
-  it is not breaks the same rule as a false label.
+- **There are two kinds of picture, and only one is a stand-in.** The house
+  and scene photographs in `img/` are stock, the caption under each says so,
+  and a picture that implied it was the real place would break the same rule
+  as a false label. The photographs on memories are the family's own: they
+  live in `img/family/` when they ship with the app and on `/data/photos`
+  when they were uploaded, one route reads both, and neither is captioned as
+  a stand-in because neither is one.

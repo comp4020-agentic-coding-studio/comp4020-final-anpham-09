@@ -9,8 +9,8 @@ months old: the reason it exists, and the only one who cannot use it.
 We already have a group chat, so reaching each other was never the problem.
 Nothing survives it: An Duy's first year is in that scroll and nobody will
 go back far enough to find it. Photo services fail from the other end,
-keeping everything, which is the same as keeping nothing: forty thousand
-files sorted by date with no idea which mattered.
+keeping everything — which is keeping nothing: forty thousand files sorted
+by date with no idea which mattered.
 
 Sharing is solved. Keeping is not. This app is only about keeping.
 
@@ -19,19 +19,20 @@ Sharing is solved. Keeping is not. This app is only about keeping.
 Putting something down is not keeping it. What you place stays in the room,
 and reaches that house's shelf only when somebody else writes their own side
 of it and chooses to keep it together. Then it carries both names and the
-day. Nothing is withheld and nothing expires.
+day. Nothing is withheld and nothing expires. It may carry one photograph,
+as part of those words and never in a gallery of its own: a picture two
+people kept is the opposite of forty thousand.
 
 Houses, then, not a feed: a feed has one direction and nowhere to stand. And
 a room is a room — it holds furniture, not a list. The notes are on the
 table, the album is on the shelf, and each home keeps its own book, which
 somebody takes down and opens.
 
-A table is a surface, not storage, so it holds five notes a day: the table's
-five, shared, not five each. Six of us around one table no more get thirty
-notes a day than thirty plates. The day turns and the table is clear — every
-note is on the note board behind it, under the day it was left. It refuses
-only starting: writing your side of what is here is never capped, or a busy
-Tuesday could stop a memory being a memory.
+A table is a surface, not storage, so it holds five notes a day: the
+table's five, shared — six of us no more get thirty notes a day than thirty
+plates. The day turns and the table is clear, every note on the note board
+behind it under the day it was left. It refuses only starting; writing your
+side of what is here is never capped.
 
 Belonging to a house decides one thing only: whether you can **start**
 something there. I live alone in Canberra — if responding were the
@@ -53,18 +54,17 @@ interface.
 
 ## What it costs, and what I cut
 
-A password proves who holds a browser, never who is at the keyboard. There
-is no lockout: unlocking one needs an address to send to. Times are UTC, so
-a table turns over at 7am in Nghe An, not midnight.
+A password proves who holds a browser, never who is at the keyboard, and there is no lockout: unlocking one needs an address to send to.
+Times are UTC, so a table turns over at 7am in Nghe An, not midnight. The
+deployment is a public URL with the family's photographs on it: a
+decision, not an oversight.
 
-Cut: notifications, private messages, photo uploads, likes, tags, deleting,
-editing. Privacy comes from which room you are in, not a recipient field.
-The meeting house borrows the group chat's shape and changes only its
-ending: a remark there can be taken up by somebody else and kept.
+Cut: notifications, private messages, likes, tags, deleting, editing. The
+meeting house borrows the group chat's shape and changes only its ending: a remark there can be kept by somebody else.
 
 JavaScript adds four things and takes none away: the typing line, the
-travelling stones, the books that open, the drawers that shut. Blocked, each
-is simply absent — every action here is a form POST.
+travelling stones, the books, the drawers. Blocked, each is simply absent —
+every action is a form POST.
 
-241 checks in `spec/`, each broken once and seen to fail before it was
+258 checks in `spec/`, each broken once and seen to fail before it was
 trusted. Judged, not tested: whether the village reads as a place.
