@@ -89,11 +89,11 @@ database that has not already spent today.
 assessment requirement and the reason the gate 6 report is a list of proposed
 edits rather than a diff.
 
-**It costs context before it saves any.** `agent-orchestrator.md` is about
-four thousand words that must be read before work starts. That is worth it
-for a rebuild and not worth it for a one-file change — which is why most of
-the seventy-four commits on `main` since gate 6 are ordinary single-agent
-work under `CLAUDE.md`, not gated runs. The gated workflow is a tool for a
+**It costs context before it saves any.** `agent-orchestrator.md` is 3,665
+words that must be read before work starts. That is worth it for a rebuild
+and not worth it for a one-file change — which is why the large majority of
+the commits on `main` since gate 6 (72 as at 9 November) are ordinary
+single-agent work under `CLAUDE.md`, not gated runs. The gated workflow is a tool for a
 particular size of change, not a process the project runs continuously, and
 saying otherwise would overstate it.
 
